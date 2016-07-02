@@ -77,7 +77,7 @@ function l2tp_users_sort() {
 	usort($config['l2tp']['user'], "l2tpusercmp");
 }
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("vpn.inc");
 
 if (!is_array($config['l2tp']['user'])) {
@@ -199,7 +199,7 @@ $pwd = new Form_Input(
 );
 
 if (isset($id) && $a_secret[$id]) {
-	$pwd->setHelp('If you want to change the users password, enter it here.');
+	$pwd->setHelp('To change the users password, enter it here.');
 }
 
 $section->addPassword($pwd);
@@ -208,7 +208,7 @@ $section->addInput(new Form_IpAddress(
 	'ip',
 	'IP Address',
 	$pconfig['ip']
-))->setHelp('If you want the user to be assigned a specific IP address, enter it here.');
+))->setHelp('To assign the user a specific IP address, enter it here.');
 
 $form->add($section);
 

@@ -69,11 +69,11 @@ function allowedhostnames_sort() {
 	usort($config['captiveportal'][$cpzone]['allowedhostname'], "allowedhostnamescmp");
 }
 
-require("guiconfig.inc");
-require("functions.inc");
+require_once("guiconfig.inc");
+require_once("functions.inc");
 require_once("filter.inc");
-require("shaper.inc");
-require("captiveportal.inc");
+require_once("shaper.inc");
+require_once("captiveportal.inc");
 
 global $cpzone, $cpzoneid;
 
@@ -81,6 +81,8 @@ $cpzone = $_GET['zone'];
 if (isset($_POST['zone'])) {
 	$cpzone = $_POST['zone'];
 }
+$cpzone = strtolower($cpzone);
+
 $cpzoneid = $config['captiveportal'][$cpzone]['zoneid'];
 
 if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
@@ -199,10 +201,7 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-$form = new Form(new Form_Button(
-	'Submit',
-	gettext("Save")
-));
+$form = new Form();
 
 $section = new Form_Section('Captive Portal Hostname Settings');
 
@@ -226,7 +225,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 $section->addInput(new Form_Input(
 	'bw_up',

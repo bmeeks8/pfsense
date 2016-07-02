@@ -62,7 +62,7 @@
 ##|-PRIV
 
 define('NUMACLS', 50); // The maximum number of configurable ACLs
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once('rrd.inc');
 require_once("shaper.inc");
 
@@ -119,20 +119,20 @@ if ($_POST) {
 			/* End ACL Flags */
 
 			if (!is_ipaddr($networkacl[$x]['acl_network'])) {
-				$input_errors[] = gettext("You must enter a valid IP address for each row under Networks.");
+				$input_errors[] = gettext("A valid IP address must be entered for each row under Networks.");
 			}
 			if (is_ipaddr($networkacl[$x]['acl_network'])) {
 				if (!is_subnet($networkacl[$x]['acl_network']."/".$networkacl[$x]['mask'])) {
-					$input_errors[] = gettext("You must enter a valid IPv4 netmask for each IPv4 row under Networks.");
+					$input_errors[] = gettext("A valid IPv4 netmask must be entered for each IPv4 row under Networks.");
 				}
 			} else if (function_exists("is_ipaddrv6")) {
 				if (!is_ipaddrv6($networkacl[$x]['acl_network'])) {
-					$input_errors[] = gettext("You must enter a valid IPv6 address for {$networkacl[$x]['acl_network']}.");
+					$input_errors[] = gettext("A valid IPv6 address must be entered for {$networkacl[$x]['acl_network']}.");
 				} else if (!is_subnetv6($networkacl[$x]['acl_network']."/".$networkacl[$x]['mask'])) {
-					$input_errors[] = gettext("You must enter a valid IPv6 netmask for each IPv6 row under Networks.");
+					$input_errors[] = gettext("A valid IPv6 netmask must be entered for each IPv6 row under Networks.");
 				}
 			} else {
-				$input_errors[] = gettext("You must enter a valid IP address for each row under Networks.");
+				$input_errors[] = gettext("A valid IP address must be entered for each row under Networks.");
 			}
 		} else if (isset($networkacl[$x])) {
 			unset($networkacl[$x]);
@@ -317,8 +317,10 @@ foreach ($networkacl as $item) {
 
 	$group->add(new Form_Button(
 		'deleterow' . $counter,
-		'Delete'
-	))->removeClass('btn-primary')->addClass('btn-warning');
+		'Delete',
+		null,
+		'fa-trash'
+	))->addClass('btn-warning');
 
 	$group->addClass('repeatable');
 	$section->add($group);
@@ -328,8 +330,10 @@ foreach ($networkacl as $item) {
 
 $section->addInput(new Form_Button(
 	'addrow',
-	'Add'
-))->removeClass('btn-primary')->addClass('btn-success');
+	'Add',
+	null,
+	'fa-plus'
+))->addClass('btn-success');
 
 $form->add($section);
 

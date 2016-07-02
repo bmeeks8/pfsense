@@ -74,12 +74,8 @@ if (empty($argument)) {
 $interface_descr = convert_friendly_interface_to_friendly_descr($interface);
 
 if (empty($interface)) {
+	log_error("rc.newwanipv6 called with empty interface");
 	filter_configure();
-	return;
-}
-
-//Do not process while booting
-if (platform_booting() && $config['interfaces'][$interface]['ipaddrv6'] != "dhcp6") {
 	return;
 }
 
@@ -148,6 +144,11 @@ system_routing_configure($interface);
 
 /* reconfigure our gateway monitor */
 setup_gateways_monitor();
+
+if (platform_booting()) {
+	// avoid race conditions in many of the below functions that occur during boot
+	exit;
+}
 
 /* signal filter reload */
 filter_configure();

@@ -81,7 +81,7 @@ if (!$g['services_dhcp_server_enable']) {
 	exit;
 }
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 
 $if = $_GET['if'];
 if ($_POST['if']) {
@@ -274,7 +274,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 if($netboot_enabled) {
 	$section->addInput(new Form_Input(

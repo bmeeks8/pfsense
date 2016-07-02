@@ -64,7 +64,7 @@
 ##|*MATCH=system_advanced_sysctl.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 
 if (!is_array($config['sysctl'])) {
 	$config['sysctl'] = array();
@@ -142,8 +142,8 @@ if ($_POST) {
 
 		if (!$_POST['tunable'] || !isset($_POST['value'])) {
 			$input_errors[] = gettext("Both a name and a value must be specified.");
-		} else if (!ctype_alnum($_POST['value'])) {
-			$input_errors[] = gettext("The value may contain alphanumeric characters only.");
+		} else if (preg_match("/[^a-zA-Z0-9.\-_%\/]/", $_POST['value'])) {
+			$input_errors[] = gettext("The value may only contain alphanumeric characters, -, _, %, and /.");
 		} else {
 			$tunableent['tunable'] = htmlspecialchars($_POST['tunable']);
 			$tunableent['value'] = htmlspecialchars($_POST['value']);
@@ -179,7 +179,7 @@ if ($savemsg) {
 }
 
 if (is_subsystem_dirty('sysctl') && ($act != "edit" )) {
-	print_apply_box(gettext("The firewall tunables have changed.") . "<br />" . gettext("You must apply the changes in order for them to take effect."));
+	print_apply_box(gettext("The firewall tunables have changed.") . "<br />" . gettext("The changes must be applied for them to take effect."));
 }
 
 $tab_array = array();
@@ -205,7 +205,7 @@ if ($act != "edit"): ?>
 						<th class="col-sm-3"><?=gettext("Tunable Name"); ?></th>
 						<th><?=gettext("Description"); ?></th>
 						<th class="col-sm-1"><?=gettext("Value"); ?></th>
-						<th><a class="btn btn-xs btn-primary" href="system_advanced_sysctl.php?act=edit"><?=gettext('New'); ?></a></th>
+						<th><a class="btn btn-xs btn-success" href="system_advanced_sysctl.php?act=edit"><i class="fa fa-plus icon-embed-btn"></i><?=gettext('New'); ?></a></th>
 					</tr>
 				</thead>
 				<?php

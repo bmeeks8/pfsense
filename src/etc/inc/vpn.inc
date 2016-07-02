@@ -58,6 +58,7 @@
 
 require_once("ipsec.inc");
 require_once("filter.inc");
+require_once("auth.inc");
 
 function vpn_update_daemon_loglevel($category, $level) {
 	global $ipsec_log_cats, $ipsec_log_sevs;
@@ -152,6 +153,8 @@ function vpn_ipsec_convert_to_modp($index) {
 function vpn_ipsec_configure($restart = false) {
 	global $config, $g, $sa, $sn, $p1_ealgos, $p2_ealgos, $ipsec_idhandling;
 
+	$ipsecstartlock = lock('ipsec', LOCK_EX);
+
 	/* get the automatic ping_hosts.sh ready */
 	unlink_if_exists("{$g['vardb_path']}/ipsecpinghosts");
 	touch("{$g['vardb_path']}/ipsecpinghosts");
@@ -174,6 +177,7 @@ function vpn_ipsec_configure($restart = false) {
 		/* IPSEC is off, shutdown enc interface.*/
 		mwexec("/sbin/ifconfig enc0 down");
 
+		unlock($ipsecstartlock);
 		return 0;
 	}
 
@@ -806,7 +810,7 @@ EOD;
 			if (empty($key['type'])) {
 				$key['type'] = 'PSK';
 			}
-			$pskconf .= "{$myid} {$key['ident']} : {$key['type']} 0s" . base64_encode($key['pre-shared-key']) . "\n";
+			$pskconf .= " {$key['ident']} : {$key['type']} 0s" . base64_encode($key['pre-shared-key']) . "\n";
 		}
 		unset($key);
 	}
@@ -1110,6 +1114,7 @@ EOD;
 					$authentication .= "\n\trightauth2 = xauth-generic";
 					if (!empty($ph1ent['certref'])) {
 						$authentication .= "\n\tleftcert={$certpath}/cert-{$ph1ent['ikeid']}.crt";
+						$authentication .= "\n\tleftsendcert=always";
 					}
 					if (isset($casub)) {
 						$authentication .= "\n\trightca=\"$casub\"";
@@ -1126,6 +1131,7 @@ EOD;
 					$authentication = "leftauth = pubkey\n\trightauth = pubkey";
 					if (!empty($ph1ent['certref'])) {
 						$authentication .= "\n\tleftcert={$certpath}/cert-{$ph1ent['ikeid']}.crt";
+						$authentication .= "\n\tleftsendcert=always";
 					}
 					if (isset($casub)) {
 						$authentication .= "\n\trightca=\"$casub\"";
@@ -1135,6 +1141,7 @@ EOD;
 					$authentication = "leftauth = pubkey\n\trightauth = xauth-generic";
 					if (!empty($ph1ent['certref'])) {
 						$authentication .= "\n\tleftcert={$certpath}/cert-{$ph1ent['ikeid']}.crt";
+						$authentication .= "\n\tleftsendcert=always";
 					}
 					break;
 			}
@@ -1265,7 +1272,7 @@ EOD;
 
 								if (!empty($ealg_kl) && $ealg_kl == "auto") {
 									if (empty($p2_ealgos) || !is_array($p2_ealgos)) {
-										require("ipsec.inc");
+										require_once("ipsec.inc");
 									}
 									$key_hi = $p2_ealgos[$ealg_id]['keysel']['hi'];
 									$key_lo = $p2_ealgos[$ealg_id]['keysel']['lo'];
@@ -1359,10 +1366,11 @@ EOD;
 
 EOD;
 
+			/* Disable ipcomp for now. redmine #6167
 			if (isset($config['ipsec']['compression'])) {
 				$ipsecconnect .= "\tcompress = yes\n";
 				$enablecompression = true;
-			}
+			} */
 			if (!empty($ikelifeline)) {
 				$ipsecconnect .= "\t{$ikelifeline}\n";
 			}
@@ -1387,7 +1395,7 @@ EOD;
 			if (!empty($peerid_spec)) {
 				$ipsecconnect .= "\trightid = {$peerid_spec}\n";
 			}
-			if ($keyexchange == 'ikev1') {
+			if ($keyexchange != 'ikev2') {
 				$ipsecconnect .= "\taggressive = {$aggressive}\n";
 			}
 
@@ -1495,6 +1503,7 @@ EOD;
 		echo "done\n";
 	}
 
+	unlock($ipsecstartlock);
 	return count($filterdns_list);
 }
 

@@ -243,10 +243,10 @@ class Form_Input extends Form_Element
 		if (!isset($this->_help) && '<div>' == $column)
 			return (string)$input;
 
-		if (isset($this->_help))
+		if (!empty($this->_help))
 		{
 			/* Strings longer than this will break gettext. */
-			if (strlen($this->_help) < 7620) {
+			if (strlen($this->_help) < 4096) {
 				$help = gettext($this->_help);
 			} else {
 				$help = $this->_help;

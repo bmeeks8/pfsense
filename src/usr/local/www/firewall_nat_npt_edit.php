@@ -63,10 +63,10 @@
 
 require_once("ipsec.inc");
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("interfaces.inc");
 require_once("filter.inc");
-require("shaper.inc");
+require_once("shaper.inc");
 
 $ifdisp = get_configured_interface_with_descr();
 
@@ -233,7 +233,7 @@ $section->addInput(new Form_Select(
 	$pconfig['interface'],
 	build_if_list()
 ))->setHelp('Choose which interface this rule applies to.' . '<br />' .
-			'Hint: in most cases, you\'ll want to use "WAN" here.');
+			'Hint: Typically the "WAN" is used here.');
 
 $section->addInput(new Form_Checkbox(
 	'srcnot',
@@ -245,7 +245,8 @@ $section->addInput(new Form_Checkbox(
 $section->addInput(new Form_IpAddress(
 	'src',
 	'Address',
-	$pconfig['src']
+	$pconfig['src'],
+	'V6'
 ))->addMask('srcmask', $pconfig['srcmask'])->setHelp('Internal (LAN) ULA IPv6 Prefix for the Network Prefix translation. ' .
 													 'The prefix size specified for the internal IPv6 prefix will be applied to the external prefix.');
 
@@ -259,7 +260,8 @@ $section->addInput(new Form_Checkbox(
 $section->addInput(new Form_IpAddress(
 	'dst',
 	'Address',
-	$pconfig['dst']
+	$pconfig['dst'],
+	'V6'
 ))->addMask('dstmask', $pconfig['dstmask'])->setHelp('Global Unicast routable IPv6 prefix');
 
 $section->addInput(new Form_Input(
@@ -267,7 +269,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 if (isset($id) && $a_npt[$id]) {
 	$section->addInput(new Form_Input(

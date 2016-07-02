@@ -61,10 +61,9 @@
 ##|-PRIV
 
 $pgtitle = array(gettext("Diagnostics"), gettext("DNS Lookup"));
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 
 $host = trim($_REQUEST['host'], " \t\n\r\0\x0B[];\"'");
-$host_esc = escapeshellarg($host);
 
 /* If this section of config.xml has not been populated yet we need to set it up
 */
@@ -73,7 +72,7 @@ if (!is_array($config['aliases']['alias'])) {
 }
 $a_aliases = &$config['aliases']['alias'];
 
-$aliasname = str_replace(array(".", "-"), "_", $host);
+$aliasname = substr(str_replace(array(".", "-"), "_", $host), 0, 31);
 $alias_exists = false;
 $counter = 0;
 foreach ($a_aliases as $a) {
@@ -84,42 +83,77 @@ foreach ($a_aliases as $a) {
 	$counter++;
 }
 
-if (isset($_POST['create_alias']) && (is_hostname($host) || is_ipaddr($host))) {
-	if ($_POST['override']) {
-		$override = true;
+function resolve_host_addresses($host) {
+	$recordtypes = array(DNS_A, DNS_AAAA, DNS_CNAME);
+	$dnsresult = array();
+	$resolved = array();
+	$errreporting = error_reporting();
+	error_reporting($errreporting & ~E_WARNING);// dns_get_record throws a warning if nothing is resolved..
+	foreach($recordtypes as $recordtype) {
+		$tmp = dns_get_record($host, $recordtype);
+		if (is_array($tmp)) {
+			$dnsresult = array_merge($dnsresult, $tmp);
+		}
 	}
+	error_reporting($errreporting);// restore original php warning/error settings.
+	
+	foreach($dnsresult as $item) {
+		$newitem = array();
+		$newitem['type'] = $item['type'];
+		switch ($item['type']) {
+			case 'CNAME':
+				$newitem['data'] = $item['target'];
+				$resolved[] = $newitem;
+				break;
+			case 'A':
+				$newitem['data'] = $item['ip'];
+				$resolved[] = $newitem;
+				break;
+			case 'AAAA':
+				$newitem['data'] = $item['ipv6'];
+				$resolved[] = $newitem;
+				break;
+				
+		}
+	}
+	return $resolved;
+}
+
+if (isset($_POST['create_alias']) && (is_hostname($host) || is_ipaddr($host))) {
 	$resolved = gethostbyname($host);
 	$type = "hostname";
 	if ($resolved) {
-		$resolved = array();
-		exec("/usr/bin/drill {$host_esc} A | /usr/bin/grep {$host_esc} | /usr/bin/grep -v ';' | /usr/bin/awk '{ print $5 }'", $resolved);
+		$resolved = resolve_host_addresses($host);
 		$isfirst = true;
 		foreach ($resolved as $re) {
-			if ($re != "") {
+			if ($re['data'] != "") {
 				if (!$isfirst) {
 					$addresses .= " ";
 				}
-				$addresses .= rtrim($re) . "/32";
+				$re = rtrim($re['data']);
+				if (is_ipaddr($re)) {
+					$sn = is_ipaddrv6($re) ? '/128' : '/32';
+				} else {
+					// The name was a CNAME and resolved to another name, rather than an address.
+					// In this case the alias entry will have a FQDN, so do not put a CIDR after it.
+					$sn = "";
+				}
+				$addresses .= $re . $sn;
 				$isfirst = false;
 			}
 		}
 		$newalias = array();
-		if ($override) {
-			$alias_exists = false;
+		$newalias['name'] = $aliasname;
+		$newalias['type'] = "network";
+		$newalias['address'] = $addresses;
+		$newalias['descr'] = gettext("Created from Diagnostics-> DNS Lookup");
+		if ($alias_exists) {
+			$a_aliases[$id] = $newalias;
+		} else {
+			$a_aliases[] = $newalias;
 		}
-		if ($alias_exists == false) {
-			$newalias['name'] = $aliasname;
-			$newalias['type'] = "network";
-			$newalias['address'] = $addresses;
-			$newalias['descr'] = gettext("Created from Diagnostics-> DNS Lookup");
-			if ($override) {
-				$a_aliases[$id] = $newalias;
-			} else {
-				$a_aliases[] = $newalias;
-			}
-			write_config();
-			$createdalias = true;
-		}
+		write_config();
+		$createdalias = true;
 	}
 }
 
@@ -167,8 +201,7 @@ if ($_POST) {
 			$type = "hostname";
 			$resolved = gethostbyname($host);
 			if ($resolved) {
-				$resolved = array();
-				exec("/usr/bin/drill {$host_esc} A | /usr/bin/grep {$host_esc} | /usr/bin/grep -v ';' | /usr/bin/awk '{ print $5 }'", $resolved);
+				$resolved = resolve_host_addresses($host);
 			}
 			$hostname = $host;
 			if ($host != $resolved) {
@@ -216,10 +249,14 @@ if ($input_errors) {
 }
 
 if ($createdalias) {
-	print_info_box(gettext("Alias was created/updated successfully."), 'success', false);
+	if ($alias_exists) {
+		print_info_box(gettext("Alias was updated successfully."), 'success');
+	} else {
+		print_info_box(gettext("Alias was created successfully."), 'success');
+	}
 }
 
-$form = new Form('Lookup');
+$form = new Form(false);
 $section = new Form_Section('DNS Lookup');
 
 $section->addInput(new Form_Input(
@@ -230,14 +267,29 @@ $section->addInput(new Form_Input(
 	['placeholder' => 'Hostname to look up.']
 ));
 
+$form->add($section);
+
+$form->addGlobal(new Form_Button(
+        'Submit',
+        'Lookup',
+        null,
+        'fa-search'
+))->addClass('btn-primary');
+
 if (!empty($resolved)) {
+	if ($alias_exists) {
+		$button_text = gettext("Update alias");
+	} else {
+		$button_text = gettext("Add alias");
+	}
 	$form->addGlobal(new Form_Button(
 		'create_alias',
-		'Add alias'
+		$button_text,
+		null,
+		'fa-plus'
 	))->removeClass('btn-primary')->addClass('btn-success');
 }
 
-$form->add($section);
 print $form;
 
 if (!$input_errors && $type) {
@@ -246,18 +298,22 @@ if (!$input_errors && $type) {
 <div class="panel panel-default">
 	<div class="panel-heading"><h2 class="panel-title"><?=gettext('Results')?></h2></div>
 	<div class="panel-body">
-		<ul class="list-group">
-<?php
-		foreach ((array)$resolved as $hostitem) {
-?>
-			<li class="list-group-item"><?=$hostitem?></li>
-<?php
-			if ($hostitem != "") {
-				$found++;
-			}
-		}
-?>
-		</ul>
+		
+		<table class="table">
+		<thead>
+			<tr>
+				<th><?=gettext('Result')?></th>
+				<th><?=gettext('Record type')?></th>
+			</tr>
+		</thead>
+		<tbody>
+<?php foreach ((array)$resolved as $hostitem):?>
+		<tr>
+			<td><?=$hostitem['data']?></td><td><?=$hostitem['type']?></td>
+		</tr>
+<?php endforeach; ?>
+		</tbody>
+		</table>
 	</div>
 </div>
 <?php endif; ?>

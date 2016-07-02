@@ -74,16 +74,17 @@ function allowedips_sort() {
 	usort($config['captiveportal'][$cpzone]['allowedip'], "allowedipscmp");
 }
 
-require("guiconfig.inc");
-require("functions.inc");
+require_once("guiconfig.inc");
+require_once("functions.inc");
 require_once("filter.inc");
-require("shaper.inc");
-require("captiveportal.inc");
+require_once("shaper.inc");
+require_once("captiveportal.inc");
 
 $cpzone = $_GET['zone'];
 if (isset($_POST['zone'])) {
 	$cpzone = $_POST['zone'];
 }
+$cpzone = strtolower($cpzone);
 
 if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
 	header("Location: services_captiveportal_zones.php");
@@ -113,6 +114,7 @@ $a_allowedips =& $config['captiveportal'][$cpzone]['allowedip'];
 if (isset($id) && $a_allowedips[$id]) {
 	$pconfig['ip'] = $a_allowedips[$id]['ip'];
 	$pconfig['sn'] = $a_allowedips[$id]['sn'];
+	$pconfig['dir'] = $a_allowedips[$id]['dir'];
 	$pconfig['bw_up'] = $a_allowedips[$id]['bw_up'];
 	$pconfig['bw_down'] = $a_allowedips[$id]['bw_down'];
 	$pconfig['descr'] = $a_allowedips[$id]['descr'];
@@ -252,6 +254,12 @@ $section->addInput(new Form_IpAddress(
 	$pconfig['ip']
 ))->addMask(sn, $pconfig['sn'], 32);
 
+$section->addInput(new Form_Input(
+	'descr',
+	'Description',
+	'text',
+	$pconfig['descr']
+))->setHelp("Enter a description here for reference only. (Not parsed)");
 
 $section->addInput(new Form_Select(
 	'dir',

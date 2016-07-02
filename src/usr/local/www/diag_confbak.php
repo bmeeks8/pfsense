@@ -61,10 +61,10 @@
 ##|*MATCH=diag_confbak.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 
 if (isset($_POST['backupcount'])) {
-	if (is_numeric($_POST['backupcount']) && ($_POST['backupcount'] >= 0)) {
+	if (is_numericint($_POST['backupcount'])) {
 		$config['system']['backupcount'] = $_POST['backupcount'];
 		$changedescr = $config['system']['backupcount'];
 	} else {
@@ -186,14 +186,14 @@ if ($diff) {
 
 $form = new Form(false);
 
-$section = new Form_Section('Saved Configurations', 'savedconfig', COLLAPSIBLE|SEC_CLOSED);
+$section = new Form_Section('Configuration Backup Cache Settings', 'configsettings', COLLAPSIBLE|SEC_CLOSED);
 
 $section->addInput(new Form_Input(
 	'backupcount',
 	'Backup Count',
 	'number',
 	$config['system']['backupcount']
-))->setHelp('Maximum number of old configurations to keep. By default this is 30 for a full install or 5 on NanoBSD. ');
+))->setHelp('Maximum number of old configurations to keep in the cache, 0 for no backups, or leave blank for the default value (' . $g['default_config_backup_count'] . ' for the current platform).');
 
 $space = exec("/usr/bin/du -sh /conf/backup | /usr/bin/awk '{print $1;}'");
 
@@ -204,8 +204,10 @@ $section->addInput(new Form_StaticText(
 
 $section->addInput(new Form_Button(
 	'Submit',
-	gettext("Save")
-));
+	gettext("Save"),
+	null,
+	'fa-save'
+))->addClass('btn-primary');
 
 $form->add($section);
 
@@ -236,7 +238,10 @@ if (is_array($confvers)):
 			<thead>
 				<tr>
 					<th colspan="2">
-						<input type="submit" name="diff" class="btn btn-info btn-xs" value="<?=gettext("Diff"); ?>" />
+						<button type="submit" name="diff" class="btn btn-info btn-xs" value="<?=gettext("Diff"); ?>">
+							<i class="fa fa-exchange icon-embed-btn"></i>
+							<?=gettext("Diff"); ?>
+						</button>
 					</th>
 					<th><?=gettext("Date")?></th>
 					<th><?=gettext("Version")?></th>
@@ -287,7 +292,7 @@ if (is_array($confvers)):
 					<td><?= format_bytes($version['filesize']) ?></td>
 					<td><?= htmlspecialchars($version['description']) ?></td>
 					<td>
-						<a class="fa fa-undo"		title="<?=gettext('Revert config')?>"	href="diag_confbak.php?newver=<?=$version['time']?>"	onclick="return confirm('<?=gettext("Are you sure you want to replace the current configuration with this backup?")?>')"></a>
+						<a class="fa fa-undo"		title="<?=gettext('Revert config')?>"	href="diag_confbak.php?newver=<?=$version['time']?>"	onclick="return confirm('<?=gettext("Confirmation Required to replace the current configuration with this backup.")?>')"></a>
 						<a class="fa fa-download"	title="<?=gettext('Download config')?>"	href="diag_confbak.php?getcfg=<?=$version['time']?>"></a>
 						<a class="fa fa-trash"		title="<?=gettext('Delete config')?>"	href="diag_confbak.php?rmver=<?=$version['time']?>"></a>
 					</td>
@@ -296,7 +301,12 @@ if (is_array($confvers)):
 	endforeach;
 ?>
 				<tr>
-					<td colspan="2"><input type="submit" name="diff" class="btn btn-info btn-xs" value="<?=gettext("Diff"); ?>" /></td>
+					<td colspan="2">
+						<button type="submit" name="diff" class="btn btn-info btn-xs" value="<?=gettext("Diff"); ?>">
+							<i class="fa fa-exchange icon-embed-btn"></i>
+							<?=gettext("Diff"); ?>
+						</button>
+					</td>
 					<td colspan="5"></td>
 				</tr>
 <?php

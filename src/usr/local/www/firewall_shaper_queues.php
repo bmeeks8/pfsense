@@ -60,7 +60,7 @@
 ##|*MATCH=firewall_shaper_queues.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("functions.inc");
 require_once("filter.inc");
 require_once("shaper.inc");
@@ -91,6 +91,7 @@ foreach ($qlist as $queue => $qkey) {
 	}
 }
 $tree .= "</ul>";
+$output = "";
 
 if ($_GET) {
 	if ($_GET['queue']) {
@@ -224,7 +225,7 @@ $shortcut_section = "trafficshaper";
 include("head.inc");
 ?>
 
-<script type="text/javascript" src="./tree/tree.js"></script>
+<script type="text/javascript" src="./vendor/tree/tree.js"></script>
 
 <?php
 if ($input_errors) {
@@ -236,7 +237,7 @@ if ($savemsg) {
 }
 
 if (is_subsystem_dirty('shaper')) {
-	print_apply_box(gettext("The traffic shaper configuration has been changed.") . "<br />" . gettext("You must apply the changes in order for them to take effect."));
+	print_apply_box(gettext("The traffic shaper configuration has been changed.") . "<br />" . gettext("The changes must be applied for them to take effect."));
 }
 
 $tab_array = array();

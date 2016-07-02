@@ -61,17 +61,18 @@
 ##|*MATCH=status_captiveportal_test.php*
 ##|-PRIV
 
-require("guiconfig.inc");
-require("functions.inc");
+require_once("guiconfig.inc");
+require_once("functions.inc");
 require_once("filter.inc");
-require("shaper.inc");
-require("captiveportal.inc");
+require_once("shaper.inc");
+require_once("captiveportal.inc");
 require_once("voucher.inc");
 
 $cpzone = $_GET['zone'];
 if (isset($_POST['zone'])) {
 	$cpzone = $_POST['zone'];
 }
+$cpzone = strtolower($cpzone);
 
 if (empty($cpzone)) {
 	header("Location: services_captiveportal_zones.php");
@@ -113,7 +114,7 @@ $tab_array[] = array(gettext("Test Vouchers"), true, "status_captiveportal_test.
 $tab_array[] = array(gettext("Expire Vouchers"), false, "status_captiveportal_expire.php?zone={$cpzone}");
 display_top_tabs($tab_array);
 
-$form = new Form('Test');
+$form = new Form(false);
 
 $section = new Form_Section('Test Vouchers');
 
@@ -131,6 +132,14 @@ $section->addInput(new Form_Input(
 ));
 
 $form->add($section);
+
+$form->addGlobal(new Form_Button(
+	'Submit',
+	'Test',
+	null,
+	'fa-wrench'
+))->addClass('btn-primary');
+
 print($form);
 
 include("foot.inc");

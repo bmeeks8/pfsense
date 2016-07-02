@@ -60,7 +60,7 @@
 ##|*MATCH=system_crlmanager.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("certs.inc");
 require_once("openvpn.inc");
 require_once("vpn.inc");
@@ -434,7 +434,7 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 		'Serial',
 		'number',
 		$pconfig['serial'],
-		[min => '0', max => '9999']
+		['min' => '0', 'max' => '9999']
 	));
 
 	$form->add($section);
@@ -572,8 +572,10 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 
 		$group->add(new Form_Button(
 			'submit',
-			'Add'
-			))->removeClass('btn-primary')->addClass('btn-success btn-sm');
+			'Add',
+			null,
+			'fa-plus'
+			))->addClass('btn-success btn-sm');
 
 		$section->add($group);
 

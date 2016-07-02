@@ -72,6 +72,11 @@ if (!session_auth()) {
 $allowedpages = getAllowedPages($_SESSION['Username'], $_SESSION['user_radius_attributes']);
 
 /*
+ * Get user-based preference settings so they can be easily referenced.
+ */
+$user_settings = get_user_settings($_SESSION['Username']);
+
+/*
  * redirect to first allowed page if requesting a wrong url
  */
 
@@ -123,20 +128,20 @@ session_commit();
  * determine if the user is allowed access to the requested page
  */
 function display_error_form($http_code, $desc) {
-	global $config, $g;
+	global $config, $user_settings, $g;
 
 	if (isAjax()) {
 		printf(gettext('Error: %1$s Description: %2$s'), $http_code, $desc);
 		return;
 	}
 
-	$cssfile = "/bootstrap/css/pfSense.css";
+	$cssfile = "/css/pfSense.css";
 
-	if (isset($config['system']['webgui']['webguicss'])) {
-	if (file_exists("bootstrap/css/" . $config['system']['webgui']['webguicss'])) {
-		$cssfile = "/bootstrap/css/" . $config['system']['webgui']['webguicss'];
+	if (isset($user_settings['webgui']['webguicss'])) {
+		if (file_exists("/usr/local/www/css/" . $user_settings['webgui']['webguicss'])) {
+			$cssfile = "/css/" . $user_settings['webgui']['webguicss'];
+		}
 	}
-}
 
 ?>
 <!DOCTYPE html>
@@ -234,11 +239,14 @@ if ($local_ip == false) {
 	}
 }
 
-$cssfile = "/bootstrap/css/pfSense.css";
+// For the login form, get the settings of no particular user.
+// That ensures we will use the system default theme for the login form.
+$user_settings = get_user_settings("");
+$cssfile = "/css/pfSense.css";
 
-if (isset($config['system']['webgui']['webguicss'])) {
-	if (file_exists("bootstrap/css/" . $config['system']['webgui']['webguicss'])) {
-		$cssfile = "/bootstrap/css/" . $config['system']['webgui']['webguicss'];
+if (isset($user_settings['webgui']['webguicss'])) {
+	if (file_exists("/usr/local/www/css/" . $user_settings['webgui']['webguicss'])) {
+		$cssfile = "/css/" . $user_settings['webgui']['webguicss'];
 	}
 }
 
@@ -262,7 +270,7 @@ if (isset($config['system']['webgui']['webguicss'])) {
 <?php
 	if (is_ipaddr($http_host) && !$local_ip && !isset($config['system']['webgui']['nohttpreferercheck'])) {
 		$nifty_background = "#999";
-		print_info_box(gettext("You are accessing this router by an IP address not configured locally, which may be forwarded by NAT or other means. <br /><br />If you did not setup this forwarding, you may be the target of a man-in-the-middle attack."));
+		print_info_box(gettext("The IP address being used to access this router is not configured locally, which may be forwarded by NAT or other means. <br /><br />If this forwarding is unexpected, it should be verified that a man-in-the-middle attack is not taking place."));
 	}
 
 	$loginautocomplete = isset($config['system']['webgui']['loginautocomplete']) ? '' : 'autocomplete="off"';
@@ -277,7 +285,7 @@ if (isset($config['system']['webgui']['webguicss'])) {
 <?php if (!empty($_SESSION['Login_Error'])): ?>
 						<div class="alert alert-danger" role="alert"><?=$_SESSION['Login_Error'];?></div>
 <?php endif ?>
-						<div class="alert alert-warning hidden" id="no_cookies"><?= gettext("Your browser must support cookies to login."); ?></div>
+						<div class="alert alert-warning hidden" id="no_cookies"><?= gettext("The browser must support cookies to login."); ?></div>
 
 						<form method="post" <?= $loginautocomplete ?> action="<?=$_SERVER['SCRIPT_NAME'];?>" class="form-horizontal">
 							<div class="form-group">
@@ -323,6 +331,6 @@ if (isset($config['system']['webgui']['webguicss'])) {
 		//]]>
 		</script>
 <?php
-require('foot.inc');
+require_once('foot.inc');
 
 } // end function

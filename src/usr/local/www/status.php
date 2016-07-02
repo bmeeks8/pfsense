@@ -106,7 +106,16 @@ function doCmdT($title, $command) {
 			while (!feof($fd)) {
 				$line = fgets($fd);
 				/* remove sensitive contents */
+				$line = preg_replace("/<authorizedkeys>.*?<\\/authorizedkeys>/", "<authorizedkeys>xxxxx</authorizedkeys>", $line);
+				$line = preg_replace("/<secret>.*?<\\/secret>/", "<secret>xxxxx</secret>", $line);
+				$line = preg_replace("/<bcrypt-hash>.*?<\\/bcrypt-hash>/", "<bcrypt-hash>xxxxx</bcrypt-hash>", $line);
 				$line = preg_replace("/<password>.*?<\\/password>/", "<password>xxxxx</password>", $line);
+				$line = preg_replace("/<auth_user>.*?<\\/auth_user>/", "<auth_user>xxxxx</auth_user>", $line);
+				$line = preg_replace("/<auth_pass>.*?<\\/auth_pass>/", "<auth_pass>xxxxx</auth_pass>", $line);
+				$line = preg_replace("/<proxy_user>.*?<\\/proxy_user>/", "<proxy_user>xxxxx</proxy_user>", $line);
+				$line = preg_replace("/<proxy_passwd>.*?<\\/proxy_passwd>/", "<proxy_passwd>xxxxx</proxy_passwd>", $line);
+				$line = preg_replace("/<proxyuser>.*?<\\/proxyuser>/", "<proxyuser>xxxxx</proxyuser>", $line);
+				$line = preg_replace("/<proxypass>.*?<\\/proxypass>/", "<proxypass>xxxxx</proxypass>", $line);
 				$line = preg_replace("/<pre-shared-key>.*?<\\/pre-shared-key>/", "<pre-shared-key>xxxxx</pre-shared-key>", $line);
 				$line = preg_replace("/<rocommunity>.*?<\\/rocommunity>/", "<rocommunity>xxxxx</rocommunity>", $line);
 				$line = preg_replace("/<prv>.*?<\\/prv>/", "<prv>xxxxx</prv>", $line);
@@ -276,6 +285,8 @@ defCmdT("System Message Buffer (Boot)", "/bin/cat /var/log/dmesg.boot");
 defCmdT("sysctl values", "/sbin/sysctl -a");
 defCmdT("Kernel Environment", "/bin/kenv");
 defCmdT("Installed OS Packages", "/usr/sbin/pkg info");
+defCmdT("System Devices-PCI", "/usr/sbin/pciconf -lvb");
+defCmdT("System Devices-USB", "/usr/sbin/usbconfig dump_device_desc");
 
 exec("/bin/date", $dateOutput, $dateStatus);
 $currentDate = $dateOutput[0];

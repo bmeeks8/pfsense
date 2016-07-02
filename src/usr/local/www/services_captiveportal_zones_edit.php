@@ -60,11 +60,11 @@
 ##|*MATCH=services_captiveportal_zones_edit.php*
 ##|-PRIV
 
-require("guiconfig.inc");
-require("functions.inc");
+require_once("guiconfig.inc");
+require_once("functions.inc");
 require_once("filter.inc");
-require("shaper.inc");
-require("captiveportal.inc");
+require_once("shaper.inc");
+require_once("captiveportal.inc");
 
 $pgtitle = array(gettext("Services"), gettext("Captive Portal"), gettext("Add Zone"));
 $shortcut_section = "captiveportal";
@@ -114,24 +114,28 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-$form = new Form(new Form_Button(
-	'submit',
-	'Continue'
-));
+$form = new Form(false);
 
 $section = new Form_Section('Add Captive Portal Zone');
 
 $section->addInput(new Form_Input(
 	'zone',
 	'Zone name'
-))->setPattern('[0-9A-Za-z_]+')->setHelp('Zone name. Can only contain letters, digits, and underscores (_).');
+))->setPattern('^[A-Za-z_][0-9A-Za-z_]+')->setHelp('Zone name. Can only contain letters, digits, and underscores (_) and may not start with a digit.');
 
 $section->addInput(new Form_Input(
 	'descr',
 	'Zone description'
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 $form->add($section);
+
+$form->addGlobal(new Form_Button(
+	'Submit',
+	'Save & Continue',
+	null,
+	'fa-save'
+))->addClass('btn-primary');
 
 print($form);
 

@@ -63,7 +63,7 @@
 ##|*MATCH=firewall_nat.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("functions.inc");
 require_once("filter.inc");
 require_once("shaper.inc");
@@ -212,7 +212,7 @@ if ($savemsg) {
 
 if (is_subsystem_dirty('natconf')) {
 	print_apply_box(gettext('The NAT configuration has been changed.') . '<br />' .
-					gettext('You must apply the changes in order for them to take effect.'));
+					gettext('The changes must be applied for them to take effect.'));
 }
 
 $tab_array = array();
@@ -264,11 +264,22 @@ foreach ($a_nat as $natent):
 		display_separator($separators, $nnats, $columns_in_table);
 	}
 
+	$localport = $natent['local-port'];
+
+	list($dstbeginport, $dstendport) = explode("-", $natent['destination']['port']);
+
+	if ($dstendport) {
+		$localendport = $natent['local-port'] + $dstendport - $dstbeginport;
+		$localport	 .= '-' . $localendport;
+	}
+
 	$alias = rule_columns_with_alias(
 		$natent['source']['address'],
 		pprint_port($natent['source']['port']),
 		$natent['destination']['address'],
-		pprint_port($natent['destination']['port'])
+		pprint_port($natent['destination']['port']),
+		$natent['target'],
+		$localport
 	);
 
 	/* if user does not have access to edit an interface skip on to the next record */
@@ -336,11 +347,11 @@ foreach ($a_nat as $natent):
 <?php
 	endif;
 ?>
-							<?=htmlspecialchars(pprint_address($natent['source']))?>
+							<?=str_replace('_', ' ', htmlspecialchars(pprint_address($natent['source'])))?>
 <?php
 	if (isset($alias['src'])):
 ?>
-							<i class='fa fa-pencil'></i></a>
+							</a>
 <?php
 	endif;
 ?>
@@ -353,11 +364,11 @@ foreach ($a_nat as $natent):
 <?php
 	endif;
 ?>
-							<?=htmlspecialchars(pprint_port($natent['source']['port']))?>
+							<?=str_replace('_', ' ', htmlspecialchars(pprint_port($natent['source']['port'])))?>
 <?php
 	if (isset($alias['srcport'])):
 ?>
-							<i class='fa fa-pencil'></i></a>
+							</a>
 <?php
 	endif;
 ?>
@@ -371,11 +382,11 @@ foreach ($a_nat as $natent):
 <?php
 	endif;
 ?>
-							<?=htmlspecialchars(pprint_address($natent['destination']))?>
+							<?=str_replace('_', ' ', htmlspecialchars(pprint_address($natent['destination'])))?>
 <?php
 	if (isset($alias['dst'])):
 ?>
-							<i class='fa fa-pencil'></i></a>
+							</a>
 <?php
 	endif;
 ?>
@@ -388,31 +399,49 @@ foreach ($a_nat as $natent):
 <?php
 	endif;
 ?>
-							<?=htmlspecialchars(pprint_port($natent['destination']['port']))?>
+							<?=str_replace('_', ' ', htmlspecialchars(pprint_port($natent['destination']['port'])))?>
 <?php
 	if (isset($alias['dstport'])):
 ?>
-							<i class='fa fa-pencil'></i></a>
+							</a>
 <?php
 	endif;
 ?>
 						</td>
+						<td>
+<?php
+	if (isset($alias['target'])):
+?>
+							<a href="/firewall_aliases_edit.php?id=<?=$alias['target']?>" data-toggle="popover" data-trigger="hover focus" title="<?=gettext('Alias details')?>" data-content="<?=alias_info_popup($alias['target'])?>" data-html="true">
+<?php
+	endif;
+?>
 
-						<td >
-							<?=htmlspecialchars($natent['target'])?>
+							<?=str_replace('_', ' ', htmlspecialchars($natent['target']))?>
+<?php
+	if (isset($alias['target'])):
+?>
+							</a>
+<?php
+	endif;
+?>
 						</td>
 						<td>
 <?php
-	$localport = $natent['local-port'];
-
-	list($dstbeginport, $dstendport) = explode("-", $natent['destination']['port']);
-
-	if ($dstendport) {
-		$localendport = $natent['local-port'] + $dstendport - $dstbeginport;
-		$localport	 .= '-' . $localendport;
-	}
+	if (isset($alias['targetport'])):
 ?>
-							<?=htmlspecialchars(pprint_port($localport))?>
+							<a href="/firewall_aliases_edit.php?id=<?=$alias['targetport']?>" data-toggle="popover" data-trigger="hover focus" title="<?=gettext('Alias details')?>" data-content="<?=alias_info_popup($alias['targetport'])?>" data-html="true">
+<?php
+	endif;
+?>
+							<?=str_replace('_', ' ', htmlspecialchars(pprint_port($localport)))?>
+<?php
+	if (isset($alias['targetport'])):
+?>
+							</a>
+<?php
+	endif;
+?>
 						</td>
 
 						<td>
@@ -506,7 +535,7 @@ events.push(function() {
 	// provide a warning message if the user tries to change page before saving
 	$(window).bind('beforeunload', function(){
 		if (!saving && dirty) {
-			return ("<?=gettext('You have moved one or more Port Forward rules but have not yet saved')?>");
+			return ("<?=gettext('One or more Port Forward rules have been moved but have not yet been saved')?>");
 		} else {
 			return undefined;
 		}

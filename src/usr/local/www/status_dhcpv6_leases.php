@@ -64,7 +64,7 @@
 ##|*MATCH=status_dhcpv6_leases.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("config.inc");
 
 $pgtitle = array(gettext("Status"), gettext("DHCPv6 Leases"));
@@ -413,7 +413,7 @@ if (count($pools) > 0) {
 ?>
 <div class="panel panel-default">
 	<div class="panel-heading"><h2 class="panel-title"><?=gettext('Pool Status')?></h2></div>
-	<div class="panel-body">
+	<div class="panel-body table-responsive">
 		<table class="table table-striped table-hover table-condensed sortable-theme-bootstrap" data-sortable>
 		<thead>
 			<tr>
@@ -449,7 +449,7 @@ if (empty($leases)) {
 ?>
 <div class="panel panel-default">
 	<div class="panel-heading"><h2 class="panel-title"><?=gettext('Leases')?></h2></div>
-	<div class="panel-body">
+	<div class="panel-body table-responsive">
 		<table class="table table-striped table-hover table-condensed sortable-theme-bootstrap" data-sortable>
 		<thead>
 			<tr>
@@ -546,7 +546,7 @@ foreach ($leases as $data):
 
 <div class="panel panel-default">
 	<div class="panel-heading"><h2 class="panel-title"><?=gettext('Delegated Prefixes')?></h2></div>
-	<div class="panel-body">
+	<div class="panel-body table-responsive">
 		<table class="table table-striped table-hover table-condensed sortable-theme-bootstrap" data-sortable>
 		<thead>
 			<tr>
@@ -624,9 +624,9 @@ foreach ($prefixes as $data):
 </div>
 
 <?php if ($_GET['all']): ?>
-	<a class="btn btn-default" href="status_dhcpv6_leases.php?all=0"><?=gettext("Show active and static leases only")?></a>
+	<a class="btn btn-info" href="status_dhcpv6_leases.php?all=0"><i class="fa fa-minus-circle icon-embed-btn"></i><?=gettext("Show active and static leases only")?></a>
 <?php else: ?>
-	<a class="btn btn-default" href="status_dhcpv6_leases.php?all=1"><?=gettext("Show all configured leases")?></a>
+	<a class="btn btn-info" href="status_dhcpv6_leases.php?all=1"><i class="fa fa-plus-circle icon-embed-btn"></i><?=gettext("Show all configured leases")?></a>
 <?php endif;
 
 include("foot.inc");

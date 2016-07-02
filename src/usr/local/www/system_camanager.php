@@ -61,7 +61,7 @@
 ##|*MATCH=system_camanager.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("certs.inc");
 
 $ca_methods = array(
@@ -69,8 +69,8 @@ $ca_methods = array(
 	"internal" => gettext("Create an internal Certificate Authority"),
 	"intermediate" => gettext("Create an intermediate Certificate Authority"));
 
-$ca_keylens = array("512", "1024", "2048", "4096");
-$openssl_digest_algs = array("sha1", "sha224", "sha256", "sha384", "sha512");
+$ca_keylens = array("512", "1024", "2048", "3072", "4096", "7680", "8192", "15360", "16384");
+$openssl_digest_algs = array("sha1", "sha224", "sha256", "sha384", "sha512", "whirlpool");
 
 if (is_numericint($_GET['id'])) {
 	$id = $_GET['id'];
@@ -523,7 +523,7 @@ $section->addInput(new Form_Textarea(
 	'Certificate Private Key (optional)',
 	$pconfig['key']
 ))->setHelp('Paste the private key for the above certificate here. This is '.
-	'optional in most cases, but required if you need to generate a '.
+	'optional in most cases, but is required when generating a '.
 	'Certificate Revocation List (CRL).');
 
 $section->addInput(new Form_Input(

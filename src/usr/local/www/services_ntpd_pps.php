@@ -179,7 +179,7 @@ if (!empty($serialports)) {
 		'ppsport',
 		'Serial Port',
 		$pconfig['port'],
-			$splist
+		['' => gettext('None')] + $splist
 	))->setHelp('All serial ports are listed, be sure to pick the port with the PPS source attached. ');
 }
 
@@ -188,14 +188,14 @@ $section->addInput(new Form_Input(
 	'Fudge Time',
 	'text',
 	$pconfig['fudge1']
-))->setHelp('Fudge time is used to specify the PPS signal offset from the actual second such as the transmission delay between the transmitter and the receiver. (default: 0.0).');
+))->setHelp('Fudge time is used to specify the PPS signal offset from the actual second such as the transmission delay between the transmitter and the receiver (default: 0.0).');
 
 $section->addInput(new Form_Input(
 	'ppsstratum',
 	'Stratum',
 	'text',
 	$pconfig['stratum']
-))->setHelp('This may be used to change the PPS Clock stratum (default: 0). This may be useful if, for some reason, you want ntpd to prefer a different clock and just monitor this source.');
+))->setHelp('This may be used to change the PPS Clock stratum (default: 0). This may be useful to, for some reason, have ntpd prefer a different clock and just monitor this source.');
 
 $section->addInput(new Form_Checkbox(
 	'ppsflag2',

@@ -60,8 +60,8 @@
 ##|*MATCH=system_gateways_edit.php*
 ##|-PRIV
 
-require("guiconfig.inc");
-require("pkg-utils.inc");
+require_once("guiconfig.inc");
+require_once("pkg-utils.inc");
 
 if (isset($_POST['referer'])) {
 	$referer = $_POST['referer'];
@@ -147,7 +147,7 @@ if ($_POST) {
 		$input_errors[] = "A valid gateway name must be specified.";
 	}
 	if (!is_validaliasname($_POST['name'])) {
-		$input_errors[] = gettext("The gateway name must not contain invalid characters.");
+		$input_errors[] = invalidaliasnamemsg($_POST['name'], gettext("gateway"));
 	} else if (isset($_POST['disabled'])) {
 		// We have a valid gateway name that the user wants to mark as disabled.
 		// Check if the gateway name is used in any gateway group.
@@ -302,7 +302,7 @@ if ($_POST) {
 			}
 			if (is_ipaddr($_POST['monitor'])) {
 				if (($gateway['monitor'] <> "") && ($_POST['monitor'] == $gateway['monitor']) && ($gateway['attribute'] !== "system")) {
-					$input_errors[] = sprintf(gettext('The monitor IP address "%s" is already in use. You must choose a different monitor IP.'), $_POST['monitor']);
+					$input_errors[] = sprintf(gettext('The monitor IP address "%s" is already in use. A different monitor IP must be chosen.'), $_POST['monitor']);
 					break;
 				}
 			}
@@ -658,7 +658,7 @@ $section->addInput($egw);
 $section->addInput(new Form_Checkbox(
 	'defaultgw',
 	'Default Gateway',
-	'This will select the above gateway as the default gateway',
+	'This will select the above gateway as the default gateway.',
 	$pconfig['defaultgw']
 ));
 
@@ -667,7 +667,7 @@ $section->addInput(new Form_Checkbox(
 	'Gateway Monitoring',
 	'Disable Gateway Monitoring',
 	$pconfig['monitor_disable']
-))->toggles('.toggle-monitor-ip')->setHelp('This will consider this gateway as always being up');
+))->toggles('.toggle-monitor-ip')->setHelp('This will consider this gateway as always being up.');
 
 $group = new Form_Group('Monitor IP');
 $group->addClass('toggle-monitor-ip', 'collapse');
@@ -691,50 +691,34 @@ $section->addInput(new Form_Checkbox(
 	'Force state',
 	'Mark Gateway as Down',
 	$pconfig['force_down']
-))->setHelp('This will force this gateway to be considered Down');
+))->setHelp('This will force this gateway to be considered down.');
 
 $section->addInput(new Form_Input(
 	'descr',
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for reference (not parsed).');
 
-// If any of the advanced options are non-default, we will not show the "Advanced" button
-// and will display the advanced section
-if (!(!empty($pconfig['latencylow']) || !empty($pconfig['latencyhigh']) ||
-    !empty($pconfig['losslow']) || !empty($pconfig['losshigh']) || !empty($pconfig['data_payload']) ||
-    (isset($pconfig['weight']) && $pconfig['weight'] > 1) ||
-    (isset($pconfig['interval']) && !($pconfig['interval'] == $dpinger_default['interval'])) ||
-    (isset($pconfig['loss_interval']) && !($pconfig['loss_interval'] == $dpinger_default['loss_interval'])) ||
-    (isset($pconfig['time_period']) && !($pconfig['time_period'] == $dpinger_default['time_period'])) ||
-    (isset($pconfig['alert_interval']) && !($pconfig['alert_interval'] == $dpinger_default['alert_interval'])) ||
-    (isset($pconfig['nonlocalgateway']) && $pconfig['nonlocalgateway']))) {
+// Add a button to provide access to the advanced fields
+$btnadv = new Form_Button(
+	'btnadvopts',
+	'Display Advanced',
+	null,
+	'fa-cog'
+);
 
-	$btnadvanced = new Form_Button(
-		'toggle-advanced',
-		'Advanced options'
-	);
+$btnadv->setAttribute('type','button')->addClass('btn-info btn-sm');
 
-	$advdflt = true;
-
-	$btnadvanced->toggles('.advanced-options')->setAttribute('type', 'button');
-	$btnadvanced->removeClass('btn-primary')->addClass('btn-default');
-
-	$section->addInput(new Form_StaticText(
-		null,
-		$btnadvanced
-	));
-}
+$section->addInput(new Form_StaticText(
+	null,
+	$btnadv
+));
 
 $form->add($section);
 $section = new Form_Section('Advanced');
 
-if (isset($advdflt)) {
-	$section->addClass('collapse');
-}
-
-$section->addClass('advanced-options');
+$section->addClass('adnlopts');
 
 $section->addInput(new Form_Select(
 	'weight',
@@ -845,7 +829,7 @@ $section->addInput(new Form_StaticText(
 		'ratio between these values control the accuracy of the numbers reported and ' .
 		'the timeliness of alerts.') .
 	'<br/><br/>' .
-	gettext('A longer time period will will provide smoother results for round trip time ' .
+	gettext('A longer time period will provide smoother results for round trip time ' .
 		'and loss, but will increase the time before a latency or loss alert is triggered.') .
 	'<br/><br/>' .
 	gettext('A shorter probe interval will decrease the time required before a latency ' .
@@ -856,13 +840,13 @@ $section->addInput(new Form_StaticText(
 		'also controls the resolution of loss reporting. To determine the resolution, ' .
 		'the following formula can be used:') .
 	'<br/><br/>' .
-	gettext('&nbsp &nbsp 100 * probe interval / (time period - loss interval)') .
+	gettext('&nbsp;&nbsp;&nbsp;&nbsp;100 * probe interval / (time period - loss interval)') .
 	'<br/><br/>' .
 	gettext('Rounding up to the nearest whole number will yield the resolution of loss ' .
 		'reporting in percent. The default values provide a resolution of 1%.') .
 	'<br/><br/>' .
-	gettext('The default settings are recommended for most use cases. However if you ' .
-		'change the settings, please observe the following restrictions:') .
+	gettext('The default settings are recommended for most use cases. However if ' .
+		'changing the settings, please observe the following restrictions:') .
 	'<br/><br/>' .
 	gettext('- The time period must be greater than twice the probe interval plus the loss ' .
 		'interval. This guarantees there is at least one completed probe at all times. ') .
@@ -884,5 +868,58 @@ $section->addInput(new Form_Checkbox(
 $form->add($section);
 
 print $form;
+?>
 
-include("foot.inc");
+<script type="text/javascript">
+//<![CDATA[
+events.push(function() {
+
+	// Show advanced additional opts options ===========================================================================
+	var showadvopts = false;
+
+	function show_advopts(ispageload) {
+		var text;
+		// On page load decide the initial state based on the data.
+		if (ispageload) {
+<?php
+			if (!(!empty($pconfig['latencylow']) || !empty($pconfig['latencyhigh']) ||
+			    !empty($pconfig['losslow']) || !empty($pconfig['losshigh']) || !empty($pconfig['data_payload']) ||
+			    (isset($pconfig['weight']) && $pconfig['weight'] > 1) ||
+			    (isset($pconfig['interval']) && !($pconfig['interval'] == $dpinger_default['interval'])) ||
+			    (isset($pconfig['loss_interval']) && !($pconfig['loss_interval'] == $dpinger_default['loss_interval'])) ||
+			    (isset($pconfig['time_period']) && !($pconfig['time_period'] == $dpinger_default['time_period'])) ||
+			    (isset($pconfig['alert_interval']) && !($pconfig['alert_interval'] == $dpinger_default['alert_interval'])) ||
+			    (isset($pconfig['nonlocalgateway']) && $pconfig['nonlocalgateway']))) {
+				$showadv = false;
+			} else {
+				$showadv = true;
+			}
+?>
+			showadvopts = <?php if ($showadv) {echo 'true';} else {echo 'false';} ?>;
+		} else {
+			// It was a click, swap the state.
+			showadvopts = !showadvopts;
+		}
+
+		hideClass('adnlopts', !showadvopts);
+
+		if (showadvopts) {
+			text = "<?=gettext('Hide Advanced');?>";
+		} else {
+			text = "<?=gettext('Display Advanced');?>";
+		}
+		$('#btnadvopts').html('<i class="fa fa-cog"></i> ' + text);
+	}
+
+	$('#btnadvopts').click(function(event) {
+		show_advopts();
+	});
+
+	// ---------- On initial page load ------------------------------------------------------------
+
+	show_advopts(true);
+});
+//]]>
+</script>
+
+<?php include("foot.inc");

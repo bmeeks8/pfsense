@@ -65,8 +65,8 @@
 ##|*MATCH=interfaces_ppps_edit.php*
 ##|-PRIV
 
-require("guiconfig.inc");
-require("functions.inc");
+require_once("guiconfig.inc");
+require_once("functions.inc");
 
 define("CRON_MONTHLY_PATTERN", "0 0 1 * *");
 define("CRON_WEEKLY_PATTERN", "0 0 * * 0");
@@ -79,6 +79,10 @@ if (!is_array($config['ppps']['ppp'])) {
 
 $a_ppps = &$config['ppps']['ppp'];
 
+$iflist = get_configured_interface_with_descr();
+$portlist = get_interface_list();
+$portlist = array_merge($portlist, $iflist);
+
 if (isset($_REQUEST['type'])) {
 	$pconfig['type'] = $_REQUEST['type'];
 }
@@ -87,8 +91,15 @@ if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
 	$id = $_REQUEST['id'];
 }
 
+if (isset($_POST['id']) && is_numericint($_POST['id'])) {
+	$id = $_POST['id'];
+}
+
 if (isset($id) && $a_ppps[$id]) {
-	$pconfig['type'] = $a_ppps[$id]['type'];
+	$pconfig['ptpid'] = $a_ppps[$id]['ptpid'];
+	if (!isset($_REQUEST['type'])) {
+		$pconfig['type'] = $a_ppps[$id]['type'];
+	}
 	$pconfig['interfaces'] = explode(",", $a_ppps[$id]['ports']);
 	$pconfig['username'] = $a_ppps[$id]['username'];
 	$pconfig['password'] = base64_decode($a_ppps[$id]['password']);
@@ -195,6 +206,8 @@ if (isset($id) && $a_ppps[$id]) {
 			}
 			break;
 	}
+} else {
+	$pconfig['ptpid'] = interfaces_ptpid_next();
 }
 
 if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
@@ -338,6 +351,7 @@ if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
 			$ppp['ptpid'] = interfaces_ptpid_next();
 		else
 			$ppp['ptpid'] = $a_ppps[$id]['ptpid'];
+
 		$ppp['type'] = $_POST['type'];
 		$ppp['if'] = $ppp['type'].$ppp['ptpid'];
 		$ppp['ports'] = implode(',', $_POST['interfaces']);
@@ -384,8 +398,6 @@ if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
 				}
 
 				$ppp['phone'] = $_POST['phone'];
-				$ppp['localip'] = implode(',', $port_data['localip']);
-				$ppp['gateway'] = implode(',', $port_data['gateway']);
 				if (!empty($_POST['connect-timeout'])) {
 					$ppp['connect-timeout'] = $_POST['connect-timeout'];
 				} else {
@@ -595,7 +607,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference. Description will appear in the "Interfaces Assign" select lists.');
+))->setHelp('A description may be entered here for administrative reference. Description will appear in the "Interfaces Assign" select lists.');
 
 $section->addInput(new Form_Select(
 	'country',
@@ -616,7 +628,7 @@ $section->addInput(new Form_Select(
 	'Plan',
 	$pconfig['providerplan'],
 	[]
-))->setHelp('Select to fill in data for your service provider.');
+))->setHelp('Select to fill in service provider data.');
 
 $section->addInput(new Form_Input(
 	'username',
@@ -776,7 +788,7 @@ $group->add(new Form_Input(
 	['placeholder' => 'mm/dd/yyyy']
 ))->setHelp('Specific date');
 
-$group->setHelp('Leaving the date field empty will cause the reset to be executed each day at the time you specified in the minutes and hour fields. ');
+$group->setHelp('Leaving the date field empty will cause the reset to be executed each day at the time specified in the minutes and hour fields. ');
 
 $section->add($group);
 
@@ -817,29 +829,31 @@ $group->add(new Form_Checkbox(
 
 $section->add($group);
 
-$btnadvanced = new Form_Button(
-		'btnadvanced',
-		'Show'
+$btnadv = new Form_Button(
+		'btnadvopts',
+		'Display Advanced',
+		null,
+		'fa-cog'
 );
 
-$btnadvanced->removeClass('btn-primary')->addClass('btn-default btn-sm');
+$btnadv->setAttribute('type','button')->addClass('btn-info btn-sm');
 
 $section->addInput(new Form_StaticText(
 	'Advanced options',
-	$btnadvanced
+	$btnadv
 ));
 
 $form->add($section);
 
 $section = new Form_Section('Advanced Configuration');
-$section->addClass('sec-advanced'); // This will allow the section to be hidden/shown by calling e.g.: hideClass('advanced', true);
+$section->addClass('adnlopts');
 
 $section->addInput(new Form_Checkbox(
 	'ondemand',
 	'Dial On Demand',
 	'Enable Dial-on-Demand mode. ',
 	$pconfig['ondemand']
-))->setHelp('Causes the interface to operate in dial-on-demand mode. Do NOT enable if you want your link to be always up. ' .
+))->setHelp('Causes the interface to operate in dial-on-demand mode. Do NOT enable if the link is to remain continuously connected. ' .
 			'The interface is configured, but the actual connection of the link is delayed until qualifying outgoing traffic is detected.');
 
 $section->addInput(new Form_Input(
@@ -847,7 +861,7 @@ $section->addInput(new Form_Input(
 	'Idle Timeout',
 	'text',
 	$pconfig['idletimeout']
-))->setHelp('If no incoming or outgoing packets are transmitted for the entered number of seconds the connection is brought down.' .
+))->setHelp('If no incoming or outgoing packets are transmitted for the entered number of seconds the connection is brought down.' . " " .
 			'When the idle timeout occurs, if the dial-on-demand option is enabled, mpd goes back into dial-on-demand mode. ' .
 			'Otherwise, the interface is brought down and all associated routes removed.');
 
@@ -857,7 +871,7 @@ $section->addInput(new Form_Checkbox(
 	'Disable vjcomp (compression, auto-negotiated by default).',
 	$pconfig['vjcomp']
 ))->setHelp('Disable vjcomp(compression) (auto-negotiated by default).' . '<br />' .
-				'This option enables Van Jacobson TCP header compression, which saves several bytes per TCP data packet.' .
+				'This option enables Van Jacobson TCP header compression, which saves several bytes per TCP data packet.' . " " .
 				'This option is almost always required. Compression is not effective for TCP connections with enabled modern extensions like time ' .
 				'stamping or SACK, which modify TCP options between sequential packets.');
 
@@ -943,6 +957,13 @@ $section->addInput($linkparamhelp);
 
 $form->add($section);
 
+$form->addGlobal(new Form_Input(
+	'ptpid',
+	null,
+	'hidden',
+	$pconfig['ptpid']
+));
+
 if (isset($id) && $a_ppps[$id]) {
 	$form->addGlobal(new Form_Input(
 		'id',
@@ -959,41 +980,80 @@ print($form);
 <script type="text/javascript">
 //<![CDATA[
 events.push(function() {
-	var showadvanced = false;
+	// Show advanced additional opts options ======================================================
+	var showadvopts = false;
 
-	function setAdvVisible() {
-		// Update the button text and toggle showadvanced
-		if (showadvanced) {
-			$("#btnadvanced").prop('value', 'Hide');
-			showadvanced = false;
+	function show_advopts(ispageload) {
+		var text;
+		// On page load decide the initial state based on the data.
+		if (ispageload) {
+<?php
+			if (($pconfig['apn'] == "") &&
+			    ($pconfig['apnum'] == "") &&
+			    ($pconfig['simpin'] == "") &&
+			    ($pconfig['pin-wait'] == "") &&
+			    ($pconfig['initstr'] == "") &&
+			    ($pconfig['connect-timeout'] == "") &&
+			    (!$pconfig['uptime']) &&
+			    ($pconfig['pppoe_resethour'] == "") &&
+			    ($pconfig['pppoe_resetminute'] == "") &&
+			    ($pconfig['pppoe_resetdate'] == "") &&
+			    ($pconfig['pppoe_pr_preset_val'] == "") &&
+			    (!$pconfig['ondemand']) &&
+			    ($pconfig['idletimeout'] == "") &&
+			    (!$pconfig['pppoe_monthly']) &&
+			    (!$pconfig['pppoe_weekly']) &&
+			    (!$pconfig['pppoe_daily']) &&
+			    (!$pconfig['pppoe_hourly']) &&
+			    (!$pconfig['vjcomp']) &&
+			    (!$pconfig['tcpmssfix']) &&
+			    (!$pconfig['shortseq']) &&
+			    (!$pconfig['acfcomp']) &&
+			    (!$pconfig['protocomp'])) {
+				$showadv = false;
+			} else {
+				$showadv = true;
+			}
+?>
+			showadvopts = <?php if ($showadv) {echo 'true';} else {echo 'false';} ?>;
 		} else {
-			$("#btnadvanced").prop('value', 'Show');
-			showadvanced = true;
+			// It was a click, swap the state.
+			showadvopts = !showadvopts;
 		}
 
-		hideClass('sec-advanced', showadvanced);
+		hideClass('adnlopts', !showadvopts);
 
 		// The options that follow are only shown if type == 'ppp'
 		var ppptype = ($('#type').val() == 'ppp');
 
-		hideInput('apn', showadvanced || !ppptype);
-		hideInput('apnum', showadvanced || !ppptype);
-		hideInput('simpin', showadvanced || !ppptype);
-		hideInput('pin-wait', showadvanced || !ppptype);
-		hideInput('initstr', showadvanced || !ppptype);
-		hideInput('connect-timeout', showadvanced || !ppptype);
-		hideCheckbox('uptime', showadvanced || !ppptype);
+		hideInput('apn', !(showadvopts && ppptype));
+		hideInput('apnum', !(showadvopts && ppptype));
+		hideInput('simpin', !(showadvopts && ppptype));
+		hideInput('pin-wait', !(showadvopts && ppptype));
+		hideInput('initstr', !(showadvopts && ppptype));
+		hideInput('connect-timeout', !(showadvopts && ppptype));
+		hideCheckbox('uptime', !(showadvopts && ppptype));
 
 		// The options that follow are only shown if type == 'pppoe'
-		var pppoetype = ($('#type').val() != 'pppoe');
+		var pppoetype = ($('#type').val() == 'pppoe');
 
-		hideClass('pppoe', pppoetype);
-		hideInput('pppoe-reset-type', pppoetype || showadvanced);
-
-		hideResetDisplay(true);
+		hideClass('pppoe', !pppoetype);
+		hideResetDisplay(!(showadvopts && pppoetype));
+		hideInput('pppoe-reset-type', !(showadvopts && pppoetype));
 
 		hideInterfaces();
-	}
+
+		if (showadvopts) {
+			text = "<?=gettext('Hide Advanced');?>";
+		} else {
+			text = "<?=gettext('Display Advanced');?>";
+		}
+		$('#btnadvopts').html('<i class="fa fa-cog"></i> ' + text);
+	} // e-o-show_advopts
+
+	$('#btnadvopts').click(function(event) {
+		show_advopts();
+	});
 
 	function hideResetDisplay(hide) {
 
@@ -1022,7 +1082,7 @@ events.push(function() {
 		for (var i=0; i<length; i++) {
 			hideClass('localip' + selected[i], false);
 
-			if (!showadvanced) {
+			if (showadvopts) {
 				hideClass('linkparam' + selected[i], false);
 				hideInput('linkparamhelp', false);
 			}
@@ -1100,13 +1160,6 @@ events.push(function() {
 		});
 	}
 
-	// Make the ‘btnadvanced’ button a plain button, not a submit button
-	$("#btnadvanced").prop('type','button');
-
-	$("#btnadvanced").click(function() {
-		setAdvVisible();
-	});
-
 	$('#pppoe-reset-type').on('change', function() {
 		hideResetDisplay(false);
 	});
@@ -1137,7 +1190,7 @@ events.push(function() {
 	});
 
 	// Set element visibility on initial page load
-	setAdvVisible();
+	show_advopts(true);
 
 	hideClass('linkparam', true);
 
@@ -1149,6 +1202,8 @@ events.push(function() {
 	if ($('providerplan').size() == 0) {
 		hideInput('providerplan', true);
 	}
+
+	$('#pppoe_resetdate').datepicker();
 });
 //]]>
 

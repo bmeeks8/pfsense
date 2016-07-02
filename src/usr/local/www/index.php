@@ -90,7 +90,7 @@ if ($g['disablecrashreporter'] != true) {
 	// Check to see if we have a crash report
 	$x = 0;
 	if (file_exists("/tmp/PHP_errors.log")) {
-		$total = `/usr/bin/grep -vi warning /tmp/PHP_errors.log | /usr/bin/wc -l | /usr/bin/awk '{ print $1 }'`;
+		$total = `/bin/cat /tmp/PHP_errors.log | /usr/bin/wc -l | /usr/bin/awk '{ print $1 }'`;
 		if ($total > 0) {
 			$x++;
 		}
@@ -130,7 +130,7 @@ while (false !== ($filename = readdir($dirhandle))) {
 ## These define vars that specify the widget title and title link.
 foreach ($phpincludefiles as $includename) {
 	if (file_exists($directory . $includename)) {
-		include($directory . $includename);
+		include_once($directory . $includename);
 	}
 }
 
@@ -155,15 +155,16 @@ if (!is_array($config['widgets'])) {
 
 if ($_POST && $_POST['sequence']) {
 
-	$config['widgets']['sequence'] = rtrim($_POST['sequence'], ',');
+	$widget_settings = array();
+	$widget_settings['sequence'] = rtrim($_POST['sequence'], ',');
 
 	foreach ($widgets as $widgetname => $widgetconfig) {
 		if ($_POST[$widgetname . '-config']) {
-			$config['widgets'][$widgetname . '-config'] = $_POST[$widgetname . '-config'];
+			$widget_settings[$widgetname . '-config'] = $_POST[$widgetname . '-config'];
 		}
 	}
 
-	write_config(gettext("Widget configuration has been changed."));
+	save_widget_settings($_SESSION['Username'], $widget_settings);
 	header("Location: /");
 	exit;
 }
@@ -205,7 +206,7 @@ if (file_exists('/conf/trigger_initial_wizard')) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<link rel="stylesheet" href="/bootstrap/css/pfSense.css" />
+	<link rel="stylesheet" href="/css/pfSense.css" />
 	<title><?=$g['product_name']?>.localdomain - <?=$g['product_name']?> first time setup</title>
 	<meta http-equiv="refresh" content="1;url=wizard.php?xml=setup_wizard.xml" />
 </head>
@@ -215,7 +216,7 @@ if (file_exists('/conf/trigger_initial_wizard')) {
 			<div class="col-sm-offset-3 col-sm-6 col-xs-12">
 				<font color="white">
 				<p><h3><?=sprintf(gettext("Welcome to %s!\n"), $g['product_name'])?></h3></p>
-				<p><?=gettext("One moment while we start the initial setup wizard.")?></p>
+				<p><?=gettext("One moment while the initial setup wizard starts.")?></p>
 				<p><?=gettext("Embedded platform users: Please be patient, the wizard takes a little longer to run than the normal GUI.")?></p>
 				<p><?=sprintf(gettext("To bypass the wizard, click on the %s logo on the initial page."), $g['product_name'])?></p>
 				</font>
@@ -251,9 +252,9 @@ if ($fd) {
 }
 
 ##build widget saved list information
-if ($config['widgets'] && $config['widgets']['sequence'] != "") {
-	$dashboardcolumns = isset($config['system']['webgui']['dashboardcolumns']) ? $config['system']['webgui']['dashboardcolumns'] : 2;
-	$pconfig['sequence'] = $config['widgets']['sequence'];
+if ($user_settings['widgets']['sequence'] != "") {
+	$dashboardcolumns = isset($user_settings['webgui']['dashboardcolumns']) ? $user_settings['webgui']['dashboardcolumns'] : 2;
+	$pconfig['sequence'] = $user_settings['widgets']['sequence'];
 	$widgetsfromconfig = array();
 
 	foreach (explode(',', $pconfig['sequence']) as $line) {
@@ -307,7 +308,7 @@ if ($config['widgets'] && $config['widgets']['sequence'] != "") {
 }
 
 ## Get the configured options for Show/Hide available widgets panel.
-$dashboard_available_widgets_hidden = isset($config['system']['webgui']['dashboardavailablewidgetspanel']) ? false : true;
+$dashboard_available_widgets_hidden = !$user_settings['webgui']['dashboardavailablewidgetspanel'];
 
 if ($dashboard_available_widgets_hidden) {
 	$panel_state = 'out';
@@ -389,10 +390,11 @@ foreach ($widgets as $widgetname => $widgetconfig) {
 	$columnWidth = 12 / $numColumns;
 
 	for ($currentColumnNumber = 1; $currentColumnNumber <= $numColumns; $currentColumnNumber++) {
-		echo '<div class="col-md-' . $columnWidth . '" id="widgets-col' . $currentColumnNumber . '">';
+
 
 		//if col$currentColumnNumber exists
 		if (isset($widgetColumns['col'.$currentColumnNumber])) {
+			echo '<div class="col-md-' . $columnWidth . '" id="widgets-col' . $currentColumnNumber . '">';
 			$columnWidgets = $widgetColumns['col'.$currentColumnNumber];
 
 			foreach ($columnWidgets as $widgetname => $widgetconfig) {
@@ -424,15 +426,16 @@ foreach ($widgets as $widgetname => $widgetconfig) {
 						</h2>
 					</div>
 					<div id="widget-<?=$widgetname?>_panel-body" class="panel-body collapse<?=($widgetconfig['display'] == 'close' ? '' : ' in')?>">
-						<?php include('/usr/local/www/widgets/widgets/'. $widgetname.'.widget.php'); ?>
+						<?php include_once('/usr/local/www/widgets/widgets/'. $widgetname.'.widget.php'); ?>
 					</div>
 				</div>
 				<?php
 			}
+			echo "</div>";
 		} else {
 			echo '<div class="col-md-' . $columnWidth . '" id="widgets-col' . $currentColumnNumber . '"></div>';
 		}
-		echo "</div>";
+
 	}
 ?>
 
@@ -482,7 +485,10 @@ events.push(function() {
 		handle: '.panel-heading',
 		cursor: 'grabbing',
 		connectWith: '.container .col-md-<?=$columnWidth?>',
-		update: function(){dirty = true;}
+		update: function(){
+			dirty = true;
+			$('#btnstore').removeClass('invisible');
+		}
 	});
 
 	// On clicking a widget to install . .
@@ -498,15 +504,24 @@ events.push(function() {
 	$('#btnstore').click(function() {
 		updateWidgets();
 		dirty = false;
+		$(this).addClass('invisible');
 		$('[name=widgetForm]').submit();
 	});
 
 	// provide a warning message if the user tries to change page before saving
 	$(window).bind('beforeunload', function(){
 		if (dirty) {
-			return ("<?=gettext('You have moved one or more widgets but have not yet saved')?>");
+			return ("<?=gettext('One or more widgets have been moved but have not yet been saved')?>");
 		} else {
 			return undefined;
+		}
+	});
+
+	// Show the fa-save icon in the breadcrumb bar if the user opens or closes a panel (In case he/she wants to save the new state)
+	// (Sometimes this will cause us to see the icon when we don't need it, but better that than the other way round)
+	$('.panel').on('hidden.bs.collapse shown.bs.collapse', function (e) {
+	    if (e.currentTarget.id != 'widget-available') {
+			$('#btnstore').removeClass("invisible");
 		}
 	});
 });

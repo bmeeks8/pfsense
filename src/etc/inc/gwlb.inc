@@ -79,7 +79,7 @@ function running_dpinger_processes() {
 	}
 
 	foreach ($pidfiles as $pidfile) {
-		if (preg_match('/^dpinger_(.+)_([^_]+)_([^_]+)\.pid$/',
+		if (preg_match('/^dpinger_(.+)~([^~]+)~([^~]+)\.pid$/',
 		    basename($pidfile), $matches)) {
 			$socket_file = preg_replace('/\.pid$/', '.sock',
 			    $pidfile);
@@ -128,10 +128,16 @@ function start_dpinger($gateway) {
 
 	$dpinger_defaults = return_dpinger_defaults();
 
-	$pidfile = "{$g['varrun_path']}/dpinger_{$gateway['name']}_" .
-	    "{$gateway['gwifip']}_{$gateway['monitor']}.pid";
-	$socket = "{$g['varrun_path']}/dpinger_{$gateway['name']}_" .
-	    "{$gateway['gwifip']}_{$gateway['monitor']}.sock";
+	$prefix = "{$g['varrun_path']}/dpinger_{$gateway['name']}~" .
+	    "{$gateway['gwifip']}~{$gateway['monitor']}";
+	# dpinger socket path should not be longer then uaddr.sun_path
+	if (strlen($pidfile) > 95) {
+		$prefix = "{$g['varrun_path']}/dpinger_{$gateway['name']}~" .
+		    substr(md5($gateway['gwifip']),0,8) . "~" .
+		    $gateway['monitor'];
+	}
+	$pidfile = $prefix . ".pid";
+	$socket = $prefix . ".sock";
 	$alarm_cmd = "{$g['etc_path']}/rc.gateway_alarm";
 
 	$params  = "-S ";			/* Log warnings via syslog */
@@ -261,7 +267,7 @@ function setup_gateways_monitor() {
 		} else if ($gateway['ipprotocol'] == "inet6") { // This is an IPv6 gateway...
 			if (is_linklocal($gateway['gateway']) &&
 			    get_ll_scope($gateway['gateway']) == '') {
-				$gateways_arr[$gwname]['gateway'] .= '%' . $gateway['interface'];
+				$gateway['gateway'] .= '%' . $gateway['interface'];
 			}
 
 			if (is_linklocal($gateway['monitor'])) {
@@ -861,6 +867,9 @@ function fixup_default_gateway($ipprotocol, $gateways_status, $gateways_arr) {
 			log_error("Default gateway down setting {$upgw} as default!");
 			if (is_ipaddrv6($gateways_arr[$upgw]['gateway'])) {
 				$inetfamily = "-inet6";
+				if (is_linklocal($gateways_arr[$upgw]['gateway']) && get_ll_scope($gateways_arr[$upgw]['gateway']) == '') {
+					$gateways_arr[$upgw]['gateway'] .= "%" . $gateways_arr[$upgw]['interface'];
+				}
 			} else {
 				$inetfamily = "-inet";
 			}
@@ -873,6 +882,14 @@ function fixup_default_gateway($ipprotocol, $gateways_status, $gateways_arr) {
 		}
 		if ($ipprotocol == 'inet' && !is_ipaddrv4($gateways_arr[$dfltgwname]['gateway'])) {
 			return;
+		}
+		if ($ipprotocol == 'inet6') {
+			if (is_linklocal($gateways_arr[$upgw]['gateway']) && get_ll_scope($gateways_arr[$upgw]['gateway']) == '') {
+				$gateways_arr[$upgw]['gateway'] .= "%" . $gateways_arr[$upgw]['interface'];
+			}
+			if (is_linklocal($gateways_arr[$dfltgwname]['gateway']) && get_ll_scope($gateways_arr[$dfltgwname]['gateway']) == '') {
+				$gateways_arr[$dfltgwname]['gateway'] .= "%" . $gateways_arr[$dfltgwname]['interface'];
+			}
 		}
 		if ($defaultgw != $gateways_arr[$dfltgwname]['gateway']) {
 			mwexec("/sbin/route change -{$ipprotocol} default {$gateways_arr[$dfltgwname]['gateway']}");
@@ -899,6 +916,7 @@ function return_gateway_groups_array() {
 	if (is_array($config['gateways']['gateway_group'])) {
 		$viplist = get_configured_vip_list();
 		foreach ($config['gateways']['gateway_group'] as $group) {
+			$gateway_groups_array[$group['name']]['descr'] = $group['descr'];
 			/* create array with group gateways members separated by tier */
 			$tiers = array();
 			$backupplan = array();
@@ -924,15 +942,15 @@ function return_gateway_groups_array() {
 					$status = $gateways_status[$gwname];
 					$gwdown = false;
 					if (stristr($status['status'], "down")) {
-						$msg = sprintf(gettext('MONITOR: %1$s is down, omitting from routing group %2$s'), $group['name'], $gwname);
+						$msg = sprintf(gettext('MONITOR: %1$s is down, omitting from routing group %2$s'), $gwname, $group['name']);
 						$gwdown = true;
 					} else if (stristr($status['status'], "loss") && strstr($group['trigger'], "loss")) {
 						/* packet loss */
-						$msg = sprintf(gettext('MONITOR: %1$s has packet loss, omitting from routing group %2$s'), $group['name'], $gwname);
+						$msg = sprintf(gettext('MONITOR: %1$s has packet loss, omitting from routing group %2$s'), $gwname, $group['name']);
 						$gwdown = true;
 					} else if (stristr($status['status'], "delay") && strstr($group['trigger'] , "latency")) {
 						/* high latency */
-						$msg = sprintf(gettext('MONITOR: %1$s has high latency, omitting from routing group %2$s'), $group['name'], $gwname);
+						$msg = sprintf(gettext('MONITOR: %1$s has high latency, omitting from routing group %2$s'), $gwname, $group['name']);
 						$gwdown = true;
 					}
 					if ($gwdown == true) {

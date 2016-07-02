@@ -51,8 +51,9 @@
 
 set +e
 usage() {
-	echo "Usage $0 [options] [ iso | nanobsd | ova | nanobsd-vga | memstick | memstickserial | memstickadi | fullupdate | all ]"
-	echo "		all = iso nanobsd nanobsd-vga memstick memstickserial memstickadi fullupdate"
+	echo "Usage $0 [options] [ iso | nanobsd | ova | nanobsd-vga | memstick | memstickserial | memstickadi | all | none ]"
+	echo "		all = iso nanobsd nanobsd-vga memstick memstickserial memstickadi"
+	echo "		none = upgrade only pkg repo"
 	echo "	[ options ]: "
 	echo "		--flash-size|-f size(s) - a list of flash sizes to build with nanobsd i.e. '2g 4g'. Default: 2g"
 	echo "		--no-buildworld|-c - Will set NO_BUILDWORLD NO_BUILDKERNEL to not build kernel and world"
@@ -60,15 +61,13 @@ usage() {
 	echo "		--resume-image-build|-r - Includes -c -d and also will just move directly to image creation using pre-staged data"
 	echo "		--setup - Install required repo and ports builder require to work"
 	echo "		--update-sources - Refetch FreeBSD sources"
-	echo "		--print-flags - Show current builder configuration"
+	echo "		--rsync-repos - rsync pkg repos"
 	echo "		--clean-builder - clean all builder used data/resources"
 	echo "		--build-kernels - build all configured kernels"
 	echo "		--build-kernel argument - build specified kernel. Example --build-kernel KERNEL_NAME"
 	echo "		--install-extra-kernels argument - Put extra kernel(s) under /kernel image directory. Example --install-extra-kernels KERNEL_NAME_WRAP"
 	echo "		--snapshots - Build snapshots and upload them to RSYNCIP"
 	echo "		--poudriere-snapshots - Update poudriere packages and send them to PKG_RSYNC_HOSTNAME"
-	echo "		--enable-memorydisks - This will put stage_dir and iso_dir as MFS filesystems"
-	echo "		--disable-memorydisks - Will just teardown these filesystems created by --enable-memorydisks"
 	echo "		--setup-poudriere - Install poudriere and create necessary jails and ports tree"
 	echo "		--create-unified-patch - Create a big patch with all changes done on FreeBSD"
 	echo "		--update-poudriere-jails [-a ARCH_LIST] - Update poudriere jails using current patch versions"
@@ -123,6 +122,9 @@ while test "$1" != ""; do
 		--setup)
 			BUILDACTION="builder_setup"
 			;;
+		--rsync-repos)
+			BUILDACTION="rsync_repos"
+			;;
 		--build-kernels)
 			BUILDACTION="buildkernels"
 			;;
@@ -137,7 +139,6 @@ while test "$1" != ""; do
 			;;
 		--snapshots)
 			export SNAPSHOTS=1
-			IMAGETYPE="all"
 			;;
 		--poudriere-snapshots)
 			export POUDRIERE_SNAPSHOTS=1
@@ -155,18 +156,8 @@ while test "$1" != ""; do
 		--update-sources)
 			BUILDACTION="updatesources"
 			;;
-		--print-flags)
-			BUILDACTION="printflags"
-			_USE_OLD_DATESTRING=YES
-			;;
 		--clean-builder)
 			BUILDACTION="cleanbuilder"
-			;;
-		--enable-memorydisks)
-			BUILDACTION="enablememorydisk"
-			;;
-		--disable-memorydisks)
-			BUILDACTION="disablememorydisk"
 			;;
 		--setup-poudriere)
 			BUILDACTION="setup_poudriere"
@@ -195,7 +186,7 @@ while test "$1" != ""; do
 		--do-not-upload|-u)
 			export DO_NOT_UPLOAD=1
 			;;
-		all|*iso*|*ova*|*memstick*|*memstickserial*|*memstickadi*|*nanobsd*|*nanobsd-vga*|*fullupdate*)
+		all|none|*iso*|*ova*|*memstick*|*memstickserial*|*memstickadi*|*nanobsd*|*nanobsd-vga*)
 			BUILDACTION="images"
 			IMAGETYPE="${1}"
 			;;
@@ -209,8 +200,10 @@ while test "$1" != ""; do
 			shift
 			snapshot_status_message="${1}"
 			BUILDACTION="snapshot_status_message"
+			_USE_OLD_DATESTRING=YES
 			;;
 		*)
+			_USE_OLD_DATESTRING=YES
 			usage
 	esac
 	shift
@@ -255,20 +248,11 @@ case $BUILDACTION in
 	cleanbuilder)
 		clean_builder
 	;;
-	printflags)
-		print_flags
-	;;
-	images|snapshots)
+	images)
 		# It will be handled below
 	;;
 	updatesources)
 		update_freebsd_sources
-	;;
-	enablememorydisk)
-		prestage_on_ram_setup
-	;;
-	disablememorydisk)
-		prestage_on_ram_cleanup
 	;;
 	setup_poudriere)
 		poudriere_init
@@ -281,6 +265,10 @@ case $BUILDACTION in
 	;;
 	update_poudriere_ports)
 		poudriere_update_ports
+	;;
+	rsync_repos)
+		unset SKIP_FINAL_RSYNC
+		pkg_repo_rsync "${CORE_PKG_PATH}"
 	;;
 	update_pkg_repo)
 		if [ -z "${DO_NOT_UPLOAD}" -a ! -f /usr/local/bin/rsync ]; then
@@ -309,8 +297,11 @@ if [ -n "${SNAPSHOTS}" -a -z "${DO_NOT_UPLOAD}" ]; then
 		PKG_RSYNC_USERNAME \
 		PKG_RSYNC_SSH_PORT \
 		PKG_RSYNC_DESTDIR \
-		PKG_REPO_SERVER \
-		PKG_REPO_CONF_BRANCH"
+		PKG_REPO_SERVER_DEVEL \
+		PKG_REPO_SERVER_RELEASE \
+		PKG_REPO_SERVER_STAGING \
+		PKG_REPO_BRANCH_DEVEL \
+		PKG_REPO_BRANCH_RELEASE"
 
 	for _var in ${_required}; do
 		eval "_value=\${$_var}"
@@ -331,14 +322,21 @@ if [ $# -gt 1 ]; then
 	echo
 	usage
 fi
+
+if [ -n "${SNAPSHOTS}" -a -z "${IMAGETYPE}" ]; then
+	IMAGETYPE="all"
+fi
+
 if [ -z "${IMAGETYPE}" ]; then
 	echo "ERROR: Need to specify image type to build."
 	echo
 	usage
 fi
 
-if [ "$IMAGETYPE" = "all" ]; then
-	_IMAGESTOBUILD="iso fullupdate nanobsd nanobsd-vga memstick memstickserial"
+if [ "$IMAGETYPE" = "none" ]; then
+	_IMAGESTOBUILD=""
+elif [ "$IMAGETYPE" = "all" ]; then
+	_IMAGESTOBUILD="iso nanobsd nanobsd-vga memstick memstickserial"
 	if [ "${TARGET}" = "amd64" ]; then
 		_IMAGESTOBUILD="${_IMAGESTOBUILD} memstickadi"
 	fi
@@ -375,12 +373,6 @@ if [ -z "${_SKIP_REBUILD_PRESTAGE}" ]; then
 	# Ensure binaries are present that builder system requires
 	builder_setup
 
-	# Output build flags
-	print_flags
-
-	# Check to see if pre-staging will be hosted on ram
-	prestage_on_ram_setup
-
 	# Build world, kernel and install
 	echo ">>> Building world for ISO... $FREEBSD_BRANCH ..."
 	make_world
@@ -389,12 +381,21 @@ if [ -z "${_SKIP_REBUILD_PRESTAGE}" ]; then
 	echo ">>> Building kernel configs: $BUILD_KERNELS for FreeBSD: $FREEBSD_BRANCH ..."
 	build_all_kernels
 
+	# Install kernel on installer
+	installkernel ${INSTALLER_CHROOT_DIR}
+
 	# Prepare pre-final staging area
 	clone_to_staging_area
 
 	# Install packages needed for Product
 	install_pkg_install_ports
 fi
+
+# Create core repo
+core_pkg_create_repo
+
+# Send core repo to staging area
+pkg_repo_rsync "${CORE_PKG_PATH}" ignore_final_rsync
 
 export DEFAULT_KERNEL=${DEFAULT_KERNEL_ISO:-"${PRODUCT_NAME}"}
 
@@ -406,34 +407,38 @@ for _IMGTOBUILD in $_IMAGESTOBUILD; do
 	# Clean up items that should be cleaned each run
 	staginareas_clean_each_run
 
-	if [ "${_IMGTOBUILD}" = "iso" ]; then
-		create_iso_image
-	elif [ "${_IMGTOBUILD}" = "memstick" ]; then
-		create_memstick_image
-	elif [ "${_IMGTOBUILD}" = "memstickserial" ]; then
-		create_memstick_serial_image
-	elif [ "${_IMGTOBUILD}" = "memstickadi" ]; then
-		create_memstick_adi_image
-	elif [ "${_IMGTOBUILD}" = "fullupdate" ]; then
-		create_Full_update_tarball
-	elif [ "${_IMGTOBUILD}" = "nanobsd" -o "${_IMGTOBUILD}" = "nanobsd-vga" ]; then
-		if [ "${TARGET}" = "i386" -a "${_IMGTOBUILD}" = "nanobsd" ]; then
-			export DEFAULT_KERNEL=${DEFAULT_KERNEL_NANOBSD:-"${PRODUCT_NAME}_wrap"}
-		elif [ "${TARGET}" = "i386" -a "${_IMGTOBUILD}" = "nanobsd-vga" ]; then
-			export DEFAULT_KERNEL=${DEFAULT_KERNEL_NANOBSDVGA:-"${PRODUCT_NAME}_wrap_vga"}
-		elif [ "${TARGET}" = "amd64" ]; then
-			export DEFAULT_KERNEL=${DEFAULT_KERNEL_NANOBSD:-"${PRODUCT_NAME}"}
-		fi
-		# Create the NanoBSD disk image
-		create_nanobsd_diskimage ${_IMGTOBUILD} "${FLASH_SIZE}"
-	elif [ "${_IMGTOBUILD}" = "ova" ]; then
-		install_pkg_install_ports ${PRODUCT_NAME}-vmware
-		create_ova_image
-		install_pkg_install_ports
-	fi
+	case "${_IMGTOBUILD}" in
+		iso)
+			create_iso_image
+			;;
+		memstick)
+			if [ -n "${MEMSTICK_VARIANTS}" ]; then
+				for _variant in ${MEMSTICK_VARIANTS}; do
+					create_memstick_image ${_variant}
+				done
+			else
+				create_memstick_image
+			fi
+			;;
+		memstickserial)
+			create_memstick_serial_image
+			;;
+		memstickadi)
+			create_memstick_adi_image
+			;;
+		nanobsd|nanobsd-vga)
+			create_nanobsd_diskimage ${_IMGTOBUILD} "${FLASH_SIZE}"
+			;;
+		ova)
+			old_custom_package_list="${custom_package_list}"
+			export custom_package_list="${custom_package_list} ${PRODUCT_NAME}-pkg-Open-VM-Tools"
+			install_pkg_install_ports
+			create_ova_image
+			export custom_package_list="${old_custom_package_list}"
+			install_pkg_install_ports
+			;;
+	esac
 done
-
-core_pkg_create_repo
 
 if [ -n "${_bg_pids}" ]; then
 	if [ -n "${SNAPSHOTS}" ]; then
@@ -460,11 +465,14 @@ if [ -n "${_bg_pids}" ]; then
 fi
 
 if [ -n "${SNAPSHOTS}" ]; then
-	snapshots_copy_to_staging_iso_updates
-	snapshots_copy_to_staging_nanobsd "${FLASH_SIZE}"
-	# SCP files to snapshot web hosting area
-	if [ -z "${DO_NOT_UPLOAD}" ]; then
-		snapshots_scp_files
+	if [ "${IMAGETYPE}" = "none" -a -z "${DO_NOT_UPLOAD}" ]; then
+		pkg_repo_rsync "${CORE_PKG_PATH}"
+	elif [ "${IMAGETYPE}" != "none" ]; then
+		snapshots_create_sha256
+		# SCP files to snapshot web hosting area
+		if [ -z "${DO_NOT_UPLOAD}" ]; then
+			snapshots_scp_files
+		fi
 	fi
 	# Alert the world that we have some snapshots ready.
 	snapshots_update_status ">>> Builder run is complete."

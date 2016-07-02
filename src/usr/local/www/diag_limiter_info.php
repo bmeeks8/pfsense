@@ -60,7 +60,7 @@
 ##|*MATCH=diag_limiter_info.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 
 $pgtitle = array(gettext("Diagnostics"), gettext("Limiter Info"));
 $shortcut_section = "trafficshaper-limiters";
@@ -68,7 +68,7 @@ $shortcut_section = "trafficshaper-limiters";
 if ($_REQUEST['getactivity']) {
 	$text = `/sbin/ipfw pipe show`;
 	if ($text == "") {
-		$text = gettext("We could not find any limiters on this system.");
+		$text = gettext("No limiters were found on this system.");
 	}
 	echo gettext("Limiters:") . "\n";
 	echo $text;

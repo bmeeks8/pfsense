@@ -65,7 +65,7 @@ function admusercmp($a, $b) {
 	return strcasecmp($a['name'], $b['name']);
 }
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 
 $pgtitle = array(gettext("System"), gettext("User Manager"), gettext("Users"), gettext("Edit"), gettext("Add Privileges"));
 
@@ -186,7 +186,7 @@ $section->addInput(new Form_Select(
 	build_priv_list(),
 	true
 ))->addClass('multiselect')
-  ->setHelp('Hold down CTRL (PC)/COMMAND (Mac) key to select multiple items');
+  ->setHelp('Hold down CTRL (PC)/COMMAND (Mac) key to select multiple items.');
 
 $section->addInput(new Form_Select(
 	'shadow',
@@ -195,7 +195,7 @@ $section->addInput(new Form_Select(
 	build_priv_list(),
 	true
 ))->addClass('shadowselect')
-  ->setHelp('Hold down CTRL (PC)/COMMAND (Mac) key to select multiple items');
+  ->setHelp('Hold down CTRL (PC)/COMMAND (Mac) key to select multiple items.');
 
 $section->addInput(new Form_Input(
 	'filtertxt',
@@ -211,7 +211,7 @@ $btnfilter = new Form_Button(
 	'fa-filter'
 );
 
-$btnfilter->addClass('btn btn-info');
+$btnfilter->setAttribute('type','button')->addClass('btn btn-info');
 
 $form->addGlobal($btnfilter);
 
@@ -222,7 +222,7 @@ $btnclear = new Form_Button(
 	'fa-times'
 );
 
-$btnclear->addClass('btn btn-warning');
+$btnclear->setAttribute('type','button')->addClass('btn btn-warning');
 
 $form->addGlobal($btnclear);
 
@@ -292,8 +292,6 @@ events.push(function() {
 		});
 	});
 
-	$('#btnfilter').prop('type', 'button');
-
 	$('#btnfilter').click(function() {
 		searchterm = $('#filtertxt').val().toLowerCase();
 		copyselect(true);
@@ -305,8 +303,6 @@ events.push(function() {
 			}
 		});
 	});
-
-	$('#btnclear').prop('type', 'button');
 
 	$('#btnclear').click(function() {
 		// Copy all options from shadow to sysprivs

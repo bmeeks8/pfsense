@@ -63,11 +63,11 @@
 ##|*MATCH=firewall_nat_1to1_edit.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("interfaces.inc");
 require_once("filter.inc");
 require_once("ipsec.inc");
-require("shaper.inc");
+require_once("shaper.inc");
 
 $referer = (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '/firewall_nat_1to1.php');
 
@@ -202,7 +202,7 @@ if ($_POST) {
 
 	/* For dst, if user enters an alias and selects "network" then disallow. */
 	if ($_POST['dsttype'] == "network" && is_alias($_POST['dst'])) {
-		$input_errors[] = gettext("You must specify single host or alias for alias entries.");
+		$input_errors[] = gettext("Alias entries must specify a single host or alias.");
 	}
 
 	/* For src, user can enter only ip's or networks */
@@ -284,7 +284,7 @@ include("head.inc");
 function build_srctype_list() {
 	global $pconfig, $ifdisp;
 
-	$list = array('any' => gettext('Any'), 'single' => gettext('Single host or alias'), 'network' => gettext('Network'));
+	$list = array('any' => gettext('Any'), 'single' => gettext('Single host'), 'network' => gettext('Network'));
 
 	$sel = is_specialnet($pconfig['src']);
 
@@ -392,10 +392,7 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-$form = new Form(new Form_Button(
-	'Submit',
-	gettext("Save")
-));
+$form = new Form();
 
 $section = new Form_Section('Edit NAT 1:1 Entry');
 
@@ -411,7 +408,7 @@ $section->addInput(new Form_Checkbox(
 	'No BINAT (NOT)',
 	'Do not perform binat for the specified address',
 	$pconfig['nobinat']
-))->setHelp('Excludes the address from a later, more general, rule');
+))->setHelp('Excludes the address from a later, more general, rule.');
 
 $iflist = get_configured_interface_with_descr(false, true);
 
@@ -513,7 +510,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 $section->addInput(new Form_Select(
 	'natreflection',
@@ -580,11 +577,11 @@ events.push(function() {
 
 	// ---------- Click checkbox handlers ---------------------------------------------------------
 
-	$('#srctype').click(function () {
+	$('#srctype').change(function () {
 		typesel_change();
 	});
 
-	$('#dsttype').click(function () {
+	$('#dsttype').change(function () {
 		typesel_change();
 	});
 

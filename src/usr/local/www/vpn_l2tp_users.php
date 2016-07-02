@@ -63,7 +63,7 @@
 $pgtitle = array(gettext("VPN"), gettext("L2TP"), gettext("Users"));
 $shortcut_section = "l2tps";
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("vpn.inc");
 
 if (!is_array($config['l2tp']['user'])) {
@@ -110,7 +110,7 @@ if (isset($config['l2tp']['radius']['enable'])) {
 }
 
 if (is_subsystem_dirty('l2tpusers')) {
-	print_apply_box(gettext("The L2TP user list has been modified.") . "<br />" . gettext("You must apply the changes in order for them to take effect") . ".<br /><b>" . gettext("Warning: this will terminate all current L2TP sessions!") . "</b>");
+	print_apply_box(gettext("The L2TP user list has been modified.") . "<br />" . gettext("The changes must be applied for them to take effect") . ".<br /><b>" . gettext("Warning: this will terminate all current L2TP sessions!") . "</b>");
 }
 
 

@@ -70,7 +70,7 @@ function listtags() {
 		'earlyshellcmd', 'element', 'encryption-algorithm-option',
 		'field', 'fieldname',
 		'gateway_item', 'gateway_group', 'gif', 'gre', 'group',
-		'hash-algorithm-option', 'hosts', 'member', 'ifgroupentry', 'igmpentry', 'interface_array', 'item', 'key',
+		'hash-algorithm-option', 'hosts', 'ifgroupentry', 'igmpentry', 'interface_array', 'item', 'key',
 		'lagg', 'lbaction', 'lbpool', 'l7rules', 'lbprotocol',
 		'member', 'menu', 'tab', 'mobilekey', 'monitor_type', 'mount',
 		'npt', 'ntpserver',
@@ -311,7 +311,8 @@ function dump_xml_config_sub($arr, $indent) {
 				    (substr($ent, 0, 9) == "ldap_bind") ||
 				    (substr($ent, 0, 11) == "ldap_basedn") ||
 				    (substr($ent, 0, 18) == "ldap_authcn") ||
-				    (substr($ent, 0, 19) == "ldap_extended_query")) {
+				    (substr($ent, 0, 19) == "ldap_extended_query") ||
+				    (substr($ent, 0, 5) == "text")) {
 					$xmlconfig .= "<$ent><![CDATA[" . htmlentities($val) . "]]></$ent>\n";
 				} else {
 					$xmlconfig .= "<$ent>" . htmlentities($val) . "</$ent>\n";

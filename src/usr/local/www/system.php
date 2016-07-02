@@ -63,7 +63,7 @@
 ##|*MATCH=system.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("functions.inc");
 require_once("filter.inc");
 require_once("shaper.inc");
@@ -75,7 +75,7 @@ list($pconfig['dns1'], $pconfig['dns2'], $pconfig['dns3'], $pconfig['dns4']) = $
 
 $arr_gateways = return_gateways_array();
 
-// set default colmns to two if unset
+// set default columns to two if unset
 if (!isset($config['system']['webgui']['dashboardcolumns'])) {
 	$config['system']['webgui']['dashboardcolumns'] = 2;
 }
@@ -96,6 +96,8 @@ $pconfig['webguileftcolumnhyper'] = isset($config['system']['webgui']['webguilef
 $pconfig['dashboardavailablewidgetspanel'] = isset($config['system']['webgui']['dashboardavailablewidgetspanel']);
 $pconfig['systemlogsfilterpanel'] = isset($config['system']['webgui']['systemlogsfilterpanel']);
 $pconfig['systemlogsmanagelogpanel'] = isset($config['system']['webgui']['systemlogsmanagelogpanel']);
+$pconfig['statusmonitoringsettingspanel'] = isset($config['system']['webgui']['statusmonitoringsettingspanel']);
+$pconfig['webguihostnamemenu'] = $config['system']['webgui']['webguihostnamemenu'];
 $pconfig['dnslocalhost'] = isset($config['system']['dnslocalhost']);
 
 if (!$pconfig['timezone']) {
@@ -156,6 +158,12 @@ if ($_POST) {
 		unset($config['system']['webgui']['webguifixedmenu']);
 	}
 
+	if ($_POST['webguihostnamemenu']) {
+		$config['system']['webgui']['webguihostnamemenu'] = $_POST['webguihostnamemenu'];
+	} else {
+		unset($config['system']['webgui']['webguihostnamemenu']);
+	}
+
 	if ($_POST['dashboardcolumns']) {
 		$config['system']['webgui']['dashboardcolumns'] = $_POST['dashboardcolumns'];
 	} else {
@@ -189,10 +197,10 @@ if ($_POST) {
 				// A real gateway has been selected.
 				if (is_ipaddr($_POST[$dnsname])) {
 					if ((is_ipaddrv4($_POST[$dnsname])) && (validate_address_family($_POST[$dnsname], $_POST[$dnsgwname]) === false)) {
-						$input_errors[] = sprintf(gettext('You can not specify IPv6 gateway "%1$s" for IPv4 DNS server "%2$s".'), $_POST[$dnsgwname], $_POST[$dnsname]);
+						$input_errors[] = sprintf(gettext('The IPv6 gateway "%1$s" can not be specified for IPv4 DNS server "%2$s".'), $_POST[$dnsgwname], $_POST[$dnsname]);
 					}
 					if ((is_ipaddrv6($_POST[$dnsname])) && (validate_address_family($_POST[$dnsname], $_POST[$dnsgwname]) === false)) {
-						$input_errors[] = sprintf(gettext('You can not specify IPv4 gateway "%1$s" for IPv6 DNS server "%2$s".'), $_POST[$dnsgwname], $_POST[$dnsname]);
+						$input_errors[] = sprintf(gettext('The IPv4 gateway "%1$s" can not be specified for IPv6 DNS server "%2$s".'), $_POST[$dnsgwname], $_POST[$dnsname]);
 					}
 				} else {
 					// The user selected a gateway but did not provide a DNS address. Be nice and set the gateway back to "none".
@@ -214,7 +222,7 @@ if ($_POST) {
 			if (interface_has_gateway($_POST[$dnsgwitem])) {
 				foreach ($direct_networks_list as $direct_network) {
 					if (ip_in_subnet($_POST[$dnsitem], $direct_network)) {
-						$input_errors[] = sprintf(gettext("You can not assign a gateway to DNS '%s' server which is on a directly connected network."), $_POST[$dnsitem]);
+						$input_errors[] = sprintf(gettext("A gateway can not be assigned to DNS '%s' server which is on a directly connected network."), $_POST[$dnsitem]);
 					}
 				}
 			}
@@ -252,6 +260,9 @@ if ($_POST) {
 
 		unset($config['system']['webgui']['systemlogsmanagelogpanel']);
 		$config['system']['webgui']['systemlogsmanagelogpanel'] = $_POST['systemlogsmanagelogpanel'] ? true : false;
+
+		unset($config['system']['webgui']['statusmonitoringsettingspanel']);
+		$config['system']['webgui']['statusmonitoringsettingspanel'] = $_POST['statusmonitoringsettingspanel'] ? true : false;
 
 		/* XXX - billm: these still need updating after figuring out how to check if they actually changed */
 		$olddnsservers = $config['system']['dnsserver'];
@@ -468,14 +479,14 @@ $section->addInput(new Form_Select(
 	'Timezone',
 	$pconfig['timezone'],
 	array_combine($timezonelist, $timezonelist)
-))->setHelp('Select the location closest to you');
+))->setHelp('Select the timezone or location within the timezone to be used by this system.');
 $section->addInput(new Form_Input(
 	'timeservers',
 	'Timeservers',
 	'text',
 	$pconfig['timeservers']
 ))->setHelp('Use a space to separate multiple hosts (only one required). '.
-	'Remember to set up at least one DNS server if you enter a host name here!');
+	'Remember to set up at least one DNS server if a host name is entered here!');
 $section->addInput(new Form_Select(
 	'language',
 	'Language',
@@ -485,85 +496,50 @@ $section->addInput(new Form_Select(
 
 $form->add($section);
 
-$csslist = array();
-$css = glob("/usr/local/www/bootstrap/css/*.css");
-foreach ($css as $file) {
-	$file = basename($file);
-	if (substr($file, 0, 9) !== 'bootstrap') {
-		$csslist[$file] = pathinfo($file, PATHINFO_FILENAME);
-	}
-}
-
-asort($csslist);
-
-if (!isset($pconfig['webguicss']) || !isset($csslist[$pconfig['webguicss']])) {
-	$pconfig['webguicss'] = "pfSense.css";
-}
-
 $section = new Form_Section('webConfigurator');
 
-$section->addInput(new Form_Select(
-	'webguicss',
-	'Theme',
-	$pconfig['webguicss'],
-	$csslist
-))->setHelp('Choose an alternative css file (if installed) to change the appearance of the webConfigurator. css files are located in /usr/local/www/bootstrap/css');
-
-$section->addInput(new Form_Select(
-	'webguifixedmenu',
-	'Top Navigation',
-	$pconfig['webguifixedmenu'],
-	["" => gettext("Scrolls with page"), "fixed" => gettext("Fixed (Remains visible at top of page)")]
-))->setHelp("The fixed option is intended for large screens only.");
-
-$section->addInput(new Form_Input(
-	'dashboardcolumns',
-	'Dashboard Columns',
-	'number',
-	$pconfig['dashboardcolumns'],
-	[min => 1, max => 4]
-))->setHelp('<span class="badge" title="This feature is in BETA">BETA</span>');
-
-$group = new Form_Group('Associated Panels Show/Hide');
-
-$group->add(new Form_Checkbox(
-	'dashboardavailablewidgetspanel',
-	null,
-	'Available Widgets',
-	$pconfig['dashboardavailablewidgetspanel']
-	))->setHelp('Show the Available Widgets panel on the Dashboard.');
-
-$group->add(new Form_Checkbox(
-	'systemlogsfilterpanel',
-	null,
-	'Log Filter',
-	$pconfig['systemlogsfilterpanel']
-))->setHelp('Show the Log Filter panel in System Logs.');
-
-$group->add(new Form_Checkbox(
-	'systemlogsmanagelogpanel',
-	null,
-	'Manage Log',
-	$pconfig['systemlogsmanagelogpanel']
-))->setHelp('Show the Manage Log panel in System Logs.');
-
-$group->setHelp('These options allow certain panels to be automatically hidden on page load. A control is provided in the title bar to un-hide the panel.
-<br /><span class="badge" title="This feature is in BETA">BETA</span>');
-
-$section->add($group);
-
-$section->addInput(new Form_Checkbox(
-	'webguileftcolumnhyper',
-	'Left Column Labels',
-	'Active',
-	$pconfig['webguileftcolumnhyper']
-))->setHelp('If selected, clicking a label in the left column will select/toggle the first item of the group.<br /><span class="badge" title="This feature is in BETA">BETA</span>');
+gen_webguicss_field($section, $pconfig['webguicss']);
+gen_webguifixedmenu_field($section, $pconfig['webguifixedmenu']);
+gen_webguihostnamemenu_field($section, $pconfig['webguihostnamemenu']);
+gen_dashboardcolumns_field($section, $pconfig['dashboardcolumns']);
+gen_associatedpanels_fields(
+	$section,
+	$pconfig['dashboardavailablewidgetspanel'],
+	$pconfig['systemlogsfilterpanel'],
+	$pconfig['systemlogsmanagelogpanel'],
+	$pconfig['statusmonitoringsettingspanel']);
+gen_webguileftcolumnhyper_field($section, $pconfig['webguileftcolumnhyper']);
 
 $form->add($section);
 
 print $form;
+
+$csswarning = sprintf(gettext("%sUser-created themes are unsupported, use at your own risk."), "<br />");
+
 ?>
 </div>
+
+<script>
+//<![CDATA[
+events.push(function() {
+
+	function setThemeWarning() {
+		if ($('#webguicss').val().startsWith("pfSense")) {
+			$('#csstxt').html("").addClass("text-default");
+		} else {
+			$('#csstxt').html("<?=$csswarning?>").addClass("text-danger");
+		}
+	}
+
+	$('#webguicss').change(function() {
+		setThemeWarning();
+	});
+
+	setThemeWarning();
+});
+//]]>
+</script>
+
 <?php
 include("foot.inc");
 ?>

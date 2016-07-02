@@ -60,7 +60,7 @@
 ##|*MATCH=vpn_l2tp.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("vpn.inc");
 
 if (!is_array($config['l2tp']['radius'])) {
@@ -79,7 +79,7 @@ $pconfig['radiusenable'] = isset($l2tpcfg['radius']['enable']);
 $pconfig['radacct_enable'] = isset($l2tpcfg['radius']['accounting']);
 $pconfig['radiusserver'] = $l2tpcfg['radius']['server'];
 $pconfig['radiussecret'] = $l2tpcfg['radius']['secret'];
-$pconfig['radiusissueips'] = $l2tpcfg['radius']['radiusissueips'];
+$pconfig['radiusissueips'] = isset($l2tpcfg['radius']['radiusissueips']);
 $pconfig['n_l2tp_units'] = $l2tpcfg['n_l2tp_units'];
 $pconfig['paporchap'] = $l2tpcfg['paporchap'];
 $pconfig['secret'] = $l2tpcfg['secret'];
@@ -233,10 +233,7 @@ $tab_array[] = array(gettext("Configuration"), true, "vpn_l2tp.php");
 $tab_array[] = array(gettext("Users"), false, "vpn_l2tp_users.php");
 display_top_tabs($tab_array);
 
-$form = new Form(new Form_Button(
-	'Submit',
-	gettext("Save")
-));
+$form = new Form();
 
 $section = new Form_Section("Enable L2TP");
 
@@ -309,14 +306,14 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_Input(
 	'l2tp_dns1',
-	'Primary L2TM DNS server',
+	'Primary L2TP DNS server',
 	'text',
 	$pconfig['l2tp_dns1']
 ));
 
 $section->addInput(new Form_Input(
 	'l2tp_dns2',
-	'Secondary L2TM DNS server',
+	'Secondary L2TP DNS server',
 	'text',
 	$pconfig['l2tp_dns2']
 ));

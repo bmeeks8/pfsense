@@ -62,7 +62,7 @@
 ##|-PRIV
 
 define('NUMTIMESERVERS', 10);		// The maximum number of configurable time servers
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once('rrd.inc');
 require_once("shaper.inc");
 
@@ -169,8 +169,8 @@ if ($_POST) {
 			enable_rrd_graphing();
 		}
 
-		if (!empty($_POST['leaptxt'])) {
-			$config['ntpd']['leapsec'] = base64_encode($_POST['leaptxt']);
+		if (!empty($_POST['leaptext'])) {
+			$config['ntpd']['leapsec'] = base64_encode($_POST['leaptext']);
 		} elseif (isset($config['ntpd']['leapsec'])) {
 			unset($config['ntpd']['leapsec']);
 		}
@@ -279,23 +279,27 @@ for ($counter=0; $counter < $maxrows; $counter++) {
 
 	$group->add(new Form_Button(
 		'deleterow' . $counter,
-		'Delete'
-	))->removeClass('btn-primary')->addClass('btn-warning');
+		'Delete',
+		null,
+		'fa-trash'
+	))->addClass('btn-warning');
 
 	 $section->add($group);
 }
 
 $section->addInput(new Form_Button(
 	'addrow',
-	'Add'
-))->removeClass('btn-primary')->addClass('btn-success');
+	'Add',
+	null,
+	'fa-plus'
+))->addClass('btn-success');
 
 $section->addInput(new Form_StaticText(
 	null,
 	$btnaddrow
 ))->setHelp('For best results three to five servers should be configured here.' . '<br />' .
 			'The prefer option indicates that NTP should favor the use of this server more than all others.' . '<br />' .
-			'The noselect option indicates that NTP should not use this server for time, but stats for this server will be collected and displayed.');
+			'The no select option indicates that NTP should not use this server for time, but stats for this server will be collected and displayed.');
 
 $section->addInput(new Form_Input(
 	'ntporphan',
@@ -304,7 +308,7 @@ $section->addInput(new Form_Input(
 	$pconfig['ntporphan']
 ))->setHelp('Orphan mode allows the system clock to be used when no other clocks are available. ' .
 			'The number here specifies the stratum reported during orphan mode and should normally be set to a number high enough ' .
-			'to insure that any other servers available to clients are preferred over this server. (default: 12).');
+			'to insure that any other servers available to clients are preferred over this server (default: 12).');
 
 $section->addInput(new Form_Checkbox(
 	'statsgraph',
@@ -326,19 +330,21 @@ $section->addInput(new Form_Checkbox(
 	'Log system messages (default: disabled).',
 	$pconfig['logsys']
 ))->setHelp('These options enable additional messages from NTP to be written to the System Log ' .
-			'<a href="status_logs.php?logfile=ntpd">' . 'Status > System Logs > NTP' . '</a>');
+			'<a href="status_logs.php?logfile=ntpd">' . 'Status > System Logs > NTP' . '</a>.');
 
 // Statistics logging section
-$btnadvstats = new Form_Button(
+$btnadv = new Form_Button(
 	'btnadvstats',
-	'Advanced'
+	'Display Advanced',
+	null,
+	'fa-cog'
 );
 
-$btnadvstats->removeClass('btn-primary')->addClass('btn-default btn-sm');
+$btnadv->setAttribute('type','button')->addClass('btn-info btn-sm');
 
 $section->addInput(new Form_StaticText(
 	'Statistics Logging',
-	$btnadvstats
+	$btnadv
 ))->setHelp('Warning: These options will create persistent daily log files in /var/log/ntp.');
 
 $section->addInput(new Form_Checkbox(
@@ -363,24 +369,26 @@ $section->addInput(new Form_Checkbox(
 ));
 
 // Leap seconds section
-$btnleap = new Form_Button(
-	'btnleap',
-	'Advanced'
+$btnadv = new Form_Button(
+	'btnadvleap',
+	'Display Advanced',
+	null,
+	'fa-cog'
 );
 
-$btnleap->removeClass('btn-primary')->addClass('btn-default btn-sm');
+$btnadv->setAttribute('type','button')->addClass('btn-info btn-sm');
 
 $section->addInput(new Form_StaticText(
 	'Leap seconds',
-	$btnleap
-))->setHelp('A leap second file allows NTP to advertize an upcoming leap second addition or subtraction. ' .
+	$btnadv
+))->setHelp('A leap second file allows NTP to advertise an upcoming leap second addition or subtraction. ' .
 			'Normally this is only useful if this server is a stratum 1 time server. ');
 
 $section->addInput(new Form_Textarea(
 	'leaptext',
 	null,
 	base64_decode(chunk_split($pconfig['leapsec']))
-))->setHelp('Enter Leap second configuration as text OR select a file to upload');
+))->setHelp('Enter Leap second configuration as text OR select a file to upload.');
 
 $section->addInput(new Form_Input(
 	'leapfile',
@@ -405,34 +413,82 @@ print($form);
 //<![CDATA[
 events.push(function() {
 
-	// Make the ‘clear’ button a plain button, not a submit button
-	$('#btnadvstats').prop('type','button');
+	// Show advanced stats options ============================================
+	var showadvstats = false;
 
-	// On click, show the controls in the stats section
-	$("#btnadvstats").click(function() {
-		hideCheckbox('clockstats', false);
-		hideCheckbox('loopstats', false);
-		hideCheckbox('peerstats', false);
+	function show_advstats(ispageload) {
+		var text;
+		// On page load decide the initial state based on the data.
+		if (ispageload) {
+<?php
+			if (!$pconfig['clockstats'] && !$pconfig['loopstats'] && !$pconfig['peerstats']) {
+				$showadv = false;
+			} else {
+				$showadv = true;
+			}
+?>
+			showadvstats = <?php if ($showadv) {echo 'true';} else {echo 'false';} ?>;
+		} else {
+			// It was a click, swap the state.
+			showadvstats = !showadvstats;
+		}
+
+		hideCheckbox('clockstats', !showadvstats);
+		hideCheckbox('loopstats', !showadvstats);
+		hideCheckbox('peerstats', !showadvstats);
+
+		if (showadvstats) {
+			text = "<?=gettext('Hide Advanced');?>";
+		} else {
+			text = "<?=gettext('Display Advanced');?>";
+		}
+		$('#btnadvstats').html('<i class="fa fa-cog"></i> ' + text);
+	}
+
+	$('#btnadvstats').click(function(event) {
+		show_advstats();
 	});
 
-	// Make the ‘clear’ button a plain button, not a submit button
-	$('#btnadvrestr').prop('type','button');
+	// Show advanced leap second options ======================================
+	var showadvleap = false;
 
-	// Make the ‘btnleap’ button a plain button, not a submit button
-	$('#btnleap').prop('type','button');
+	function show_advleap(ispageload) {
+		var text;
+		// On page load decide the initial state based on the data.
+		if (ispageload) {
+<?php
+			// Note: leapfile is not a field saved in the config, so no need to test for it here.
+			// leapsec is the encoded text in the config, leaptext is not a pconfig[] key.
+			if (empty($pconfig['leapsec'])) {
+				$showadv = false;
+			} else {
+				$showadv = true;
+			}
+?>
+			showadvleap = <?php if ($showadv) {echo 'true';} else {echo 'false';} ?>;
+		} else {
+			// It was a click, swap the state.
+			showadvleap = !showadvleap;
+		}
 
-	// On click, show the controls in the leap seconds section
-	$("#btnleap").click(function() {
-		hideInput('leaptext', false);
-		hideInput('leapfile', false);
+		hideInput('leaptext', !showadvleap);
+		hideInput('leapfile', !showadvleap);
+
+		if (showadvleap) {
+			text = "<?=gettext('Hide Advanced');?>";
+		} else {
+			text = "<?=gettext('Display Advanced');?>";
+		}
+		$('#btnadvleap').html('<i class="fa fa-cog"></i> ' + text);
+	}
+
+	$('#btnadvleap').click(function(event) {
+		show_advleap();
 	});
 
-	// Set intial states
-	hideCheckbox('clockstats', true);
-	hideCheckbox('loopstats', true);
-	hideCheckbox('peerstats', true);
-	hideInput('leaptext', true);
-	hideInput('leapfile', true);
+	// Set initial states
+	show_advstats(true);
+	show_advleap(true);
 
 	// Suppress "Delete row" button if there are fewer than two rows
 	checkLastRow();

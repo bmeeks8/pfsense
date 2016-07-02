@@ -143,7 +143,7 @@ if (function_exists("display_error_form") && !isset($config['system']['webgui'][
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<link rel="stylesheet" href="/bootstrap/css/pfSense.css" />
+	<link rel="stylesheet" href="/css/pfSense.css" />
 	<title><?=gettext("Redirecting..."); ?></title>
 </head>
 <body id="error" class="no-menu">
@@ -205,8 +205,9 @@ if (function_exists("display_error_form") && !isset($config['system']['webgui'][
 						break;
 					}
 				}
-				$interface_list_ipv6s = get_configured_ipv6_addresses();
+				$interface_list_ipv6s = get_configured_ipv6_addresses(true);
 				foreach ($interface_list_ipv6s as $ilipv6s) {
+					$ilipv6s = explode('%', $ilipv6s)[0];
 					if (strcasecmp($referrer_host, $ilipv6s) == 0) {
 						$found_host = true;
 						break;
@@ -220,7 +221,7 @@ if (function_exists("display_error_form") && !isset($config['system']['webgui'][
 		}
 		if ($found_host == false) {
 			if (!security_checks_disabled()) {
-				display_error_form("501", "An HTTP_REFERER was detected other than what is defined in System -> Advanced (" . htmlspecialchars($_SERVER['HTTP_REFERER']) . ").  You can disable this check if needed in System -> Advanced -> Admin.");
+				display_error_form("501", "An HTTP_REFERER was detected other than what is defined in System -> Advanced (" . htmlspecialchars($_SERVER['HTTP_REFERER']) . ").  If not needed, this check can be disabled in System -> Advanced -> Admin.");
 				exit;
 			}
 			$security_passed = false;
@@ -271,8 +272,14 @@ function index_users() {
 
 function & getUserEntry($name) {
 	global $debug, $config, $userindex;
+	$authcfg = auth_get_authserver($config['system']['webgui']['authmode']);
+
 	if (isset($userindex[$name])) {
 		return $config['system']['user'][$userindex[$name]];
+	} elseif ($authcfg['type'] != "Local Database") {
+		$user = array();
+		$user['name'] = $name;
+		return $user;
 	}
 }
 
@@ -312,13 +319,25 @@ function & getGroupEntryByGID($gid) {
 }
 
 function get_user_privileges(& $user) {
+	global $config;
+
+	$authcfg = auth_get_authserver($config['system']['webgui']['authmode']);
+	$names = array();
 
 	$privs = $user['priv'];
 	if (!is_array($privs)) {
 		$privs = array();
 	}
 
-	$names = local_user_get_groups($user, true);
+	if ($authcfg['type'] == "ldap") {
+		$names = @ldap_get_groups($user['name'], $authcfg);
+	} elseif ($authcfg['type'] == "radius") {
+		$names = @radius_get_groups($_SESSION['user_radius_attributes']);
+	}
+
+	if (empty($names)) {
+		$names = local_user_get_groups($user, true);
+	}
 
 	foreach ($names as $name) {
 		$group = getGroupEntry($name);
@@ -391,15 +410,23 @@ function local_sync_accounts() {
 	if ($fd) {
 		while (!feof($fd)) {
 			$line = explode(":", fgets($fd));
-			if (((!strncmp($line[0], "_", 1)) || ($line[2] < 2000) || ($line[2] > 65000)) && ($line[0] != "admin")) {
-				continue;
+			if ($line[0] != "admin") {
+				if (!strncmp($line[0], "_", 1)) {
+					continue;
+				}
+				if ($line[2] < 2000) {
+					continue;
+				}
+				if ($line[2] > 65000) {
+					continue;
+				}
 			}
 			/*
 			 * If a crontab was created to user, pw userdel will be interactive and
 			 * can cause issues. Just remove crontab before run it when necessary
 			 */
 			unlink_if_exists("/var/cron/tabs/{$line[0]}");
-			$cmd = "/usr/sbin/pw userdel -n '{$line[0]}'";
+			$cmd = "/usr/sbin/pw userdel -n " . escapeshellarg($line[0]);
 			if ($debug) {
 				log_error(sprintf(gettext("Running: %s"), $cmd));
 			}
@@ -423,7 +450,7 @@ function local_sync_accounts() {
 			if ($line[2] > 65000) {
 				continue;
 			}
-			$cmd = "/usr/sbin/pw groupdel {$line[2]}";
+			$cmd = "/usr/sbin/pw groupdel -g " . escapeshellarg($line[2]);
 			if ($debug) {
 				log_error(sprintf(gettext("Running: %s"), $cmd));
 			}
@@ -458,7 +485,7 @@ function local_user_set(& $user) {
 	global $g, $debug;
 
 	if (empty($user['password']) && empty($user['bcrypt-hash'])) {
-		log_error("There is something wrong in your config because user {$user['name']} password is missing!");
+		log_error("There is something wrong in the config because user {$user['name']} password is missing!");
 		return;
 	}
 
@@ -522,18 +549,25 @@ function local_user_set(& $user) {
 	pclose($fd);
 	$userattrs = explode(":", trim($pwread));
 
+	$skel_dir = '/etc/skel';
+
 	/* determine add or mod */
 	if (($userattrs[0] != $user['name']) || (!strncmp($pwread, "pw:", 3))) {
-		$user_op = "useradd -m -k /etc/skel -o";
+		$user_op = "useradd -m -k " . escapeshellarg($skel_dir) . " -o";
 	} else {
 		$user_op = "usermod";
 	}
 
 	$comment = str_replace(array(":", "!", "@"), " ", $user['descr']);
 	/* add or mod pw db */
-	$cmd = "/usr/sbin/pw {$user_op} -q -u {$user_uid} -n {$user_name}".
-			" -g {$user_group} -s {$user_shell} -d {$user_home}".
-			" -c ".escapeshellarg($comment)." -H 0 2>&1";
+	$cmd = "/usr/sbin/pw {$user_op} -q " .
+			" -u " . escapeshellarg($user_uid) .
+			" -n " . escapeshellarg($user_name) .
+			" -g " . escapeshellarg($user_group) .
+			" -s " . escapeshellarg($user_shell) .
+			" -d " . escapeshellarg($user_home) .
+			" -c " . escapeshellarg($comment) .
+			" -H 0 2>&1";
 
 	if ($debug) {
 		log_error(sprintf(gettext("Running: %s"), $cmd));
@@ -553,6 +587,14 @@ function local_user_set(& $user) {
 	@chown($user_home, $user_name);
 	@chgrp($user_home, $user_group);
 
+	/* Make sure all users have last version of config files */
+	foreach (glob("{$skel_dir}/dot.*") as $dot_file) {
+		$target = $user_home . '/' . substr(basename($dot_file), 3);
+		@copy($dot_file, $target);
+		@chown($target, $user_name);
+		@chgrp($target, $user_group);
+	}
+
 	/* write out ssh authorized key file */
 	if ($user['authorizedkeys']) {
 		if (!is_dir("{$user_home}/.ssh")) {
@@ -567,7 +609,7 @@ function local_user_set(& $user) {
 	}
 
 	$un = $lock_account ? "" : "un";
-	exec("/usr/sbin/pw {$un}lock {$user_name} -q 2>/dev/null");
+	exec("/usr/sbin/pw {$un}lock " . escapeshellarg($user_name) . " -q 2>/dev/null");
 
 	conf_mount_ro();
 }
@@ -595,7 +637,7 @@ function local_user_del($user) {
 	}
 
 	/* delete from pw db */
-	$cmd = "/usr/sbin/pw userdel -n {$user['name']} {$rmhome}";
+	$cmd = "/usr/sbin/pw userdel -n " . escapeshellarg($user['name']) . " " . escapeshellarg($rmhome);
 
 	if ($debug) {
 		log_error(sprintf(gettext("Running: %s"), $cmd));
@@ -738,24 +780,22 @@ function local_group_set($group, $reset = false) {
 		$group_members = implode(",", $group['member']);
 	}
 
-	if (empty($group_name)) {
+	if (empty($group_name) || $group['scope'] == "remote") {
 		return;
 	}
 
-	/* read from group db */
-	$fd = popen("/usr/sbin/pw groupshow {$group_name} 2>&1", "r");
-	$pwread = fgets($fd);
-	pclose($fd);
-
 	/* determine add or mod */
-	if (!strncmp($pwread, "pw:", 3)) {
-		$group_op = "groupadd";
+	if (mwexec("/usr/sbin/pw groupshow -g " . escapeshellarg($group_gid) . " 2>&1", true) == 0) {
+		$group_op = "groupmod -l";
 	} else {
-		$group_op = "groupmod";
+		$group_op = "groupadd -n";
 	}
 
 	/* add or mod group db */
-	$cmd = "/usr/sbin/pw {$group_op} {$group_name} -g {$group_gid} -M '{$group_members}' 2>&1";
+	$cmd = "/usr/sbin/pw {$group_op} " .
+		escapeshellarg($group_name) .
+		" -g " . escapeshellarg($group_gid) .
+		" -M " . escapeshellarg($group_members) . " 2>&1";
 
 	if ($debug) {
 		log_error(sprintf(gettext("Running: %s"), $cmd));
@@ -768,7 +808,7 @@ function local_group_del($group) {
 	global $debug;
 
 	/* delete from group db */
-	$cmd = "/usr/sbin/pw groupdel {$group['name']}";
+	$cmd = "/usr/sbin/pw groupdel " . escapeshellarg($group['name']);
 
 	if ($debug) {
 		log_error(sprintf(gettext("Running: %s"), $cmd));
@@ -868,7 +908,7 @@ function ldap_test_bind($authcfg) {
 		$ldapbindun = $authcfg['ldap_binddn'];
 		$ldapbindpw = $authcfg['ldap_bindpw'];
 		$ldapver = $authcfg['ldap_protver'];
-		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 25;
+		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 5;
 		if (empty($ldapbndun) || empty($ldapbindpw)) {
 			$ldapanon = true;
 		} else {
@@ -952,7 +992,7 @@ function ldap_get_user_ous($show_complete_ou=true, $authcfg) {
 		$ldapname = $authcfg['name'];
 		$ldapfallback = false;
 		$ldapscope = $authcfg['ldap_scope'];
-		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 25;
+		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 5;
 	} else {
 		return false;
 	}
@@ -1085,7 +1125,7 @@ function ldap_get_groups($username, $authcfg) {
 		$ldapname = $authcfg['name'];
 		$ldapfallback = false;
 		$ldapscope = $authcfg['ldap_scope'];
-		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 25;
+		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 5;
 	} else {
 		return false;
 	}
@@ -1228,7 +1268,7 @@ function ldap_backed($username, $passwd, $authcfg) {
 		$ldapver = $authcfg['ldap_protver'];
 		$ldapname = $authcfg['name'];
 		$ldapscope = $authcfg['ldap_scope'];
-		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 25;
+		$ldaptimeout = is_numeric($authcfg['ldap_timeout']) ? $authcfg['ldap_timeout'] : 5;
 	} else {
 		return false;
 	}
@@ -1428,8 +1468,15 @@ function radius_backed($username, $passwd, $authcfg, &$attributes = array()) {
 */
 function radius_get_groups($attributes) {
 	$groups = array();
-	if (!empty($attributes) && is_array($attributes) && !empty($attributes['class'])) {
-		$groups = explode(";", $attributes['class']);
+	if (!empty($attributes) && is_array($attributes) && (!empty($attributes['class']) || !empty($attributes['class_int']))) {
+		/* Some RADIUS servers return multiple class attributes, so check them all. */
+		$groups = array();
+		if (!empty($attributes['class']) && is_array($attributes['class'])) {
+			foreach ($attributes['class'] as $class) {
+				$groups = array_unique(array_merge($groups, explode(";", $class)));
+			}
+		}
+
 		foreach ($groups as & $grp) {
 			$grp = trim($grp);
 			if (strtolower(substr($grp, 0, 3)) == "ou=") {
@@ -1465,6 +1512,66 @@ function is_account_disabled($username) {
 	}
 
 	return false;
+}
+
+function get_user_settings($username) {
+	global $config;
+	$settings = array();
+	$settings['widgets'] = $config['widgets'];
+	$settings['webgui']['dashboardcolumns'] = $config['system']['webgui']['dashboardcolumns'];
+	$settings['webgui']['webguihostnamemenu'] = $config['system']['webgui']['webguihostnamemenu'];
+	$settings['webgui']['webguicss'] = $config['system']['webgui']['webguicss'];
+	$settings['webgui']['dashboardavailablewidgetspanel'] = isset($config['system']['webgui']['dashboardavailablewidgetspanel']);
+	$settings['webgui']['webguifixedmenu'] = isset($config['system']['webgui']['webguifixedmenu']);
+	$settings['webgui']['webguileftcolumnhyper'] = isset($config['system']['webgui']['webguileftcolumnhyper']);
+	$settings['webgui']['systemlogsfilterpanel'] = isset($config['system']['webgui']['systemlogsfilterpanel']);
+	$settings['webgui']['systemlogsmanagelogpanel'] = isset($config['system']['webgui']['systemlogsmanagelogpanel']);
+	$settings['webgui']['statusmonitoringsettingspanel'] = isset($config['system']['webgui']['statusmonitoringsettingspanel']);
+	$settings['webgui']['pagenamefirst'] = isset($config['system']['webgui']['pagenamefirst']);
+	$user = getUserEntry($username);
+	if (isset($user['customsettings'])) {
+		$settings['customsettings'] = true;
+		if (isset($user['widgets'])) {
+			// This includes the 'sequence', and any widgetname-config per-widget settings.
+			$settings['widgets'] = $user['widgets'];
+		}
+		if (isset($user['dashboardcolumns'])) {
+			$settings['webgui']['dashboardcolumns'] = $user['dashboardcolumns'];
+		}
+		if (isset($user['webguicss'])) {
+			$settings['webgui']['webguicss'] = $user['webguicss'];
+		}
+		if (isset($user['webguihostnamemenu'])) {
+			$settings['webgui']['webguihostnamemenu'] = $user['webguihostnamemenu'];
+		}
+		$settings['webgui']['dashboardavailablewidgetspanel'] = isset($user['dashboardavailablewidgetspanel']);
+		$settings['webgui']['webguifixedmenu'] = isset($user['webguifixedmenu']);
+		$settings['webgui']['webguileftcolumnhyper'] = isset($user['webguileftcolumnhyper']);
+		$settings['webgui']['systemlogsfilterpanel'] = isset($user['systemlogsfilterpanel']);
+		$settings['webgui']['systemlogsmanagelogpanel'] = isset($user['systemlogsmanagelogpanel']);
+		$settings['webgui']['statusmonitoringsettingspanel'] = isset($user['statusmonitoringsettingspanel']);
+		$settings['webgui']['pagenamefirst'] = isset($user['pagenamefirst']);
+	} else {
+		$settings['customsettings'] = false;
+	}
+
+	if ($settings['webgui']['dashboardcolumns'] < 1) {
+		$settings['webgui']['dashboardcolumns'] = 2;
+	}
+
+	return $settings;
+}
+
+function save_widget_settings($username, $settings) {
+	global $config, $userindex;
+	$user = getUserEntry($username);
+	if (isset($user['customsettings'])) {
+		$config['system']['user'][$userindex[$username]]['widgets'] = $settings;
+		write_config(sprintf(gettext("Widget configuration has been changed for user %s."), $username));
+	} else {
+		$config['widgets'] = $settings;
+		write_config(gettext("Widget configuration has been changed."));
+	}
 }
 
 function auth_get_authserver($name) {

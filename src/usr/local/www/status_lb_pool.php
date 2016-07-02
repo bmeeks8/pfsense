@@ -140,7 +140,7 @@ if ($_POST) {
 }
 
 if (is_subsystem_dirty('loadbalancer')) {
-	print_apply_box(gettext("The load balancer configuration has been changed.") . "<br />" . gettext("You must apply the changes in order for them to take effect."));
+	print_apply_box(gettext("The load balancer configuration has been changed.") . "<br />" . gettext("The changes must be applied for them to take effect."));
 }
 
 /* active tabs */
@@ -265,23 +265,26 @@ endforeach;
 			</table>
 		</div>
 	</div>
-</form>
 
 <?php
 if ($rowsprinted > 0) {
 ?>
-			<nav class="action-buttons">
-				<button name="Submit" type="submit" class="btn btn-primary btn-sm" value="<?= gettext("Save"); ?>" >
-					<i class="fa fa-save icon-embed-btn"></i>
-					<?=gettext("Save")?>
-				</button>
+                        <nav class="action-buttons">
+                                <button name="Submit" type="submit" class="btn btn-primary btn-sm" value="<?= gettext("Save"); ?>" >
+                                        <i class="fa fa-save icon-embed-btn"></i>
+                                        <?=gettext("Save")?>
+                                </button>
 
-				<button name="Reset" type="reset"  class="btn btn-danger btn-sm" value="<?= gettext("Reset"); ?>">
-					<i class="fa fa-undo icon-embed-btn"></i>
-					<?=gettext("Reset")?>
-				</button>
-			</nav>
+                                <button name="Reset" type="reset"  class="btn btn-danger btn-sm" value="<?= gettext("Reset"); ?>">
+                                        <i class="fa fa-undo icon-embed-btn"></i>
+                                        <?=gettext("Reset")?>
+                                </button>
+                        </nav>
 <?php
 }
+?>
 
+</form>
+
+<?php
 include("foot.inc");

@@ -63,8 +63,8 @@
 ##|*MATCH=vpn_ipsec_keys.php*
 ##|-PRIV
 
-require("functions.inc");
-require("guiconfig.inc");
+require_once("functions.inc");
+require_once("guiconfig.inc");
 require_once("ipsec.inc");
 require_once("vpn.inc");
 require_once("filter.inc");
@@ -112,7 +112,7 @@ if ($savemsg) {
 }
 
 if (is_subsystem_dirty('ipsec')) {
-	print_apply_box(gettext("The IPsec tunnel configuration has been changed.") . "<br />" . gettext("You must apply the changes in order for them to take effect."));
+	print_apply_box(gettext("The IPsec tunnel configuration has been changed.") . "<br />" . gettext("The changes must be applied for them to take effect."));
 }
 
 	$tab_array = array();
@@ -201,9 +201,9 @@ if (is_subsystem_dirty('ipsec')) {
 		<?=gettext("Add")?>
 	</a>
 </nav>
-
+<div class="infoblock">
 <?php
 print_info_box(gettext("PSK for any user can be set by using an identifier of any."), 'info', false);
 ?>
-
+</div>
 <?php include("foot.inc"); ?>

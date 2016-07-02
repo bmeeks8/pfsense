@@ -12,6 +12,7 @@
 	 *    - DynS (dyns.org)
 	 *    - ZoneEdit (zoneedit.com)
 	 *    - FreeDNS (freedns.afraid.org)
+	 *    - FreeDNS IPv6 (freedns.afraid.org)
 	 *    - Loopia (loopia.se)
 	 *    - StaticCling (staticcling.org)
 	 *    - DNSexit (dnsexit.com)
@@ -33,8 +34,8 @@
 	 *    - DNSimple (dnsimple.com)
 	 *    - Google Domains (domains.google.com)
 	 *    - DNS Made Easy (www.dnsmadeeasy.com)
-	 *    - SPDNS (spdns.de)
-	 *    - SPDNS IPv6 (spdns.de)
+	 *    - SPDYN (spdyn.de)
+	 *    - SPDYN IPv6 (spdyn.de)
 	 * +----------------------------------------------------+
 	 *  Requirements:
 	 *    - PHP version 4.0.2 or higher with the CURL Library and the PCRE Library
@@ -60,7 +61,8 @@
 	 *  ZoneEdit        - Last Tested: NEVER
 	 *  Dyns            - Last Tested: NEVER
 	 *  ODS             - Last Tested: 02 August 2005
-	 *  FreeDNS         - Last Tested: 23 Feb 2011
+	 *  FreeDNS         - Last Tested: 01 May 2016
+	 *  FreeDNS IPv6    - Last Tested: 01 May 2016
 	 *  Loopia          - Last Tested: NEVER
 	 *  StaticCling     - Last Tested: 27 April 2006
 	 *  DNSexit         - Last Tested: 20 July 2008
@@ -81,8 +83,8 @@
 	 *  DNSimple        - Last Tested: 09 February 2015
 	 *  Google Domains  - Last Tested: 27 April 2015
 	 *  DNS Made Easy   - Last Tested: 27 April 2015
-	 *  SPDNS           - Last Tested: 04 December 2015
-	 *  SPDNS IPv6      - Last Tested: 04 December 2015
+	 *  SPDYN           - Last Tested: 02 July 2016
+	 *  SPDYN IPv6      - Last Tested: 02 July 2016
 	 * +====================================================+
 	 *
 	 * @author 	E.Kristensen
@@ -169,6 +171,7 @@
 			if (!$dnsService) $this->_error(2);
 			switch ($dnsService) {
 			case 'freedns':
+			case 'freedns-v6':
 				if (!$dnsHost) $this->_error(5);
 				break;
 			case 'namecheap':
@@ -192,7 +195,8 @@
 			switch ($dnsService) {
 				case 'he-net-v6':
 				case 'custom-v6':
-				case 'spdns-v6':
+				case 'spdyn-v6':
+				case 'freedns-v6':
 					$this->_useIPv6 = true;
 					break;
 				default:
@@ -249,6 +253,7 @@
 					case 'dyns':
 					case 'ods':
 					case 'freedns':
+					case 'freedns-v6':
 					case 'loopia':
 					case 'staticcling':
 					case 'dnsexit':
@@ -269,8 +274,8 @@
 					case 'dnsimple':
 					case 'googledomains':
 					case 'dnsmadeeasy':
-					case 'spdns':
-					case 'spdns-v6':
+					case 'spdyn':
+					case 'spdyn-v6':
 						$this->_update();
 						if ($this->_dnsDummyUpdateDone == true) {
 							// If a dummy update was needed, then sleep a while and do the update again to put the proper address back.
@@ -494,6 +499,7 @@
 					$this->_checkStatus(0, $code);
 					break;
 				case 'freedns':
+				case 'freedns-v6':
 					$needIP = FALSE;
 					curl_setopt($ch, CURLOPT_URL, 'https://freedns.afraid.org/dynamic/update.php?' . $this->_dnsPass);
 					break;
@@ -594,7 +600,7 @@
 
 					/* Setting Variables */
 					$hostname = "{$this->_dnsHost}.";
-					$ZoneID = $this->_dnsZoneID;
+					$ZoneID = trim($this->_dnsZoneID);
 					$AccessKeyId = $this->_dnsUser;
 					$SecretAccessKey = $this->_dnsPass;
 					$NewIP = $this->_dnsIP;
@@ -630,7 +636,7 @@
 					}
 
 					/* Check if we need to update DNS Record */
-					if ($OldIP !== $NewIP) {
+					if ($OldIP !== $NewIP || $OldTTL !== $NewTTL) {
 						if (!empty($OldIP)) {
 							/* Your Hostname already exists, deleting and creating it again */
 							$changes = array();
@@ -786,11 +792,11 @@
 					$server = "https://cp.dnsmadeeasy.com/servlet/updateip";
 					curl_setopt($ch, CURLOPT_URL, $server . '?username=' . $this->_dnsUser . '&password=' . $this->_dnsPass . '&id=' . $this->_dnsHost . '&ip=' . $this->_dnsIP);
 					break;
-				case 'spdns':
-				case 'spdns-v6':
+				case 'spdyn':
+				case 'spdyn-v6':
 					$needsIP = FALSE;
 					curl_setopt($ch, CURLOPT_USERPWD, $this->_dnsUser.':'.$this->_dnsPass);
-					$server = "https://update.spdns.de/nic/update";
+					$server = "https://update.spdyn.de/nic/update";
 					$port = "";
 					if ($this->_dnsServer) {
 						$server = $this->_dnsServer;
@@ -850,7 +856,7 @@
 					} else if (preg_match('/nohost/i', $data)) {
 						$status = $status_intro . gettext("The hostname passed could not be matched to any services configured. The service field will be blank in the return code.");
 					} else if (preg_match('/numhost/i', $data)) {
-						$status = $status_intro . gettext("You may update up to 20 hosts. numhost is returned if you try to update more than 20 or update a round-robin.");
+						$status = $status_intro . gettext("Up to 20 hosts my be updated. numhost is returned if attempting to update more than 20 or update a round-robin.");
 					} else if (preg_match('/abuse/i', $data)) {
 						$status = $status_intro . gettext("The hostname is blocked for update abuse.");
 					} else if (preg_match('/good/i', $data)) {
@@ -1044,11 +1050,11 @@
 					if (preg_match("/400/i", $data)) {
 						$status = $status_intro . $error_str . gettext("Bad Request - The URL was malformed. Required parameters were not provided.");
 					} else if (preg_match('/402/i', $data)) {
-						$status = $status_intro . $error_str . gettext("Update Too Soon - You have tried updating to quickly since last change.");
+						$status = $status_intro . $error_str . gettext("Update Too Soon - Attempted to update too quickly since last change.");
 					} else if (preg_match('/403/i', $data)) {
 						$status = $status_intro . $error_str . gettext("Database Error - There was a server-sided database error.");
 					} else if (preg_match('/405/i', $data)) {
-						$status = $status_intro . $error_str . sprintf(gettext("Hostname Error - The hostname (%s) doesn't belong to you."), $this->_dnsHost);
+						$status = $status_intro . $error_str . sprintf(gettext("Hostname Error - The hostname (%s) doesn't belong to user (%s)."), $this->_dnsHost, $this->_dnsUser);
 					} else if (preg_match('/200/i', $data)) {
 						$status = $status_intro . $success_str . gettext("IP Address Updated Successfully!");
 						$successful_update = true;
@@ -1069,6 +1075,7 @@
 					}
 					break;
 				case 'freedns':
+				case 'freedns-v6':
 					if (preg_match("/has not changed./i", $data)) {
 						$status = $status_intro . $success_str . gettext("No Change In IP Address");
 						$successful_update = true;
@@ -1113,7 +1120,7 @@
 					if (preg_match('/badauth/i', $data)) {
 						$status = $status_intro . $error_str . gettext("Not a valid username or password!");
 					} else if (preg_match('/nohost/i', $data)) {
-						$status = $status_intro . $error_str . gettext("Hostname you are trying to update does not exist.");
+						$status = $status_intro . $error_str . gettext("Hostname specified does not exist.");
 						$successful_update = true;
 					} else if (preg_match('/good/i', $data)) {
 						$status = $status_intro . $success_str . gettext("IP Address Changed Successfully!") . " (" . $this->_dnsIP . ")";
@@ -1158,7 +1165,7 @@
 					if (preg_match("/internal server error/i", $data)) {
 						$status = $status_intro . $error_str . gettext("Server side error.");
 					} else if (preg_match("/request is badly formed/i", $data)) {
-						$status = $status_intro . $error_str . gettext("Badly Formed Request (check your settings).");
+						$status = $status_intro . $error_str . gettext("Badly Formed Request (check the settings).");
 					} else if ($ncresponse['interface-response']['ErrCount'] === "0") {
 						$status = $status_intro . $success_str . gettext("IP Address Updated Successfully!");
 						$successful_update = true;
@@ -1269,7 +1276,7 @@
 					} elseif ($output->errors[0]->code === 9103) {
 						$status = $status_intro . $error_str . gettext("Invalid Credentials! Don't forget to use API Key for password field with CloudFlare.");
 					} elseif (($output->success) && (!$output->result[0]->id)) {
-						$status = $status_intro . $error_str . gettext("Zone or Host ID was not found, check your hostname.");
+						$status = $status_intro . $error_str . gettext("Zone or Host ID was not found, check the hostname.");
 					} else {
 						$status = $status_intro . gettext("UNKNOWN ERROR") . " - " . $output->errors[0]->message;
 						log_error($status_intro . gettext("PAYLOAD:") . " " . $data);
@@ -1398,8 +1405,8 @@
 							break;
 					}
 					break;
-				case 'spdns':
-				case 'spdns-v6':
+				case 'spdyn':
+				case 'spdyn-v6':
 					if (preg_match('/notfqdn/i', $data)) {
 						$status = $status_intro . $error_str . gettext("Not A FQDN!");
 					} else if (preg_match('/nohost/i', $data)) {

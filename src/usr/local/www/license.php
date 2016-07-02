@@ -60,7 +60,7 @@
 ##|*MATCH=license.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 include("head.inc");
 ?>
 <div class="panel panel-default">
@@ -232,6 +232,10 @@ NSS library</a>)<br />
 			<li class="list-group-item">
 				<strong>sqlite3</strong> (<a href="https://www.sqlite.org/" target="_blank">https://www.sqlite.org/</a>)<br />
 				<?=gettext("Public Domain"); ?>
+			</li>
+			<li class="list-group-item">
+				<strong>Unbound</strong> (<a href="https://www.unbound.net/" target="_blank">https://www.unbound.net/</a>)<br />
+				<?=gettext("Copyright"); ?> &copy; 2007 NLnet Labs
 			</li>
 			<li class="list-group-item">
 				<strong>xinetd</strong> (<a href="http://www.xinetd.org/" target="_blank">http://www.xinetd.org/</a>)<br />

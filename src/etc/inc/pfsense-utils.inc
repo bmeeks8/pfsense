@@ -162,6 +162,242 @@ function get_dns_servers() {
 	return array_unique($dns_servers);
 }
 
+/****f* pfsense-utils/get_css_files
+ * NAME
+ *   get_css_files - get a list of the available CSS files (themes)
+ * INPUTS
+ *   none
+ * RESULT
+ *   $csslist - an array of the CSS files
+ ******/
+function get_css_files() {
+	$csslist = array();
+
+	// List pfSense files, then any BETA files followed by any user-contributed files
+	$cssfiles = glob("/usr/local/www/css/*.css");
+
+	if (is_array($cssfiles)) {
+		arsort($cssfiles);
+		$usrcss = $pfscss = $betacss = array();
+
+		foreach ($cssfiles as $css) {
+			if (strpos($css, "BETA") != 0) {
+				array_push($betacss, $css);
+			} else if (strpos($css, "pfSense") != 0) {
+				array_push($pfscss, $css);
+			} else {
+				array_push($usrcss, $css);
+			}
+		}
+
+		$css = array_merge($pfscss, $betacss, $usrcss);
+
+		foreach ($css as $file) {
+			$file = basename($file);
+			$csslist[$file] = pathinfo($file, PATHINFO_FILENAME);
+		}
+	}
+	return $csslist;
+}
+
+/****f* pfsense-utils/gen_webguicss_field
+ * NAME
+ *   gen_webguicss_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_webguicss_field(&$section, $value) {
+
+	$csslist = get_css_files();
+
+	if (!isset($csslist[$value])) {
+		$value = "pfSense.css";
+	}
+
+	$section->addInput(new Form_Select(
+		'webguicss',
+		'Theme',
+		$value,
+		$csslist
+	))->setHelp(sprintf(gettext('Choose an alternative css file (if installed) to change the appearance of the webConfigurator. css files are located in /usr/local/www/css/%s'), '<span id="csstxt"></span>'));
+}
+
+/****f* pfsense-utils/gen_webguifixedmenu_field
+ * NAME
+ *   gen_webguifixedmenu_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_webguifixedmenu_field(&$section, $value) {
+
+	$section->addInput(new Form_Select(
+		'webguifixedmenu',
+		'Top Navigation',
+		$value,
+		["" => gettext("Scrolls with page"), "fixed" => gettext("Fixed (Remains visible at top of page)")]
+	))->setHelp("The fixed option is intended for large screens only.");
+}
+
+/****f* pfsense-utils/gen_webguihostnamemenu_field
+ * NAME
+ *   gen_webguihostnamemenu_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_webguihostnamemenu_field(&$section, $value) {
+
+	$section->addInput(new Form_Select(
+		'webguihostnamemenu',
+		'Hostname in Menu',
+		$value,
+		["" => gettext("Default (No hostname)"), "hostonly" => gettext("Hostname only"), "fqdn" => gettext("Fully Qualified Domain Name")]
+	))->setHelp("Replaces the Help menu title in the Navbar with the system hostname or FQDN.");
+}
+
+/****f* pfsense-utils/gen_dashboardcolumns_field
+ * NAME
+ *   gen_dashboardcolumns_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_dashboardcolumns_field(&$section, $value) {
+
+	if (($value < 1) || ($value > 4)) {
+		$value = 2;
+	}
+
+	$section->addInput(new Form_Input(
+		'dashboardcolumns',
+		'Dashboard Columns',
+		'number',
+		$value,
+		[min => 1, max => 4]
+	));
+}
+
+/****f* pfsense-utils/gen_associatedpanels_fields
+ * NAME
+ *   gen_associatedpanels_fields
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for each of the fields
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_associatedpanels_fields(&$section, $value1, $value2, $value3, $value4) {
+
+	$group = new Form_Group('Associated Panels Show/Hide');
+
+	$group->add(new Form_Checkbox(
+		'dashboardavailablewidgetspanel',
+		null,
+		'Available Widgets',
+		$value1
+		))->setHelp('Show the Available Widgets panel on the Dashboard.');
+
+	$group->add(new Form_Checkbox(
+		'systemlogsfilterpanel',
+		null,
+		'Log Filter',
+		$value2
+	))->setHelp('Show the Log Filter panel in System Logs.');
+
+	$group->add(new Form_Checkbox(
+		'systemlogsmanagelogpanel',
+		null,
+		'Manage Log',
+		$value3
+	))->setHelp('Show the Manage Log panel in System Logs.');
+
+	$group->add(new Form_Checkbox(
+		'statusmonitoringsettingspanel',
+		null,
+		'Monitoring Settings',
+		$value4
+	))->setHelp('Show the Settings panel in Status Monitoring.');
+
+	$group->setHelp('These options allow certain panels to be automatically hidden on page load. A control is provided in the title bar to un-hide the panel.');
+
+	$section->add($group);
+}
+
+/****f* pfsense-utils/gen_webguileftcolumnhyper_field
+ * NAME
+ *   gen_webguileftcolumnhyper_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_webguileftcolumnhyper_field(&$section, $value) {
+
+	$section->addInput(new Form_Checkbox(
+		'webguileftcolumnhyper',
+		'Left Column Labels',
+		'Active',
+		$value
+	))->setHelp('If selected, clicking a label in the left column will select/toggle the first item of the group.');
+}
+
+/****f* pfsense-utils/gen_pagenamefirst_field
+ * NAME
+ *   gen_pagenamefirst_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_pagenamefirst_field(&$section, $value) {
+
+	$section->addInput(new Form_Checkbox(
+		'pagenamefirst',
+		'Browser tab text',
+		'Display page name first in browser tab',
+		$value
+	))->setHelp('When this is unchecked, the browser tab shows the host name followed '.
+		'by the current page. Check this box to display the current page followed by the '.
+		'host name.');
+}
+
+/****f* pfsense-utils/gen_user_settings_fields
+ * NAME
+ *   gen_user_settings_fields
+ * INPUTS
+ *   Pointer to section object
+ *   Array of initial values for the fields
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_user_settings_fields(&$section, $pconfig) {
+
+	gen_webguicss_field($section, $pconfig['webguicss']);
+	gen_webguifixedmenu_field($section, $pconfig['webguifixedmenu']);
+	gen_webguihostnamemenu_field($section, $pconfig['webguihostnamemenu']);
+	gen_dashboardcolumns_field($section, $pconfig['dashboardcolumns']);
+	gen_associatedpanels_fields(
+		$section,
+		$pconfig['dashboardavailablewidgetspanel'],
+		$pconfig['systemlogsfilterpanel'],
+		$pconfig['systemlogsmanagelogpanel'],
+		$pconfig['statusmonitoringsettingspanel']);
+	gen_webguileftcolumnhyper_field($section, $pconfig['webguileftcolumnhyper']);
+	gen_pagenamefirst_field($section, $pconfig['pagenamefirst']);
+}
+
 function hardware_offloading_applyflags($iface) {
 	global $config;
 
@@ -971,17 +1207,17 @@ function setup_serial_port($when = "save", $path = "") {
 
 	if (isset($config['system']['disableconsolemenu'])) {
 		$console_type = 'Pc';
-		$serial_type = 'std.' . $serialspeed;
+		$serial_type = '3wire';
 	} else {
 		$console_type = 'al.Pc';
-		$serial_type = 'al.' . $serialspeed;
+		$serial_type = 'al.3wire';
 	}
 	foreach ($ttys_split as $tty) {
 		if (stristr($tty, "ttyv0")) {
-			fwrite($fd, "ttyv0	\"/usr/libexec/getty {$console_type}\"	cons25	on	secure\n");
+			fwrite($fd, "ttyv0	\"/usr/libexec/getty {$console_type}\"	xterm	on	secure\n");
 		} else if (stristr($tty, "ttyu")) {
 			$ttyn = substr($tty, 0, 5);
-			fwrite($fd, "{$ttyn}	\"/usr/libexec/getty {$serial_type}\"	cons25	{$on_off}	secure\n");
+			fwrite($fd, "{$ttyn}	\"/usr/libexec/getty {$serial_type}\"	vt100	{$on_off}	secure\n");
 		} else {
 			fwrite($fd, $tty . "\n");
 		}
@@ -1144,27 +1380,18 @@ function is_pppoe_server_enabled() {
 	return $pppoeenable;
 }
 
-function convert_seconds_to_hms($sec) {
-	$min = $hrs = 0;
-	if ($sec != 0) {
-		$min = floor($sec/60);
-		$sec %= 60;
+/* Optional arg forces hh:mm:ss without days */
+function convert_seconds_to_dhms($sec, $showhoursonly = false) {
+	if (!is_numericint($sec)) {
+		return '-';
 	}
-	if ($min != 0) {
-		$hrs = floor($min/60);
-		$min %= 60;
-	}
-	if ($sec < 10) {
-		$sec = "0".$sec;
-	}
-	if ($min < 10) {
-		$min = "0".$min;
-	}
-	if ($hrs < 10) {
-		$hrs = "0".$hrs;
-	}
-	$result = $hrs.":".$min.":".$sec;
-	return $result;
+	// FIXME: When we move to PHP 7 we can use "intdiv($sec % X, Y)" etc
+	list($d, $h, $m, $s) = array(	(int)($showhoursonly ? 0 : $sec/86400),
+					(int)(($showhoursonly ? $sec : $sec % 86400)/3600),
+					(int)(($sec % 3600)/60),
+					$sec % 60
+				);
+	return ($d > 0 ? $d . 'd ' : '') . sprintf('%02d:%02d:%02d', $h, $m, $s);
 }
 
 /* Compute the total uptime from the ppp uptime log file in the conf directory */
@@ -1177,7 +1404,7 @@ function get_ppp_uptime($port) {
 		foreach ($uptime_data as $upt) {
 			$sec += substr($upt, 1 + strpos($upt, " "));
 		}
-		return convert_seconds_to_hms($sec);
+		return convert_seconds_to_dhms($sec);
 	} else {
 		$total_time = gettext("No history data found!");
 		return $total_time;
@@ -1351,7 +1578,7 @@ function get_interface_info($ifdescr) {
 
 	if (file_exists("{$g['varrun_path']}/{$link_type}_{$ifdescr}.pid")) {
 		$sec = trim(`/usr/local/sbin/ppp-uptime.sh {$ifinfo['if']}`);
-		$ifinfo['ppp_uptime'] = convert_seconds_to_hms($sec);
+		$ifinfo['ppp_uptime'] = convert_seconds_to_dhms($sec);
 	}
 
 	if ($ifinfo['status'] == "up") {
@@ -1929,6 +2156,15 @@ function parse_aliases_file($filename, $type = "url", $max_items = -1, $kflc = f
 	 * RETURNS an array of ip subnets and ip's or ports and port-ranges, returns NULL upon a error conditions (file not found)
 	 */
 
+	if (!file_exists($filename)) {
+		log_error(sprintf(gettext("Could not process non-existent file from alias: %s"), $filename));
+		return null;
+	}
+
+	if (filesize($filename) == 0) {
+		log_error(sprintf(gettext("Could not process empty file from alias: %s"), $filename));
+		return null;
+	}
 	$fd = @fopen($filename, 'r');
 	if (!$fd) {
 		log_error(sprintf(gettext("Could not process aliases from alias: %s"), $filename));
@@ -1953,8 +2189,8 @@ function parse_aliases_file($filename, $type = "url", $max_items = -1, $kflc = f
 			if (!empty($tmp_str)) {
 				$tmp = $tmp_str;
 			}
-			$valid = ($type == "url" && (is_ipaddr($tmp) || is_subnet($tmp))) ||
-				($type == "url_ports" && (is_port($tmp) || is_portrange($tmp)));
+			$valid = (($type == "url" || $type == "urltable") && (is_ipaddr($tmp) || is_subnet($tmp))) ||
+				(($type == "url_ports" || $type == "urltable_ports") && (is_port($tmp) || is_portrange($tmp)));
 			if ($valid) {
 				$items[] = $tmp;
 				if (count($items) == $max_items) {
@@ -2146,8 +2382,8 @@ function pfs_version_compare($cur_time, $cur_text, $remote) {
 	}
 	return $v;
 }
-function process_alias_urltable($name, $url, $freq, $forceupdate=false, $validateonly=false) {
-	global $config;
+function process_alias_urltable($name, $type, $url, $freq, $forceupdate=false, $validateonly=false) {
+	global $g, $config;
 
 	$urltable_prefix = "/var/db/aliastables/";
 	$urltable_filename = $urltable_prefix . $name . ".txt";
@@ -2173,13 +2409,23 @@ function process_alias_urltable($name, $url, $freq, $forceupdate=false, $validat
 		if (download_file($url, $tmp_urltable_filename, $verify_ssl)) {
 			// Convert lines that begin with '$' or ';' to comments '#' instead of deleting them.
 			mwexec("/usr/bin/sed -i \"\" -E 's/^[[:space:]]*($|#|;)/#/g; /^#/!s/\;.*//g;' ". escapeshellarg($tmp_urltable_filename));
-			if (alias_get_type($name) == "urltable_ports") {
-				$ports = parse_aliases_file($tmp_urltable_filename, "url_ports", "-1", true);
-				$ports = group_ports($ports, true);
-				file_put_contents($urltable_filename, implode("\n", $ports));
+
+			$type = ($type) ? $type : alias_get_type($name);	// If empty type passed, try to get it from config.
+
+			$parsed_contents = parse_aliases_file($tmp_urltable_filename, $type, "-1", true);
+			if ($type == "urltable_ports") {
+				$parsed_contents = group_ports($parsed_contents, true);
+			}
+			if (is_array($parsed_contents)) {
+				file_put_contents($urltable_filename, implode("\n", $parsed_contents));
+			}
+
+			/* If this backup is still there on a full install, but we aren't going to use ram disks, remove the archive since this is a transition. */
+			if (($g['platform'] == $g['product_name']) && !isset($config['system']['use_mfs_tmpvar'])) {
+				unlink_if_exists("{$g['cf_conf_path']}/RAM_Disk_Store{$urltable_filename}.tgz");
 			} else {
-				$urltable = parse_aliases_file($tmp_urltable_filename, "url", "-1", true);
-				file_put_contents($urltable_filename, implode("\n", $urltable));
+				/* Update the RAM disk store with the new/updated table file. */
+				mwexec("cd / && /usr/bin/tar -czf \"{$g['cf_conf_path']}/RAM_Disk_Store{$urltable_filename}.tgz\" -C / \"{$urltable_filename}\"");
 			}
 			unlink_if_exists($tmp_urltable_filename);
 		} else {
@@ -2472,7 +2718,7 @@ function get_country_name($country_code) {
 		return "";
 	}
 
-	$country_names_xml = "/usr/local/share/mobile-broadband-provider-info/iso_3166-1_list_en.xml";
+	$country_names_xml = "/usr/local/share/pfSense/iso_3166-1_list_en.xml";
 	$country_names_contents = file_get_contents($country_names_xml);
 	$country_names = xml2array($country_names_contents);
 
@@ -2723,7 +2969,7 @@ function pfSense_handle_custom_code($src_dir) {
 				continue;
 			}
 			// Include the extra handler
-			include("$nf");
+			include_once("$nf");
 		}
 	}
 }
@@ -3077,6 +3323,38 @@ function pkg_call_plugins($plugin_type, $plugin_params) {
 		}
 	}
 	return $results;
+}
+
+function restore_aliastables() {
+	global $g, $config;
+
+	$dbpath = "{$g['vardb_path']}/aliastables/";
+
+	/* restore the alias tables, if we have them */
+	$files = glob("{$g['cf_conf_path']}/RAM_Disk_Store{$dbpath}*.tgz");
+	if (count($files)) {
+		echo "Restoring alias tables...";
+		foreach ($files as $file) {
+			if (file_exists($file)) {
+				$aliastablesrestore = "";
+				$aliastablesreturn = "";
+				exec("cd /;LANG=C /usr/bin/tar -xzf {$file} 2>&1", $aliastablesrestore, $aliastablesreturn);
+				$aliastablesrestore = implode(" ", $aliastablesrestore);
+				if ($aliastablesreturn <> 0) {
+					log_error(sprintf(gettext('Alias table restore failed exited with %1$s, the error is: %2$s %3$s%4$s'), $aliastablesreturn, $aliastablesrestore, $file, "\n"));
+				} else {
+					log_error(sprintf(gettext('Alias table restore succeeded exited with %1$s, the result is: %2$s %3$s%4$s'), $aliastablesreturn, $aliastablesrestore, $dbpath.basename($file, ".tgz"), "\n"));
+				}
+			}
+			/* If this backup is still there on a full install, but we aren't going to use ram disks, remove the archive since this is a transition. */
+			if (($g['platform'] == $g['product_name']) && !isset($config['system']['use_mfs_tmpvar'])) {
+				unlink_if_exists("{$file}");
+			}
+		}
+		echo "done.\n";
+		return true;
+	}
+	return false;
 }
 
 ?>

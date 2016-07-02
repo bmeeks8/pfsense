@@ -64,10 +64,10 @@
 ##|-PRIV
 
 define('RIGHTARROW', '&#x25ba;');
-define('LEFTARROW',  '&#x25c0;');
+define('LEFTARROW',  '&#x25c4;');
 
-require("guiconfig.inc");
-require("ipsec.inc");
+require_once("guiconfig.inc");
+require_once("ipsec.inc");
 
 $pgtitle = array(gettext("Status"), gettext("IPsec"), gettext("SPDs"));
 $shortcut_section = "ipsec";
@@ -142,7 +142,7 @@ if (ipsec_enabled()) {
 <div class="infoblock blockopen">
 <?php
 }
-print_info_box(sprintf(gettext('You can configure IPsec %1$shere%2$s.'), '<a href="vpn_ipsec.php">', '</a>'), 'info', false);
+print_info_box(sprintf(gettext('IPsec can be configured %1$shere%2$s.'), '<a href="vpn_ipsec.php">', '</a>'), 'info', false);
 ?>
 </div>
 <?php

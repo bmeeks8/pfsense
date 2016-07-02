@@ -63,7 +63,7 @@
 ##|*MATCH=status_dhcp_leases.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("config.inc");
 
 $pgtitle = array(gettext("Status"), gettext("DHCP Leases"));
@@ -455,8 +455,8 @@ foreach ($leases as $data):
 							(<?=$mac_man[$mac_hi]?>)
 						<?php endif; ?>
 					</td>
-					<td><?=htmlentities($data['hostname'])?></td>
-					<td><?=htmlentities($data['descr'])?></td>
+					<td><?=$data['hostname']?></td>
+					<td><?=$data['descr']?></td>
 					<? if ($data['type'] != "static"): ?>
 						<td><?=adjust_gmt($data['start'])?></td>
 						<td><?=adjust_gmt($data['end'])?></td>
@@ -472,7 +472,7 @@ foreach ($leases as $data):
 <?php else: ?>
 						<a class="fa fa-pencil"	title="<?=gettext('Edit static mapping')?>"	href="services_dhcp_edit.php?if=<?=$data['if']?>&amp;id=<?=$data['staticmap_array_index']?>"></a>
 <?php endif; ?>
-						<a class="fa fa-plus-square" title="<?=gettext("Add WOL mapping")?>" href="services_wol_edit.php?if=<?=$data['if']?>&amp;mac=<?=$data['mac']?>&amp;descr=<?=htmlentities($data['hostname'])?>"></a>
+						<a class="fa fa-plus-square" title="<?=gettext("Add WOL mapping")?>" href="services_wol_edit.php?if=<?=$data['if']?>&amp;mac=<?=$data['mac']?>&amp;descr=<?=$data['hostname']?>"></a>
 <?php if ($data['online'] != $online_string):?>
 						<a class="fa fa-power-off" title="<?=gettext("Send WOL packet")?>" href="services_wol.php?if=<?=$data['if']?>&amp;mac=<?=$data['mac']?>"></a>
 <?php endif; ?>
@@ -518,9 +518,9 @@ foreach ($leases as $data):
 </div>
 
 <?php if ($_GET['all']): ?>
-	<a class="btn btn-default" href="status_dhcp_leases.php?all=0"><?=gettext("Show active and static leases only")?></a>
+	<a class="btn btn-info" href="status_dhcp_leases.php?all=0"><i class="fa fa-minus-circle icon-embed-btn"></i><?=gettext("Show active and static leases only")?></a>
 <?php else: ?>
-	<a class="btn btn-default" href="status_dhcp_leases.php?all=1"><?=gettext("Show all configured leases")?></a>
+	<a class="btn btn-info" href="status_dhcp_leases.php?all=1"><i class="fa fa-plus-circle icon-embed-btn"></i><?=gettext("Show all configured leases")?></a>
 <?php endif;
 
 include("foot.inc");

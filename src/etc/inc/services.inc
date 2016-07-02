@@ -55,8 +55,8 @@
 	OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-define('DYNDNS_PROVIDER_VALUES', 'citynetwork cloudflare custom custom-v6 dnsexit dnsimple dnsmadeeasy dnsomatic dyndns dyndns-custom dyndns-static dyns easydns eurodns freedns glesys googledomains gratisdns he-net he-net-v6 he-net-tunnelbroker loopia namecheap noip noip-free ods opendns ovh-dynhost route53 selfhost spdns spdns-v6 zoneedit');
-define('DYNDNS_PROVIDER_DESCRIPTIONS', 'City Network,CloudFlare,Custom,Custom (v6),DNSexit,DNSimple,DNS Made Easy,DNS-O-Matic,DynDNS (dynamic),DynDNS (custom),DynDNS (static),DyNS,easyDNS,Euro Dns,freeDNS,GleSYS,Google Domains,GratisDNS,HE.net,HE.net (v6),HE.net Tunnelbroker,Loopia,Namecheap,No-IP,No-IP (free),ODS.org,OpenDNS,OVH DynHOST,Route 53,SelfHost,SPDNS,SPDNS (v6),ZoneEdit');
+define('DYNDNS_PROVIDER_VALUES', 'citynetwork cloudflare custom custom-v6 dnsexit dnsimple dnsmadeeasy dnsomatic dyndns dyndns-custom dyndns-static dyns easydns eurodns freedns freedns-v6 glesys googledomains gratisdns he-net he-net-v6 he-net-tunnelbroker loopia namecheap noip noip-free ods opendns ovh-dynhost route53 selfhost spdns spdns-v6 zoneedit');
+define('DYNDNS_PROVIDER_DESCRIPTIONS', 'City Network,CloudFlare,Custom,Custom (v6),DNSexit,DNSimple,DNS Made Easy,DNS-O-Matic,DynDNS (dynamic),DynDNS (custom),DynDNS (static),DyNS,easyDNS,Euro Dns,freeDNS,freeDNS (v6),GleSYS,Google Domains,GratisDNS,HE.net,HE.net (v6),HE.net Tunnelbroker,Loopia,Namecheap,No-IP,No-IP (free),ODS.org,OpenDNS,OVH DynHOST,Route 53,SelfHost,SPDNS,SPDNS (v6),ZoneEdit');
 
 /* implement ipv6 route advertising daemon */
 function services_radvd_configure($blacklist = array()) {
@@ -105,6 +105,19 @@ function services_radvd_configure($blacklist = array()) {
 			$dhcpv6ifconf['rapriority'] = "medium";
 		}
 
+		$racarpif = false;
+		/* check if binding to CARP IP */
+		if (!empty($dhcpv6ifconf['rainterface'])) {
+			if (strstr($dhcpv6ifconf['rainterface'], "_vip")) {
+				if (get_carp_interface_status($dhcpv6ifconf['rainterface']) == "MASTER") {
+					$dhcpv6if = $dhcpv6ifconf['rainterface'];
+					$racarpif = true;
+				} else {
+					continue;
+				}
+			}
+		}
+
 		$realif = get_real_interface($dhcpv6if, "inet6");
 
 		if (isset($radvdifs[$realif])) {
@@ -134,7 +147,6 @@ function services_radvd_configure($blacklist = array()) {
 		} else {
 			$radvdconf .= "\tAdvLinkMTU 1280;\n";
 		}
-		// $radvdconf .= "\tDeprecatePrefix on;\n";
 		switch ($dhcpv6ifconf['rapriority']) {
 			case "low":
 				$radvdconf .= "\tAdvDefaultPreference low;\n";
@@ -158,7 +170,11 @@ function services_radvd_configure($blacklist = array()) {
 				break;
 		}
 		$radvdconf .= "\tprefix {$subnetv6}/{$ifcfgsnv6} {\n";
-		$radvdconf .= "\t\tDeprecatePrefix on;\n";
+		if ($racarpif == true) {
+			$radvdconf .= "\t\tDeprecatePrefix off;\n";
+		} else {
+			$radvdconf .= "\t\tDeprecatePrefix on;\n";
+		}
 		switch ($dhcpv6ifconf['ramode']) {
 			case "managed":
 				$radvdconf .= "\t\tAdvOnLink on;\n";
@@ -689,7 +705,7 @@ EOPP;
 				if ($octet < $start_octet) {
 					continue;
 				}
-				$ptr_domain .= (empty($ptr_domain) ? '' : '.');
+				$ptr_domain .= ((empty($ptr_domain) && $ptr_domain !== "0") ? '' : '.');
 				$ptr_domain .= $revsubnet[$octet];
 			}
 			$ptr_domain .= ".in-addr.arpa";
@@ -1428,7 +1444,7 @@ EOD;
 				$ntpservers[] = $ntpserver;
 			}
 			if (count($ntpservers) > 0) {
-				$dhcpdv6conf .= "       option dhcp6.sntp-servers " . join(",", $dhcpv6ifconf['ntpserver']) . ";\n";
+				$dhcpdv6conf .= "        option dhcp6.sntp-servers " . join(",", $dhcpv6ifconf['ntpserver']) . ";\n";
 			}
 		}
 		// tftp-server-name
@@ -1618,7 +1634,12 @@ EOD;
 	fclose($igmpfl);
 	unset($igmpconf);
 
-	mwexec_bg("/usr/local/sbin/igmpproxy -v {$g['tmp_path']}/igmpproxy.conf");
+	if (isset($config['syslog']['igmpxverbose'])) {
+		mwexec_bg("/usr/local/sbin/igmpproxy -v {$g['tmp_path']}/igmpproxy.conf");
+	} else {
+		mwexec_bg("/usr/local/sbin/igmpproxy {$g['tmp_path']}/igmpproxy.conf");
+	}
+
 	log_error(gettext("Started IGMP proxy service."));
 
 	return 0;
@@ -2565,7 +2586,7 @@ function configure_cron() {
 
 	if (is_array($config['cron']['item'])) {
 		$crontab_contents .= "#\n";
-		$crontab_contents .= "# " . gettext("pfSense specific crontab entries") . "\n";
+		$crontab_contents .= "# pfSense specific crontab entries\n";
 		$crontab_contents .= "# " .gettext("Created:") . " " . date("F j, Y, g:i a") . "\n";
 		$crontab_contents .= "#\n";
 
@@ -2589,7 +2610,7 @@ function configure_cron() {
 
 		$crontab_contents .= "\n#\n";
 		$crontab_contents .= "# " . gettext("If possible do not add items to this file manually.") . "\n";
-		$crontab_contents .= "# " . gettext("If you do so, this file must be terminated with a blank line (e.g. new line)") . "\n";
+		$crontab_contents .= "# " . gettext("If done so, this file must be terminated with a blank line (e.g. new line)") . "\n";
 		$crontab_contents .= "#\n\n";
 	}
 

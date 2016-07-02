@@ -73,7 +73,7 @@ function wol_sort() {
 	usort($config['wol']['wolentry'], "wolcmp");
 }
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 if (!is_array($config['wol']['wolentry'])) {
 	$config['wol']['wolentry'] = array();
 }
@@ -173,7 +173,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp(gettext('You may enter a description here for your reference (not parsed).'));
+))->setHelp(gettext('A description may be entered here for administrative reference (not parsed).'));
 
 $form->add($section);
 print $form;

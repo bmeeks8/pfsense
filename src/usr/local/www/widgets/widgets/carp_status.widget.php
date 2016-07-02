@@ -67,9 +67,11 @@ $carp_enabled = get_carp_status();
 <div class="content">
 <table class="table table-striped table-hover">
 	<thead>
-		<th>CARP Interface</th>
-		<th>IP Address</th>
-		<th>Status</th>
+		<tr>
+			<th><?=gettext("CARP Interface")?></th>
+			<th><?=gettext("IP Address")?></th>
+			<th><?=gettext("Status")?></th>
+		</tr>
 	</thead>
 	<tbody>
 <?php
@@ -97,17 +99,21 @@ $carp_enabled = get_carp_status();
 				$status = "DISABLED";
 			} else {
 				if ($status == "MASTER") {
-					$icon = 'play-circle';
+					$icon = 'play-circle text-success';
 				} else if ($status == "BACKUP") {
-					$icon = 'pause-circle';
+					$icon = 'pause-circle text-warning';
 				} else if ($status == "INIT") {
-					$icon = 'question-circle';
+					$icon = 'question-circle text-danger';
 				}
 			}
 			if ($ipaddress) {
 ?>
 				<td><?=htmlspecialchars($ipaddress);?></td>
 				<td><i class="fa fa-<?=$icon?>"></i>&nbsp;<?= htmlspecialchars($status) ?></td>
+<?php
+			} else {
+?>
+				<td colspan="2">
 <?php
 			}
 ?>
@@ -116,7 +122,7 @@ $carp_enabled = get_carp_status();
 		}
 	} else {
 ?>
-		<tr><td><?=gettext('No CARP Interfaces Defined.')?> <?=sprintf(gettext('Click %1$shere%2$s to configure CARP.'), '<a href="status_carp.php">', '</a>')?></td></tr>
+		<tr><td colspan="3"><?=gettext('No CARP Interfaces Defined.')?> <?=sprintf(gettext('Click %1$shere%2$s to configure CARP.'), '<a href="status_carp.php">', '</a>')?></td></tr>
 <?php
 	}
 ?>

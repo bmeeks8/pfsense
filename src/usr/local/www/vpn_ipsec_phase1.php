@@ -64,8 +64,8 @@
 ##|*MATCH=vpn_ipsec_phase1.php*
 ##|-PRIV
 
-require("functions.inc");
-require("guiconfig.inc");
+require_once("functions.inc");
+require_once("guiconfig.inc");
 require_once("ipsec.inc");
 require_once("vpn.inc");
 require_once("filter.inc");
@@ -273,9 +273,9 @@ if ($_POST) {
 		if (!is_ipaddr($pconfig['remotegw']) && !is_domain($pconfig['remotegw'])) {
 			$input_errors[] = gettext("A valid remote gateway address or host name must be specified.");
 		} elseif (is_ipaddrv4($pconfig['remotegw']) && ($pconfig['protocol'] != "inet")) {
-			$input_errors[] = gettext("A valid remote gateway IPv4 address must be specified or you need to change protocol to IPv6");
+			$input_errors[] = gettext("A valid remote gateway IPv4 address must be specified or protocol needs to be changed to IPv6");
 		} elseif (is_ipaddrv6($pconfig['remotegw']) && ($pconfig['protocol'] != "inet6")) {
-			$input_errors[] = gettext("A valid remote gateway IPv6 address must be specified or you need to change protocol to IPv4");
+			$input_errors[] = gettext("A valid remote gateway IPv6 address must be specified or protocol needs to be changed to IPv4");
 		}
 	}
 
@@ -296,11 +296,11 @@ if ($_POST) {
 		foreach ($a_phase2 as $phase2) {
 			if ($phase2['ikeid'] == $pconfig['ikeid']) {
 				if (($pconfig['protocol'] == "inet") && ($phase2['mode'] == "tunnel6")) {
-					$input_errors[] = gettext("There is a Phase 2 using IPv6, you cannot use IPv4.");
+					$input_errors[] = gettext("There is a Phase 2 using IPv6, cannot use IPv4.");
 					break;
 				}
 				if (($pconfig['protocol'] == "inet6") && ($phase2['mode'] == "tunnel")) {
-					$input_errors[] = gettext("There is a Phase 2 using IPv4, you cannot use IPv6.");
+					$input_errors[] = gettext("There is a Phase 2 using IPv4, cannot use IPv6.");
 					break;
 				}
 			}
@@ -455,7 +455,7 @@ if ($_POST) {
 	if (!$input_errors) {
 		$ph1ent['ikeid'] = $pconfig['ikeid'];
 		$ph1ent['iketype'] = $pconfig['iketype'];
-		if ($pconfig['iketype'] != 'ikev1') {
+		if ($pconfig['iketype'] == 'ikev2') {
 			unset($ph1ent['mode']);
 		} else {
 			$ph1ent['mode'] = $pconfig['mode'];
@@ -662,10 +662,8 @@ function build_eal_list() {
 
 if ($pconfig['mobile']) {
 	$pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Mobile Clients"), gettext("Edit Phase 1"));
-	$editing_mobile = true;
 } else {
 	$pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Tunnels"), gettext("Edit Phase 1"));
-	$editing_mobile = false;
 }
 
 $shortcut_section = "ipsec";
@@ -677,8 +675,8 @@ if ($input_errors) {
 }
 
 $tab_array = array();
-$tab_array[] = array(gettext("Tunnels"), !$editing_mobile, "vpn_ipsec.php");
-$tab_array[] = array(gettext("Mobile Clients"), $editing_mobile, "vpn_ipsec_mobile.php");
+$tab_array[] = array(gettext("Tunnels"), true, "vpn_ipsec.php");
+$tab_array[] = array(gettext("Mobile Clients"), false, "vpn_ipsec_mobile.php");
 $tab_array[] = array(gettext("Pre-Shared Keys"), false, "vpn_ipsec_keys.php");
 $tab_array[] = array(gettext("Advanced Settings"), false, "vpn_ipsec_settings.php");
 display_top_tabs($tab_array);
@@ -721,7 +719,7 @@ if (!$pconfig['mobile']) {
 		'Remote Gateway',
 		'text',
 		$pconfig['remotegw']
-	))->setHelp('Enter the public IP address or host name of the remote gateway');
+	))->setHelp('Enter the public IP address or host name of the remote gateway.');
 }
 
 $section->addInput(new Form_Input(
@@ -729,7 +727,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('You may enter a description here for your reference (not parsed).');
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 $form->add($section);
 
@@ -795,7 +793,7 @@ $section->addInput(new Form_Input(
 	'Pre-Shared Key',
 	'text',
 	$pconfig['pskey']
-))->setHelp('Enter your Pre-Shared Key string.');
+))->setHelp('Enter the Pre-Shared Key string.');
 
 $section->addInput(new Form_Select(
 	'certref',
@@ -1136,17 +1134,17 @@ events.push(function() {
 	//});
 
 	 // Peer identifier
-	$('#peerid_type').click(function () {
+	$('#peerid_type').change(function () {
 		peeridsel_change();
 	});
 
 	 // My identifier
-	$('#myid_type').click(function () {
+	$('#myid_type').change(function () {
 		myidsel_change();
 	});
 
 	 // ike type
-	$('#iketype').click(function () {
+	$('#iketype').change(function () {
 		iketype_change();
 	});
 
@@ -1156,7 +1154,7 @@ events.push(function() {
 	});
 
 	 // authentication method
-	$('#ealgo').click(function () {
+	$('#ealgo').change(function () {
 		ealgosel_change(<?=$keyset?>);
 	});
 

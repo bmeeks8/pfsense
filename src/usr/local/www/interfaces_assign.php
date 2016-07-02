@@ -67,13 +67,13 @@
 $pgtitle = array(gettext("Interfaces"), gettext("Interface Assignments"));
 $shortcut_section = "interfaces";
 
-require("guiconfig.inc");
-require("functions.inc");
+require_once("guiconfig.inc");
+require_once("functions.inc");
 require_once("filter.inc");
-require("shaper.inc");
-require("ipsec.inc");
-require("vpn.inc");
-require("captiveportal.inc");
+require_once("shaper.inc");
+require_once("ipsec.inc");
+require_once("vpn.inc");
+require_once("captiveportal.inc");
 require_once("rrd.inc");
 
 function interface_assign_description($portinfo, $portname) {
@@ -191,13 +191,13 @@ if (is_array($config['laggs']['lagg']) && count($config['laggs']['lagg'])) {
 /* add QinQ interfaces */
 if (is_array($config['qinqs']['qinqentry']) && count($config['qinqs']['qinqentry'])) {
 	foreach ($config['qinqs']['qinqentry'] as $qinq) {
-		$portlist["vlan{$qinq['tag']}"]['descr'] = "VLAN {$qinq['tag']}";
-		$portlist["vlan{$qinq['tag']}"]['isqinq'] = true;
+		$portlist["{$qinq['vlanif']}"]['descr'] = "VLAN {$qinq['tag']} on {$qinq['if']}";
+		$portlist["{$qinq['vlanif']}"]['isqinq'] = true;
 		/* QinQ members */
 		$qinqifs = explode(' ', $qinq['members']);
 		foreach ($qinqifs as $qinqif) {
-			$portlist["vlan{$qinq['tag']}_{$qinqif}"]['descr'] = "QinQ {$qinqif}";
-			$portlist["vlan{$qinq['tag']}_{$qinqif}"]['isqinq'] = true;
+			$portlist["{$qinq['vlanif']}_{$qinqif}"]['descr'] = "QinQ {$qinqif} on VLAN {$qinq['tag']} on {$qinq['if']}";
+			$portlist["{$qinq['vlanif']}_{$qinqif}"]['isqinq'] = true;
 		}
 	}
 }
@@ -340,7 +340,7 @@ if (isset($_POST['add']) && isset($_POST['if_add'])) {
 				$members = explode(",", strtoupper($bridge['members']));
 				foreach ($members as $member) {
 					if ($member == $ifnames[0]) {
-						$input_errors[] = sprintf(gettext('You cannot set port %1$s to interface %2$s because this interface is a member of %3$s.'), $portname, $member, $portname);
+						$input_errors[] = sprintf(gettext('Cannot set port %1$s to interface %2$s because this interface is a member of %3$s.'), $portname, $member, $portname);
 						break;
 					}
 				}
@@ -439,6 +439,11 @@ if (isset($_POST['add']) && isset($_POST['if_add'])) {
 				services_dhcpd_configure();
 			}
 
+			if (is_array($config['dhcpdv6']) && is_array($config['dhcpdv6'][$id])) {
+				unset($config['dhcpdv6'][$id]);
+				services_dhcpdv6_configure();
+			}
+
 			if (count($config['filter']['rule']) > 0) {
 				foreach ($config['filter']['rule'] as $x => $rule) {
 					if ($rule['interface'] == $id) {
@@ -495,19 +500,21 @@ if (file_exists("/var/run/interface_mismatch_reboot_needed")) {
 			$savemsg = gettext("The system is now rebooting. Please wait.");
 			$class = "success";
 		} else {
-			$savemsg = gettext("Reboot is needed. Please apply the settings in order to reboot.");
+			$applymsg = gettext("Reboot is needed. Please apply the settings in order to reboot.");
 			$class = "warning";
 		}
 	} else {
-		$savemsg = gettext("Interface mismatch detected. Please resolve the mismatch and click 'Apply Changes'. The firewall will reboot afterwards.");
+		$applymsg = gettext("Interface mismatch detected. Please resolve the mismatch and click 'Apply Changes'. The firewall will reboot afterwards.");
 		$class = "warning";
 	}
 }
 
 if (file_exists("/tmp/reload_interfaces")) {
 	echo "<p>\n";
-	print_apply_box(gettext("The interface configuration has been changed.") . "<br />" . gettext("You must apply the changes in order for them to take effect."));
+	print_apply_box(gettext("The interface configuration has been changed.") . "<br />" . gettext("The changes must be applied for them to take effect."));
 	echo "<br /></p>\n";
+} elseif ($applymsg) {
+	print_apply_box($applymsg);
 } elseif ($savemsg) {
 	print_info_box($savemsg, $class);
 }
@@ -598,7 +605,7 @@ display_top_tabs($tab_array);
 	</table>
 	</div>
 
-	<button name="Submit" type="submit" class="btn btn-primary" value="<?=gettext('Save')?>"><?=gettext('Save')?></button>
+	<button name="Submit" type="submit" class="btn btn-primary" value="<?=gettext('Save')?>"><i class="fa fa-save icon-embed-btn"></i><?=gettext('Save')?></button>
 </form>
 <br />
 

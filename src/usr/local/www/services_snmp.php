@@ -63,7 +63,7 @@
 ##|*MATCH=services_snmp.php*
 ##|-PRIV
 
-require("guiconfig.inc");
+require_once("guiconfig.inc");
 require_once("functions.inc");
 
 if (!is_array($config['snmpd'])) {
@@ -240,7 +240,7 @@ $section->addInput(new Form_Input(
 	'Polling Port',
 	'text',
 	($pconfig['pollport'] ? $pconfig['pollport']:'161')
-))->setHelp('Enter the port to accept polling events on (default 161)');
+))->setHelp('Enter the port to accept polling events on (default 161).');
 
 $section->addInput(new Form_Input(
 	'syslocation',

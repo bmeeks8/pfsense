@@ -1,58 +1,26 @@
 <?php
-/* ====================================================================
- *  Copyright (c)  2004-2015  Electric Sheep Fencing, LLC. All rights reserved.
+/*
+ * interfaces.inc
  *
- *  Some or all of this file is based on the m0n0wall project which is
- *  Copyright (c)  2004 Manuel Kasper (BSD 2 clause)
+ * part of pfSense (https://www.pfsense.org)
+ * Copyright (c) 2004-2016 Electric Sheep Fencing, LLC
+ * All rights reserved.
  *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
+ * originally based on m0n0wall (http://m0n0.ch/wall)
+ * Copyright (c) 2004 Manuel Kasper <mk@neon1.net>.
+ * All rights reserved.
  *
- *  1. Redistributions of source code must retain the above copyright notice,
- *      this list of conditions and the following disclaimer.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  2. Redistributions in binary form must reproduce the above copyright
- *      notice, this list of conditions and the following disclaimer in
- *      the documentation and/or other materials provided with the
- *      distribution.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  3. All advertising materials mentioning features or use of this software
- *      must display the following acknowledgment:
- *      "This product includes software developed by the pfSense Project
- *       for use in the pfSense software distribution. (http://www.pfsense.org/).
- *
- *  4. The names "pfSense" and "pfSense Project" must not be used to
- *       endorse or promote products derived from this software without
- *       prior written permission. For written permission, please contact
- *       coreteam@pfsense.org.
- *
- *  5. Products derived from this software may not be called "pfSense"
- *      nor may "pfSense" appear in their names without prior written
- *      permission of the Electric Sheep Fencing, LLC.
- *
- *  6. Redistributions of any form whatsoever must retain the following
- *      acknowledgment:
- *
- *  "This product includes software developed by the pfSense Project
- *  for use in the pfSense software distribution (http://www.pfsense.org/).
- *
- *  THIS SOFTWARE IS PROVIDED BY THE pfSense PROJECT ``AS IS'' AND ANY
- *  EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- *  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE pfSense PROJECT OR
- *  ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- *  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- *  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- *  OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  ====================================================================
- *
- * function interfaces_wireless_configure is Copyright (C) 2005 Espen Johansen
- *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /* include all configuration functions */
@@ -876,15 +844,6 @@ function interface_gre_configure(&$gre, $grekey = "") {
 	} else {
 		mwexec("/sbin/ifconfig {$greif} " . escapeshellarg($gre['tunnel-local-addr']) . " " . escapeshellarg($gre['tunnel-remote-addr']) . " netmask " . gen_subnet_mask($gre['tunnel-remote-net']));
 	}
-	if (isset($gre['link0'])) {
-		pfSense_interface_flags($greif, IFF_LINK0);
-	}
-	if (isset($gre['link1'])) {
-		pfSense_interface_flags($greif, IFF_LINK1);
-	}
-	if (isset($gre['link2'])) {
-		pfSense_interface_flags($greif, IFF_LINK2);
-	}
 
 	if ($greif) {
 		interfaces_bring_up($greif);
@@ -996,11 +955,11 @@ function interface_gif_configure(&$gif, $gifkey = "") {
 	} else {
 		mwexec("/sbin/ifconfig {$gifif} " . escapeshellarg($gif['tunnel-local-addr']) . " " . escapeshellarg($gif['tunnel-remote-addr']) . " netmask " . gen_subnet_mask($gif['tunnel-remote-net']));
 	}
-	if (isset($gif['link0'])) {
-		pfSense_interface_flags($gifif, IFF_LINK0);
-	}
 	if (isset($gif['link1'])) {
 		pfSense_interface_flags($gifif, IFF_LINK1);
+	}
+	if (isset($gif['link2'])) {
+		pfSense_interface_flags($gifif, IFF_LINK2);
 	}
 	if ($gifif) {
 		interfaces_bring_up($gifif);
@@ -1804,7 +1763,10 @@ EOD;
 	}
 
 /* Omit this, we maintain the default route by other means, and it causes problems with
- * default gateway switching. See redmine #1837
+ * default gateway switching. See redmine #1837 for original issue
+ * re-enabling this for now to fix issue with missing default gateway with PPPoE in some 
+ * edge case. redmine #6495 open to address. 
+ */
 	if (($interface == "wan" && $founddefaultgw == false) || $setdefaultgw == true) {
 		$setdefaultgw = true;
 		$mpdconf .= <<<EOD
@@ -1812,7 +1774,6 @@ EOD;
 
 EOD;
 	}
-*/
 	$mpdconf .= <<<EOD
 	set iface {$ondemand} on-demand
 	set iface idle {$ppp['idletimeout']}
@@ -4036,7 +3997,7 @@ function DHCP6_Config_File_Advanced($interface, $wancfg, $wanif) {
 
 	$send_options = "";
 	if ($wancfg['adv_dhcp6_interface_statement_send_options'] != '') {
-		$options = explode(',', $wancfg['adv_dhcp6_interface_statement_send_options']);
+		$options = DHCP_Config_Option_Split($wancfg['adv_dhcp6_interface_statement_send_options']);
 		foreach ($options as $option) {
 			$send_options .= "\tsend " . trim($option) . ";\n";
 		}
@@ -4044,7 +4005,7 @@ function DHCP6_Config_File_Advanced($interface, $wancfg, $wanif) {
 
 	$request_options = "";
 	if ($wancfg['adv_dhcp6_interface_statement_request_options'] != '') {
-		$options = explode(',', $wancfg['adv_dhcp6_interface_statement_request_options']);
+		$options = DHCP_Config_Option_Split($wancfg['adv_dhcp6_interface_statement_request_options']);
 		foreach ($options as $option) {
 			$request_options .= "\trequest " . trim($option) . ";\n";
 		}
@@ -4314,7 +4275,7 @@ function DHCP_Config_File_Advanced($interface, $wancfg, $wanif) {
 
 	$send_options = "";
 	if ($wancfg['adv_dhcp_send_options'] != '') {
-		$options = explode(',', $wancfg['adv_dhcp_send_options']);
+		$options = DHCP_Config_Option_Split($wancfg['adv_dhcp_send_options']);
 		foreach ($options as $option) {
 			$send_options .= "\tsend " . trim($option) . ";\n";
 		}
@@ -4332,7 +4293,7 @@ function DHCP_Config_File_Advanced($interface, $wancfg, $wanif) {
 
 	$option_modifiers = "";
 	if ($wancfg['adv_dhcp_option_modifiers'] != '') {
-		$modifiers = explode(',', $wancfg['adv_dhcp_option_modifiers']);
+		$modifiers = DHCP_Config_Option_Split($wancfg['adv_dhcp_option_modifiers']);
 		foreach ($modifiers as $modifier) {
 			$option_modifiers .= "\t" . trim($modifier) . ";\n";
 		}
@@ -4355,6 +4316,9 @@ function DHCP_Config_File_Advanced($interface, $wancfg, $wanif) {
 	$dhclientconf .= "{$required_options}";
 	$dhclientconf .= "{$option_modifiers}";
 	$dhclientconf .= "\n";
+	if (is_ipaddrv4($wancfg['dhcprejectfrom'])) {
+		$dhclientconf .= "reject {$wancfg['dhcprejectfrom']};\n";
+	}
 	$dhclientconf .= "\tscript \"/sbin/dhclient-script\";\n";
 	$dhclientconf .= "}\n";
 
@@ -4363,6 +4327,10 @@ function DHCP_Config_File_Advanced($interface, $wancfg, $wanif) {
 	return $dhclientconf;
 }
 
+function DHCP_Config_Option_Split($option_string) {
+	preg_match_all('/[^",]*(?:"[^"]*"[^",]*)+(?:"[^",]*)?|[^,]+/m', $option_string, $matches, PREG_PATTERN_ORDER);
+	return $matches ? $matches[0] : [];
+}
 
 function DHCP_Config_File_Override($wancfg, $wanif) {
 
@@ -4976,6 +4944,7 @@ function interface_find_child_cfgmtu($realiface) {
 
 	$interface = convert_real_interface_to_friendly_interface_name($realiface);
 	$vlans = link_interface_to_vlans($realiface);
+	$qinqs = link_interface_to_qinqs($realiface);
 	$bridge = link_interface_to_bridge($realiface);
 	if (!empty($interface)) {
 		$gifs = link_interface_to_gif($interface);
@@ -4989,6 +4958,19 @@ function interface_find_child_cfgmtu($realiface) {
 	if (is_array($vlans)) {
 		foreach ($vlans as $vlan) {
 			$ifass = convert_real_interface_to_friendly_interface_name($vlan['vlanif']);
+			if (empty($ifass)) {
+				continue;
+			}
+			if (!empty($config['interfaces'][$ifass]['mtu'])) {
+				if (intval($config['interfaces'][$ifass]['mtu']) > $mtu) {
+					$mtu = intval($config['interfaces'][$ifass]['mtu']);
+				}
+			}
+		}
+	}
+	if (is_array($qinqs)) {
+		foreach ($qinqs as $qinq) {
+			$ifass = convert_real_interface_to_friendly_interface_name($qinq['vlanif']);
 			if (empty($ifass)) {
 				continue;
 			}
@@ -5051,6 +5033,30 @@ function link_interface_to_vlans($int, $action = "") {
 					interfaces_bring_up($int);
 				} else {
 					$ifaces[$vlan['tag']] = $vlan;
+				}
+			}
+		}
+		if (!empty($ifaces)) {
+			return $ifaces;
+		}
+	}
+}
+
+function link_interface_to_qinqs($int, $action = "") {
+	global $config;
+
+	if (empty($int)) {
+		return;
+	}
+
+	if (is_array($config['qinqs']['qinqentry'])) {
+		$ifaces = array();
+		foreach ($config['qinqs']['qinqentry'] as $qinq) {
+			if ($int == $qinq['if']) {
+				if ($action == "update") {
+					interfaces_bring_up($int);
+				} else {
+					$ifaces[$qinq['tag']] = $qinq;
 				}
 			}
 		}

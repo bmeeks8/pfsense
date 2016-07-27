@@ -162,6 +162,9 @@ EOF
 		echo ">>> ERROR: Error building package ${_template} ${_flavor}"
 		print_error_pfS
 	fi
+
+	# Cleanup _licenses_dir
+	rm -rf ${_root}${_licenses_dir}
 }
 
 # This routine will output that something went wrong
@@ -714,8 +717,10 @@ create_ova_image() {
 
 	LOGFILE=${BUILDER_LOGS}/ova.${TARGET}.log
 
-	[ -d "${OVA_TMP}" ] \
-		&& rm -rf ${OVA_TMP}
+	if [ -d "${OVA_TMP}" ]; then
+		chflags -R noschg ${OVA_TMP}
+		rm -rf ${OVA_TMP}
+	fi
 
 	mkdir -p $(dirname ${OVAPATH})
 
@@ -756,7 +761,7 @@ create_ova_image() {
 	# Create / partition
 	echo -n ">>> Creating / partition... " | tee -a ${LOGFILE}
 	truncate -s ${OVA_FIRST_PART_SIZE} ${OVA_TMP}/${OVFUFS}
-	local _md=$(mdconfig -a -f ${OVA_TMP}/${OVAUFS})
+	local _md=$(mdconfig -a -f ${OVA_TMP}/${OVFUFS})
 	trap "mdconfig -d -u ${_md}; return" 1 2 15 EXIT
 
 	newfs -L ${PRODUCT_NAME} -j /dev/${_md} 2>&1 >>${LOGFILE}
@@ -821,7 +826,7 @@ create_ova_image() {
 	fi
 	echo "Done!" | tee -a ${LOGFILE}
 
-	rm -f ${OVA_TMP}/i${OVFRAW}
+	rm -f ${OVA_TMP}/${OVFRAW}
 
 	ova_setup_ovf_template
 

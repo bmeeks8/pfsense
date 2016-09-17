@@ -3,7 +3,7 @@
  * status_dhcpv6_leases.php
  *
  * part of pfSense (https://www.pfsense.org)
- * Copyright (c) 2004-2016 Electric Sheep Fencing, LLC
+ * Copyright (c) 2004-2016 Rubicon Communications, LLC (Netgate)
  * Copyright (c) 2011 Seth Mos
  * All rights reserved.
  *
@@ -100,7 +100,7 @@ function adjust_gmt($dt) {
 	if ($dhcpv6leaseinlocaltime == "yes") {
 		$ts = strtotime($dt . " GMT");
 		if ($ts !== false) {
-			return strftime("%Y/%m/%d %I:%M:%S%p", $ts);
+			return strftime("%Y/%m/%d %H:%M:%S", $ts);
 		}
 	}
 	/* If we did not need to convert to local time or the conversion failed, just return the input. */

@@ -5,7 +5,7 @@
  * part of pfSense (https://www.pfsense.org)
  * Copyright (c) 2005 Bill Marquette
  * Copyright (c) 2006 Peter Allgeyer
- * Copyright (c) 2008-2016 Electric Sheep Fencing, LLC
+ * Copyright (c) 2008-2016 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * originally part of m0n0wall (http://m0n0.ch/wall)
@@ -2034,6 +2034,11 @@ function filter_nat_rules_generate() {
 
 				$obtarget = ($obent['target'] == "other-subnet") ? $obent['targetip'] . '/' . $obent['targetip_subnet']: $obent['target'];
 				$poolopts = (is_subnet($obtarget) || is_alias($obtarget)) ? $obent['poolopts'] : "";
+
+				/* pool option source-hash allows specification of an optional source-hash key */
+				if ($poolopts == "source-hash" && !empty($obent['source_hash_key'])) {
+					$poolopts = "source-hash ".$obent['source_hash_key'];
+				}
 
 				$natrules .= filter_nat_rules_generate_if($obent['interface'],
 					$src,

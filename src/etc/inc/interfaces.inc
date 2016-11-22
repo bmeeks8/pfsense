@@ -1006,10 +1006,10 @@ function interface_gif_configure(&$gif, $gifkey = "") {
 	}
 
 	if (is_ipaddrv4($realifgw)) {
-		mwexec("/sbin/route change -host " . escapeshellarg($gif['remote-addr']) . " {$realifgw}");
+		route_add_or_change("-host {$gif['remote-addr']} {$realifgw}");
 	}
 	if (is_ipaddrv6($realifgw)) {
-		mwexec("/sbin/route change -host -inet6 " . escapeshellarg($gif['remote-addr']) . " {$realifgw}");
+		route_add_or_change("-host -inet6 {$gif['remote-addr']} {$realifgw}");
 	}
 
 	interfaces_bring_up($gifif);
@@ -1650,6 +1650,9 @@ function interface_ppps_configure($interface) {
 					log_error(sprintf(gettext("Could not get a Local IP address for PPTP/L2TP link on %s in interfaces_ppps_configure. Using 0.0.0.0 ip!"), $port));
 					$localips[$pid] = "0.0.0.0";
 				}
+				if (!$g['booting'] && !is_ipaddr($gateways[$pid]) && is_hostname($gateways[$pid])) {
+					$gateways[$pid] = gethostbyname($gateways[$pid]);
+				}
 				if (!is_ipaddr($gateways[$pid])) {
 					log_error(sprintf(gettext('Could not get a PPTP/L2TP Remote IP address from %1$s for %2$s in interfaces_ppps_configure.'), $dhcp_gateway, $gway));
 					return 0;
@@ -1995,15 +1998,11 @@ EOD;
 	// Create the uptime log if requested and if it doesn't exist already, or delete it if it is no longer requested.
 	if (isset($ppp['uptime'])) {
 		if (!file_exists("/conf/{$pppif}.log")) {
-			conf_mount_rw();
 			file_put_contents("/conf/{$pppif}.log", '');
-			conf_mount_ro();
 		}
 	} else {
 		if (file_exists("/conf/{$pppif}.log")) {
-			conf_mount_rw();
 			@unlink("/conf/{$pppif}.log");
-			conf_mount_ro();
 		}
 	}
 
@@ -2578,8 +2577,6 @@ function interface_wireless_configure($if, &$wl, &$wlcfg) {
 
 	$wlcmd = array();
 	$wl_sysctl = array();
-	/* Make sure it's up */
-	$wlcmd[] = "up";
 	/* Set a/b/g standard */
 	$standard = str_replace(" Turbo", "", $wlcfg['standard']);
 	/* skip mode entirely for "auto" */
@@ -2706,7 +2703,6 @@ function interface_wireless_configure($if, &$wl, &$wlcfg) {
 	mwexec(kill_wpasupplicant("{$if}"));
 
 	/* generate wpa_supplicant/hostap config if wpa is enabled */
-	conf_mount_rw();
 
 	switch ($wlcfg['mode']) {
 		case 'bss':
@@ -2838,7 +2834,8 @@ EOD;
 			/* add line to script to restore old mac to make hostapd happy */
 			if (file_exists("{$g['tmp_path']}/{$if}_oldmac")) {
 				$if_oldmac = file_get_contents("{$g['tmp_path']}/{$if}_oldmac");
-				if (is_macaddr($if_oldmac)) {
+				$if_curmac = get_interface_mac($if);
+				if ($if_curmac != $if_oldmac && is_macaddr($if_oldmac)) {
 					fwrite($fd_set, "{$ifconfig} " . escapeshellarg($if) .
 						" link " . escapeshellarg($if_oldmac) . "\n");
 				}
@@ -2847,22 +2844,17 @@ EOD;
 			fwrite($fd_set, "{$hostapd} -B -P {$g['varrun_path']}/hostapd_{$if}.pid {$g['varetc_path']}/hostapd_{$if}.conf\n");
 
 			/* add line to script to restore spoofed mac after running hostapd */
-			if (file_exists("{$g['tmp_path']}/{$if}_oldmac")) {
-				if ($wl['spoofmac']) {
-					$if_curmac = $wl['spoofmac'];
-				} else {
-					$if_curmac = get_interface_mac($if);
-				}
-				if (is_macaddr($if_curmac)) {
+			if ($wl['spoofmac']) {
+				$if_curmac = get_interface_mac($if);
+				if ($wl['spoofmac'] != $if_curmac && is_macaddr($wl['spoofmac'])) {
 					fwrite($fd_set, "{$ifconfig} " . escapeshellarg($if) .
-						" link " . escapeshellarg($if_curmac) . "\n");
+						" link " . escapeshellarg($wl['spoofmac']) . "\n");
 				}
 			}
 		}
 	}
 
 	fclose($fd_set);
-	conf_mount_ro();
 
 	/* Making sure regulatory settings have actually changed
 	 * before applying, because changing them requires bringing
@@ -2950,18 +2942,22 @@ EOD;
 		}
 	}
 
-	/* 20150318 cmb - Note: the below no longer appears to be true on FreeBSD 10.x, so don't set
-	 * mode twice (for now at least). This can be removed entirely in the future if no problems are found
-
-	 * The mode must be specified in a separate command before ifconfig
-	 * will allow the mode and channel at the same time in the next. */
-	//mwexec("/sbin/ifconfig " . escapeshellarg($if) . " mode " . escapeshellarg($standard));
-	//fwrite($wlan_setup_log, "/sbin/ifconfig " . escapeshellarg($if) . " mode " . escapeshellarg($standard) . "\n");
+	/* The mode must be specified in a separate command before ifconfig
+	 * will allow the mode and channel at the same time in the next.
+	 * Only do this for AP mode as this breaks client mode (PR 198680).
+	 */
+	if ($wlcfg['mode'] == "hostap") {
+		mwexec("/sbin/ifconfig " . escapeshellarg($if) . " mode " . escapeshellarg($standard));
+		fwrite($wlan_setup_log, "/sbin/ifconfig " . escapeshellarg($if) . " mode " . escapeshellarg($standard) . "\n");
+	}
 
 	/* configure wireless */
 	$wlcmd_args = implode(" ", $wlcmd);
 	mwexec("/sbin/ifconfig " . escapeshellarg($if) . " " . $wlcmd_args, false);
 	fwrite($wlan_setup_log, "/sbin/ifconfig " . escapeshellarg($if) . " " . "$wlcmd_args \n");
+	/* Bring the interface up only after setting up all the other parameters. */
+	mwexec("/sbin/ifconfig " . escapeshellarg($if) . " up", false);
+	fwrite($wlan_setup_log, "/sbin/ifconfig " . escapeshellarg($if) . " up\n");
 	fclose($wlan_setup_log);
 
 	unset($wlcmd_args, $wlcmd);
@@ -3745,7 +3741,7 @@ function interface_6rd_configure($interface = "wan", $wancfg) {
 
 	$ip4gateway = get_interface_gateway($interface);
 	if (is_ipaddrv4($ip4gateway)) {
-		mwexec("/sbin/route change -host " . escapeshellarg($wancfg['gateway-6rd']) . " {$ip4gateway}");
+		route_add_or_change("-host {$wancfg['gateway-6rd']} {$ip4gateway}");
 	}
 
 	/* configure dependent interfaces */
@@ -3852,7 +3848,7 @@ function interface_6to4_configure($interface = "wan", $wancfg) {
 
 	$ip4gateway = get_interface_gateway($interface);
 	if (is_ipaddrv4($ip4gateway)) {
-		mwexec("/sbin/route change -host 192.88.99.1 {$ip4gateway}");
+		route_add_or_change("-host 192.88.99.1 {$ip4gateway}");
 	}
 
 	if (!platform_booting()) {
@@ -5646,7 +5642,7 @@ function is_altq_capable($int) {
 	 * 20150328 - removed wireless drivers - ath, awi, bwn, iwi, ipw, ral, rum, run, wi - for now. redmine #4406
 	 */
 	$capable = array("ae", "age", "alc", "ale", "an", "aue", "axe", "bce",
-			"bfe", "bge", "bridge", "cas", "dc", "de", "ed", "em", "ep", "epair", "et", "fxp", "gem",
+			"bfe", "bge", "bridge", "cas", "cxl", "dc", "de", "ed", "em", "ep", "epair", "et", "fxp", "gem",
 			"hme", "hn", "igb", "ix", "jme", "le", "lem", "msk", "mxge", "my", "nfe",
 			"nge", "npe", "nve", "re", "rl", "sf", "sge", "sis", "sk",
 			"ste", "stge", "ti", "txp", "udav", "ural", "vge", "vmx", "vr", "vte", "xl",

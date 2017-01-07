@@ -258,7 +258,7 @@ function delete_row(rowDelBtn) {
 	var rowLabel;
 
 	// If we are deleting row zero, we need to save/restore the label
-	if (rowDelBtn == "deleterow0") {
+	if ( (rowDelBtn == "deleterow0") && ((typeof retainhelp) == "undefined")) {
 		rowLabel = $('#' + rowDelBtn).parent('div').parent('div').find('label').text();
 	}
 
@@ -353,9 +353,9 @@ function add_row() {
 	$('[id^=delete]').click(function(event) {
 		if ($('.repeatable').length > 1) {
 			if ((typeof retainhelp) == "undefined")
-				moveHelpText(event.target.id);
+				moveHelpText($(this).attr("id"));
 
-			delete_row(event.target.id);
+			delete_row($(this).attr("id"));
 		} else {
 			alert('The last row may not be deleted.');
 		}
@@ -375,9 +375,9 @@ $('[id^=addrow]').click(function() {
 $('[id^=delete]').click(function(event) {
 	if ($('.repeatable').length > 1) {
 		if ((typeof retainhelp) == "undefined")
-			moveHelpText(event.target.id);
+			moveHelpText($(this).attr("id"));
 
-		delete_row(event.target.id);
+		delete_row($(this).attr("id"));
 	} else {
 		alert('The last row may not be deleted.');
 	}

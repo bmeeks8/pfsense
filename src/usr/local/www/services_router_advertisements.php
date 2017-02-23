@@ -38,10 +38,7 @@ if (!$g['services_dhcp_server_enable']) {
 	exit;
 }
 
-$if = $_GET['if'];
-if ($_POST['if']) {
-	$if = $_POST['if'];
-}
+$if = $_REQUEST['if'];
 
 /* if OLSRD is enabled, allow WAN to house DHCP. */
 if ($config['installedpackages']['olsrd']) {
@@ -53,8 +50,8 @@ if ($config['installedpackages']['olsrd']) {
 	}
 }
 
-if (!$_GET['if']) {
-	$savemsg = gettext("The DHCPv6 Server can only be enabled on interfaces configured with static, non unique local IP addresses.") . "<br />" .
+if (!$_REQUEST['if']) {
+	$info_msg = gettext("The DHCPv6 Server can only be enabled on interfaces configured with static, non unique local IP addresses.") . "<br />" .
 	    gettext("Only interfaces configured with a static IP will be shown.");
 }
 
@@ -136,7 +133,7 @@ $ramode_help = gettext('Select the Operating Mode for the Router Advertisement (
 	gettext('It is not required to activate DHCPv6 server on pfSense when set to "Managed", "Assisted" or "Stateless DHCP", it can be another host on the network.') .
 	'</div>';
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 
 	$pconfig = $_POST;
@@ -160,7 +157,7 @@ if ($_POST) {
 		} else {
 			$pconfig['subnets'][] = $address . "/" . $bits;
 			if (!is_ipaddrv6($address)) {
-				$input_errors[] = sprintf(gettext("An invalid subnet or alias was specified. [%s/%s]"), $address, $bits);
+				$input_errors[] = sprintf(gettext('An invalid subnet or alias was specified. [%1$s/%2$s]'), $address, $bits);
 			}
 		}
 	}
@@ -243,17 +240,21 @@ if ($_POST) {
 		}
 
 		write_config();
-		$retval = services_radvd_configure();
-		$savemsg = get_std_save_message($retval);
+		$changes_applied = true;
+		$retval = 0;
+		$retval |= services_radvd_configure();
 	}
 }
 
 $pgtitle = array(gettext("Services"), htmlspecialchars(gettext("DHCPv6 Server & RA")));
+$pglinks = array("", "services_dhcpv6.php");
 
 if (!empty($if) && isset($iflist[$if])) {
 	$pgtitle[] = $iflist[$if];
+	$pglinks[] = "services_dhcpv6.php?if=" . $if;
 }
 $pgtitle[] = gettext("Router Advertisements");
+$pglinks[] = "@self";
 
 include("head.inc");
 
@@ -261,8 +262,12 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval);
+}
+
+if ($info_msg) {
+	print_info_box($info_msg, 'success');
 }
 
 /* active tabs */
@@ -304,14 +309,14 @@ $section = new Form_Section('Advertisements');
 
 $section->addInput(new Form_Select(
 	'ramode',
-	'Router mode',
+	'*Router mode',
 	$pconfig['ramode'],
 	$advertise_modes
 ))->setHelp($ramode_help);
 
 $section->addInput(new Form_Select(
 	'rapriority',
-	'Router priority',
+	'*Router priority',
 	$pconfig['rapriority'],
 	$priority_modes
 ))->setHelp('Select the Priority for the Router Advertisement (RA) Daemon.');
@@ -331,7 +336,7 @@ if (count($carplist) > 0) {
 if (count($carplistif) > 0) {
 	$iflist = array();
 
-	$iflist['interface'] = strtoupper($if);
+	$iflist['interface'] = convert_friendly_interface_to_friendly_descr($if);
 	foreach ($carplistif as $ifname => $vip) {
 		$iflist[$ifname] = get_vip_descr($vip) . " - " . $vip;
 	}
@@ -350,16 +355,16 @@ $section->addInput(new Form_Input(
 	'number',
 	$pconfig['ravalidlifetime'],
 	['min' => 1, 'max' => 655350]
-))->setHelp('The length of time in seconds (relative to the time the packet is sent) that the prefix is valid for the purpose of on-link determination.' . ' <br />' .
-'The default is 86400 seconds.');
+))->setHelp('The length of time in seconds (relative to the time the packet is sent) that the prefix is valid for the purpose of on-link determination.%1$s' .
+'The default is 86400 seconds.', '<br />');
 
 $section->addInput(new Form_Input(
 	'rapreferredlifetime',
 	'Default preferred lifetime',
 	'text',
 	$pconfig['rapreferredlifetime']
-))->setHelp('Seconds. The length of time in seconds (relative to the time the packet is sent) that addresses generated from the prefix via stateless address autoconfiguration remain preferred.' . ' <br />' .
-			'The default is 14400 seconds.');
+))->setHelp('Seconds. The length of time in seconds (relative to the time the packet is sent) that addresses generated from the prefix via stateless address autoconfiguration remain preferred.%1$s' .
+			'The default is 14400 seconds.', '<br />');
 
 $section->addInput(new Form_Input(
 	'raminrtradvinterval',

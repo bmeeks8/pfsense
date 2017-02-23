@@ -52,11 +52,8 @@ if (!is_array($config['pppoes']['pppoe'])) {
 
 $a_pppoes = &$config['pppoes']['pppoe'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_pppoes[$id]) {
@@ -98,7 +95,7 @@ if (isset($id) && $a_pppoes[$id]) {
 	}
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -131,7 +128,7 @@ if ($_POST) {
 			$input_errors[] = gettext("User Max Logins must be between 1 and 255");
 		}
 		if (!is_numericint($_POST['pppoe_subnet']) || $_POST['pppoe_subnet'] > 32) {
-			$input_errors[] = gettext("Subnet mask must be an interger between 0 and 32");
+			$input_errors[] = gettext("Subnet mask must be an integer between 0 and 32");
 		}
 
 		$_POST['remoteip'] = $pconfig['remoteip'] = gen_subnet($_POST['remoteip'], $_POST['pppoe_subnet']);
@@ -278,6 +275,7 @@ function build_interface_list() {
 }
 
 $pgtitle = array(gettext("Services"), gettext("PPPoE Server"), gettext("Edit"));
+$pglinks = array("", "services_pppoe.php", "@self");
 $shortcut_section = "pppoes";
 include("head.inc");
 
@@ -299,7 +297,7 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	build_interface_list()
 
@@ -307,35 +305,35 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_Select(
 	'n_pppoe_units',
-	'Total User Count',
+	'*Total User Count',
 	$pconfig['n_pppoe_units'],
 	array_combine(range(1, 255, 1), range(1, 255, 1))
 ))->setHelp('The number of PPPoE users allowed to connect to this server simultaneously.');
 
 $section->addInput(new Form_Select(
 	'n_pppoe_maxlogin',
-	'User Max Logins',
+	'*User Max Logins',
 	$pconfig['n_pppoe_maxlogin'],
 	array_combine(range(1, 255, 1), range(1, 255, 1))
 ))->setHelp('The number of times a single user may be logged in at the same time.');
 
 $section->addInput(new Form_IpAddress(
 	'localip',
-	'Server Address',
+	'*Server Address',
 	$pconfig['localip']
-))->setHelp('Enter the IP address the PPPoE server should give to clients for use as their "gateway".' . '<br />' .
-			'Typically this is set to an unused IP just outside of the client range.'. '<br />' .
-			'NOTE: This should NOT be set to any IP address currently in use on this firewall.');
+))->setHelp('Enter the IP address the PPPoE server should give to clients for use as their "gateway".%1$s' .
+			'Typically this is set to an unused IP just outside of the client range.%1$s' .
+			'NOTE: This should NOT be set to any IP address currently in use on this firewall.', '<br />');
 
 $section->addInput(new Form_IpAddress(
 	'remoteip',
-	'Remote Address Range',
+	'*Remote Address Range',
 	$pconfig['remoteip']
 ))->setHelp('Specify the starting address for the client IP address subnet.');
 
 $section->addInput(new Form_Select(
 	'pppoe_subnet',
-	'Subnet mask',
+	'*Subnet mask',
 	$pconfig['pppoe_subnet'],
 	array_combine(range(0, 32, 1), range(0, 32, 1))
 ))->setHelp('Hint: 24 is 255.255.255.0');
@@ -584,6 +582,8 @@ events.push(function() {
 		disableInput('radius_nasip', hide);
 		disableInput('radius_acct_update', hide);
 		disableInput('radiussecenable', hide);
+		setRequired('radiusserver', !hide);
+		setRequired('radiussecret', !hide);
 		hide_radius2(hide);
 	}
 	// show/hide radius server 2 controls
@@ -593,6 +593,8 @@ events.push(function() {
 		disableInput('radiussecret2_confirm', hide);
 		disableInput('radiusserver2port', hide);
 		disableInput('radiusserver2acctport', hide);
+		setRequired('radiusserver2', !hide);
+		setRequired('radiussecret2', !hide);
 	}
 
 	// When the RADIUS checkbox is clicked . .

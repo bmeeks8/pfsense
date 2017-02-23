@@ -286,30 +286,53 @@ function & getGroupEntryByGID($gid) {
 }
 
 function get_user_privileges(& $user) {
-	global $config;
+	global $config, $_SESSION;
 
 	$authcfg = auth_get_authserver($config['system']['webgui']['authmode']);
-	$names = array();
+	$allowed_groups = array();
 
 	$privs = $user['priv'];
 	if (!is_array($privs)) {
 		$privs = array();
 	}
 
+	// cache auth results for a short time to ease load on auth services & logs
+	if (isset($config['system']['webgui']['auth_refresh_time'])) {
+		$recheck_time = $config['system']['webgui']['auth_refresh_time'];
+	} else {
+		$recheck_time = 30;
+	}
+
 	if ($authcfg['type'] == "ldap") {
-		$names = @ldap_get_groups($user['name'], $authcfg);
+		if (isset($_SESSION["ldap_allowed_groups"]) &&
+		    (time() <= $_SESSION["auth_check_time"] + $recheck_time)) {
+			$allowed_groups = $_SESSION["ldap_allowed_groups"];
+		} else {
+			$allowed_groups = @ldap_get_groups($user['name'], $authcfg);
+			$_SESSION["ldap_allowed_groups"] = $allowed_groups;
+			$_SESSION["auth_check_time"] = time();
+		}
 	} elseif ($authcfg['type'] == "radius") {
-		$names = @radius_get_groups($_SESSION['user_radius_attributes']);
+		if (isset($_SESSION["radius_allowed_groups"]) &&
+		    (time() <= $_SESSION["auth_check_time"] + $recheck_time)) {
+			$allowed_groups = $_SESSION["radius_allowed_groups"];
+		} else {
+			$allowed_groups = @radius_get_groups($_SESSION['user_radius_attributes']);
+			$_SESSION["radius_allowed_groups"] = $allowed_groups;
+			$_SESSION["auth_check_time"] = time();
+		}
 	}
 
-	if (empty($names)) {
-		$names = local_user_get_groups($user, true);
+	if (empty($allowed_groups)) {
+		$allowed_groups = local_user_get_groups($user, true);
 	}
 
-	foreach ($names as $name) {
-		$group = getGroupEntry($name);
-		if (is_array($group['priv'])) {
-			$privs = array_merge($privs, $group['priv']);
+	if (is_array($allowed_groups)) {
+		foreach ($allowed_groups as $name) {
+			$group = getGroupEntry($name);
+			if (is_array($group['priv'])) {
+				$privs = array_merge($privs, $group['priv']);
+			}
 		}
 	}
 
@@ -1132,7 +1155,7 @@ function ldap_get_groups($username, $authcfg) {
 
 	if ($error == true) {
 		log_error(sprintf(gettext("ERROR! ldap_get_groups() Could not connect to server %s."), $ldapname));
-		return memberof;
+		return $memberof;
 	}
 
 	ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
@@ -1161,7 +1184,7 @@ function ldap_get_groups($username, $authcfg) {
 	} else if (!($res = @ldap_bind($ldap, $ldapbindun, $ldapbindpw))) {
 		log_error(sprintf(gettext("ERROR! ldap_get_groups() could not bind to server %s."), $ldapname));
 		@ldap_close($ldap);
-		return memberof;
+		return $memberof;
 	}
 
 	/* get groups from DN found */
@@ -1396,22 +1419,31 @@ function ldap_backed($username, $passwd, $authcfg) {
 	return true;
 }
 
-function radius_backed($username, $passwd, $authcfg, &$attributes = array()) {
+function radius_backed($username, $password, $authcfg, &$attributes = array()) {
 	global $debug, $config;
 	$ret = false;
 
 	require_once("radius.inc");
+	require_once("Crypt/CHAP.php");
 
-	$rauth = new Auth_RADIUS_PAP($username, $passwd);
 	if ($authcfg) {
 		$radiusservers = array();
 		$radiusservers[0]['ipaddr'] = $authcfg['host'];
 		$radiusservers[0]['port'] = $authcfg['radius_auth_port'];
 		$radiusservers[0]['sharedsecret'] = $authcfg['radius_secret'];
 		$radiusservers[0]['timeout'] = $authcfg['radius_timeout'];
+		if(isset($authcfg['radius_protocol'])) {
+			$radius_protocol = $authcfg['radius_protocol'];
+		} else {
+			$radius_protocol = 'PAP';
+		}
 	} else {
 		return false;
 	}
+
+	// Create our instance
+	$classname = 'Auth_RADIUS_' . $radius_protocol;
+	$rauth = new $classname($username, $password);
 
 	/* Add new servers to our instance */
 	foreach ($radiusservers as $radsrv) {
@@ -1419,11 +1451,41 @@ function radius_backed($username, $passwd, $authcfg, &$attributes = array()) {
 		$rauth->addServer($radsrv['ipaddr'], $radsrv['port'], $radsrv['sharedsecret'], $timeout);
 	}
 
+	// Construct data package
+	$rauth->username = $username;
+	switch ($radius_protocol) {
+		case 'CHAP_MD5':
+		case 'MSCHAPv1':
+			$classname = $radius_protocol == 'MSCHAPv1' ? 'Crypt_CHAP_MSv1' : 'Crypt_CHAP_MD5';
+			$crpt = new $classname;
+			$crpt->username = $username;
+			$crpt->password = $password;
+			$rauth->challenge = $crpt->challenge;
+			$rauth->chapid = $crpt->chapid;
+			$rauth->response = $crpt->challengeResponse();
+			$rauth->flags = 1;
+			break;
+
+		case 'MSCHAPv2':
+			$crpt = new Crypt_CHAP_MSv2;
+			$crpt->username = $username;
+			$crpt->password = $password;
+			$rauth->challenge = $crpt->authChallenge;
+			$rauth->peerChallenge = $crpt->peerChallenge;
+			$rauth->chapid = $crpt->chapid;
+			$rauth->response = $crpt->challengeResponse();
+			break;
+
+		default:
+			$rauth->password = $password;
+			break;
+	}
+
 	if (PEAR::isError($rauth->start())) {
 		$retvalue['auth_val'] = 1;
 		$retvalue['error'] = $rauth->getError();
 		if ($debug) {
-			printf(gettext("RADIUS start: %s<br />\n"), $retvalue['error']);
+			printf(gettext("RADIUS start: %s") . "<br />\n", $retvalue['error']);
 		}
 	}
 
@@ -1435,7 +1497,7 @@ function radius_backed($username, $passwd, $authcfg, &$attributes = array()) {
 		$retvalue['auth_val'] = 1;
 		$retvalue['error'] = $result->getMessage();
 		if ($debug) {
-			printf(gettext("RADIUS send failed: %s<br />\n"), $retvalue['error']);
+			printf(gettext("RADIUS send failed: %s") . "<br />\n", $retvalue['error']);
 		}
 	} else if ($result === true) {
 		if ($rauth->getAttributes()) {
@@ -1740,7 +1802,7 @@ function session_auth() {
 	if (!isset($config['system']['webgui']['session_timeout'])) {
 		/* Default to 4 hour timeout if one is not set */
 		if ($_SESSION['last_access'] < (time() - 14400)) {
-			$_GET['logout'] = true;
+			$_POST['logout'] = true;
 			$_SESSION['Logout'] = true;
 		} else {
 			$_SESSION['last_access'] = time();
@@ -1753,7 +1815,7 @@ function session_auth() {
 	} else {
 		/* Check for stale session */
 		if ($_SESSION['last_access'] < (time() - ($config['system']['webgui']['session_timeout'] * 60))) {
-			$_GET['logout'] = true;
+			$_POST['logout'] = true;
 			$_SESSION['Logout'] = true;
 		} else {
 			/* only update if it wasn't ajax */
@@ -1764,7 +1826,7 @@ function session_auth() {
 	}
 
 	/* user hit the logout button */
-	if (isset($_GET['logout'])) {
+	if (isset($_POST['logout'])) {
 
 		if ($_SESSION['Logout']) {
 			log_error(sprintf(gettext("Session timed out for user '%1\$s' from: %2\$s"), $_SESSION['Username'], $_SERVER['REMOTE_ADDR']));
@@ -1801,14 +1863,14 @@ function session_auth() {
 	 * to submit a HTML form. It basically disables the observation
 	 * of the submit event and hence does not trigger Ajax.
 	 */
-	if ($_GET['disable_ajax']) {
+	if ($_REQUEST['disable_ajax']) {
 		$_SESSION['NO_AJAX'] = "True";
 	}
 
 	/*
 	 * Same to re-enable Ajax.
 	 */
-	if ($_GET['enable_ajax']) {
+	if ($_REQUEST['enable_ajax']) {
 		unset($_SESSION['NO_AJAX']);
 	}
 

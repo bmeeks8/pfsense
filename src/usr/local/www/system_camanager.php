@@ -38,11 +38,8 @@ $ca_methods = array(
 $ca_keylens = array("512", "1024", "2048", "3072", "4096", "7680", "8192", "15360", "16384");
 $openssl_digest_algs = array("sha1", "sha224", "sha256", "sha384", "sha512", "whirlpool");
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (!is_array($config['ca'])) {
@@ -63,12 +60,11 @@ if (!is_array($config['crl'])) {
 
 $a_crl =& $config['crl'];
 
-$act = $_GET['act'];
-if ($_POST['act']) {
-	$act = $_POST['act'];
+if ($_REQUEST['act']) {
+	$act = $_REQUEST['act'];
 }
 
-if ($act == "del") {
+if ($_POST['act'] == "del") {
 
 	if (!isset($a_ca[$id])) {
 		pfSenseHeader("system_camanager.php");
@@ -114,7 +110,7 @@ if ($act == "edit") {
 }
 
 if ($act == "new") {
-	$pconfig['method'] = $_GET['method'];
+	$pconfig['method'] = $_POST['method'];
 	$pconfig['keylen'] = "2048";
 	$pconfig['digest_alg'] = "sha256";
 	$pconfig['lifetime'] = "3650";
@@ -157,7 +153,7 @@ if ($act == "expkey") {
 	exit;
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$input_errors = array();
@@ -319,9 +315,11 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("System"), gettext("Certificate Manager"), gettext("CAs"));
+$pglinks = array("", "system_camanager.php", "system_camanager.php");
 
 if ($act == "new" || $act == "edit" || $act == gettext("Save") || $input_errors) {
 	$pgtitle[] = gettext('Edit');
+	$pglinks[] = "@self";
 }
 include("head.inc");
 
@@ -434,7 +432,7 @@ foreach ($a_ca as $i => $ca):
 						<a class="fa fa-key"	title="<?=gettext("Export key")?>"	href="system_camanager.php?act=expkey&amp;id=<?=$i?>"></a>
 					<?php endif?>
 					<?php if (!ca_in_use($ca['refid'])): ?>
-						<a class="fa fa-trash" 	title="<?=gettext("Delete CA and its CRLs")?>"	href="system_camanager.php?act=del&amp;id=<?=$i?>"></a>
+						<a class="fa fa-trash" 	title="<?=gettext("Delete CA and its CRLs")?>"	href="system_camanager.php?act=del&amp;id=<?=$i?>" usepost ></a>
 					<?php endif?>
 					</td>
 				</tr>
@@ -480,7 +478,7 @@ $section = new Form_Section('Create / Edit CA');
 
 $section->addInput(new Form_Input(
 	'descr',
-	'Descriptive name',
+	'*Descriptive name',
 	'text',
 	$pconfig['descr']
 ));
@@ -488,7 +486,7 @@ $section->addInput(new Form_Input(
 if (!isset($id) || $act == "edit") {
 	$section->addInput(new Form_Select(
 		'method',
-		'Method',
+		'*Method',
 		$pconfig['method'],
 		$ca_methods
 	))->toggles();
@@ -501,7 +499,7 @@ $section->addClass('toggle-existing collapse');
 
 $section->addInput(new Form_Textarea(
 	'cert',
-	'Certificate data',
+	'*Certificate data',
 	$pconfig['cert']
 ))->setHelp('Paste a certificate in X.509 PEM format here.');
 
@@ -535,7 +533,7 @@ foreach ($a_ca as $ca) {
 	$allCas[ $ca['refid'] ] = $ca['descr'];
 }
 
-$group = new Form_Group('Signing Certificate Authority');
+$group = new Form_Group('*Signing Certificate Authority');
 $group->addClass('toggle-intermediate', 'collapse');
 $group->add(new Form_Select(
 	'caref',
@@ -547,14 +545,14 @@ $section->add($group);
 
 $section->addInput(new Form_Select(
 	'keylen',
-	'Key length (bits)',
+	'*Key length (bits)',
 	$pconfig['keylen'],
 	array_combine($ca_keylens, $ca_keylens)
 ));
 
 $section->addInput(new Form_Select(
 	'digest_alg',
-	'Digest Algorithm',
+	'*Digest Algorithm',
 	$pconfig['digest_alg'],
 	array_combine($openssl_digest_algs, $openssl_digest_algs)
 ))->setHelp('NOTE: It is recommended to use an algorithm stronger than SHA1 '.
@@ -562,21 +560,21 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_Input(
 	'lifetime',
-	'Lifetime (days)',
+	'*Lifetime (days)',
 	'number',
 	$pconfig['lifetime']
 ));
 
 $section->addInput(new Form_Select(
 	'dn_country',
-	'Country Code',
+	'*Country Code',
 	$pconfig['dn_country'],
 	$dn_cc
 ));
 
 $section->addInput(new Form_Input(
 	'dn_state',
-	'State or Province',
+	'*State or Province',
 	'text',
 	$pconfig['dn_state'],
 	['placeholder' => 'e.g. Texas']
@@ -584,7 +582,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'dn_city',
-	'City',
+	'*City',
 	'text',
 	$pconfig['dn_city'],
 	['placeholder' => 'e.g. Austin']
@@ -592,7 +590,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'dn_organization',
-	'Organization',
+	'*Organization',
 	'text',
 	$pconfig['dn_organization'],
 	['placeholder' => 'e.g. My Company Inc']
@@ -608,7 +606,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'dn_email',
-	'Email Address',
+	'*Email Address',
 	'email',
 	$pconfig['dn_email'],
 	['placeholder' => 'e.g. admin@mycompany.com']
@@ -616,7 +614,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'dn_commonname',
-	'Common Name',
+	'*Common Name',
 	'text',
 	$pconfig['dn_commonname'],
 	['placeholder' => 'e.g. internal-ca']

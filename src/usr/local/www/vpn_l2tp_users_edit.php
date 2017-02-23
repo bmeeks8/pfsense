@@ -27,6 +27,7 @@
 ##|-PRIV
 
 $pgtitle = array(gettext("VPN"), gettext("L2TP"), gettext("Users"), gettext("Edit"));
+$pglinks = array("", "vpn_l2tp.php", "vpn_l2tp_users.php", "@self");
 $shortcut_section = "l2tps";
 
 function l2tpusercmp($a, $b) {
@@ -49,22 +50,23 @@ require_once("vpn.inc");
 if (!is_array($config['l2tp']['user'])) {
 	$config['l2tp']['user'] = array();
 }
+
 $a_secret = &$config['l2tp']['user'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_secret[$id]) {
 	$pconfig['usernamefld'] = $a_secret[$id]['name'];
 	$pconfig['ip'] = $a_secret[$id]['ip'];
+	$pconfig['passwordfld'] = $a_secret[$id]['passwordfld'];
+	$pwd_required = "";
+} else {
+	$pwd_required = "*";
 }
 
-if ($_POST) {
-
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -146,14 +148,14 @@ $section = new Form_Section("User");
 
 $section->addInput(new Form_Input(
 	'usernamefld',
-	'Username',
+	'*Username',
 	'text',
 	$pconfig['usernamefld']
 ));
 
 $pwd = new Form_Input(
 	'passwordfld',
-	'Password',
+	$pwd_required . 'Password',
 	'text',
 	$pconfig['passwordfld']
 );
@@ -177,7 +179,7 @@ if (isset($id) && $a_secret[$id]) {
 		'id',
 		null,
 		'hidden',
-		$i
+		$id
 	));
 }
 

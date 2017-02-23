@@ -53,15 +53,16 @@ if (!is_array($config['ipsec']['phase2'])) {
 $a_phase1 = &$config['ipsec']['phase1'];
 $a_phase2 = &$config['ipsec']['phase2'];
 
-if (!empty($_GET['p2index'])) {
-	$uindex = $_GET['p2index'];
-}
-if (!empty($_POST['uniqid'])) {
-	$uindex = $_POST['uniqid'];
+if (!empty($_REQUEST['p2index'])) {
+	$uindex = $_REQUEST['p2index'];
 }
 
-if (!empty($_GET['dup'])) {
-	$uindex = $_GET['dup'];
+if (!empty($_REQUEST['uniqid'])) {
+	$uindex = $_REQUEST['uniqid'];
+}
+
+if (!empty($_REQUEST['dup'])) {
+	$uindex = $_REQUEST['dup'];
 }
 
 $ph2found = false;
@@ -100,7 +101,7 @@ if ($ph2found === true) {
 		$pconfig['remoteid_type'] = "mobile";
 	}
 } else {
-	$pconfig['ikeid'] = $_GET['ikeid'];
+	$pconfig['ikeid'] = $_REQUEST['ikeid'];
 
 	/* defaults */
 	$pconfig['localid_type'] = "lan";
@@ -113,21 +114,21 @@ if ($ph2found === true) {
 	$pconfig['uniqid'] = uniqid();
 
 	/* mobile client */
-	if ($_GET['mobile']) {
+	if ($_REQUEST['mobile']) {
 		$pconfig['mobile']=true;
 		$pconfig['remoteid_type'] = "mobile";
 	}
 }
 
 unset($ph2);
-if (!empty($_GET['dup'])) {
+if (!empty($_REQUEST['dup'])) {
 	unset($uindex);
 	unset($p2index);
 	$pconfig['uniqid'] = uniqid();
 	$pconfig['reqid'] = ipsec_new_reqid();
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -401,9 +402,11 @@ if ($_POST) {
 
 if ($pconfig['mobile']) {
 	$pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Mobile Clients"), gettext("Edit Phase 2"));
+	$pglinks = array("", "vpn_ipsec.php", "vpn_ipsec_mobile.php", "@self");
 	$editing_mobile = true;
 } else {
 	$pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Tunnels"), gettext("Edit Phase 2"));
+	$pglinks = array("", "vpn_ipsec.php", "vpn_ipsec.php", "@self");
 	$editing_mobile = false;
 }
 $shortcut_section = "ipsec";
@@ -501,12 +504,12 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Select(
 	'mode',
-	'Mode',
+	'*Mode',
 	$pconfig['mode'],
 	$p2_modes
 ));
 
-$group = new Form_Group('Local Network');
+$group = new Form_Group('*Local Network');
 $group->addClass('opt_localid');
 
 $subnetarray = get_configured_interface_with_descr();
@@ -557,7 +560,7 @@ $group->setHelp('If NAT/BINAT is required on this network specify the address to
 $section->add($group);
 
 if (!isset($pconfig['mobile'])) {
-	$group = new Form_Group('Remote Network');
+	$group = new Form_Group('*Remote Network');
 	$group->addClass('opt_remoteid');
 
 	$group->add(new Form_Select(
@@ -589,7 +592,7 @@ $section = new Form_Section('Phase 2 Proposal (SA/Key Exchange)');
 
 $section->addInput(new Form_Select(
 	'proto',
-	'Protocol',
+	'*Protocol',
 	$pconfig['proto'],
 	$p2_protos
 ))->setHelp('ESP is encryption, AH is authentication only.');
@@ -598,7 +601,7 @@ $i = 0;
 $rows = count($p2_ealgos) - 1;
 
 foreach ($p2_ealgos as $algo => $algodata) {
-	$group = new Form_Group($i == 0 ? 'Encryption Algorithms':'');
+	$group = new Form_Group($i == 0 ? '*Encryption Algorithms':'');
 	$group->addClass('encalg');
 
 	// Note: ID attribute of each element created is to be unique.  Not being used, suppressing it.
@@ -636,7 +639,7 @@ foreach ($p2_ealgos as $algo => $algodata) {
 	$section->add($group);
 }
 
-$group = new Form_Group('Hash Algorithms');
+$group = new Form_Group('*Hash Algorithms');
 
 foreach ($p2_halgos as $algo => $algoname) {
 	// Note: ID attribute of each element created is to be unique.  Not being used, suppressing it.

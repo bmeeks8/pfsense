@@ -107,13 +107,7 @@ foreach ($checklist as $tmpif) {
 	$realifchecklist[get_real_interface($tmpif)] = $tmpif;
 }
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
 
 if (isset($id) && $a_laggs[$id]) {
 	$pconfig['laggif'] = $a_laggs[$id]['laggif'];
@@ -126,7 +120,7 @@ if (isset($id) && $a_laggs[$id]) {
 	$pconfig['descr'] = $a_laggs[$id]['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -221,6 +215,7 @@ function build_member_list() {
 }
 
 $pgtitle = array(gettext("Interfaces"), gettext("LAGGs"), gettext("Edit"));
+$pglinks = array("", "interfaces_lagg.php", "@self");
 $shortcut_section = "interfaces";
 include("head.inc");
 
@@ -236,7 +231,7 @@ $memberslist = build_member_list();
 
 $section->addInput(new Form_Select(
 	'members',
-	'Parent Interfaces',
+	'*Parent Interfaces',
 	$memberslist['selected'],
 	$memberslist['list'],
 	true // Allow multiples
@@ -244,7 +239,7 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_Select(
 	'proto',
-	'LAGG Protocol',
+	'*LAGG Protocol',
 	$pconfig['proto'],
 	array_combine($laggprotos, $laggprotosuc)
 ))->setHelp($protohelp);

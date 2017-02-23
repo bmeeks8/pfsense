@@ -47,21 +47,17 @@ if (!is_array($config['nat']['npt'])) {
 
 $a_npt = &$config['nat']['npt'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-$after = $_GET['after'];
-if (isset($_POST['after'])) {
-	$after = $_POST['after'];
+if (isset($_REQUEST['after'])) {
+	$after = $_REQUEST['after'];
 }
 
-if (isset($_GET['dup'])) {
-	$id = $_GET['dup'];
-	$after = $_GET['dup'];
+if (isset($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
+	$after = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_npt[$id]) {
@@ -85,11 +81,11 @@ if (isset($id) && $a_npt[$id]) {
 	$pconfig['interface'] = "wan";
 }
 
-if (isset($_GET['dup'])) {
+if (isset($_REQUEST['dup'])) {
 	unset($id);
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -176,6 +172,7 @@ function build_if_list() {
 }
 
 $pgtitle = array(gettext("Firewall"), gettext("NAT"), gettext("NPt"), gettext("Edit"));
+$pglinks = array("", "firewall_nat.php", "firewall_nat_npt.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -195,11 +192,11 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	build_if_list()
-))->setHelp('Choose which interface this rule applies to.' . '<br />' .
-			'Hint: Typically the "WAN" is used here.');
+))->setHelp('Choose which interface this rule applies to.%s' .
+			'Hint: Typically the "WAN" is used here.', '<br />');
 
 $section->addInput(new Form_Checkbox(
 	'srcnot',
@@ -210,7 +207,7 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_IpAddress(
 	'src',
-	'Address',
+	'*Address',
 	$pconfig['src'],
 	'V6'
 ))->addMask('srcmask', $pconfig['srcmask'])->setHelp('Internal (LAN) ULA IPv6 Prefix for the Network Prefix translation. ' .
@@ -225,7 +222,7 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_IpAddress(
 	'dst',
-	'Address',
+	'*Address',
 	$pconfig['dst'],
 	'V6'
 ))->addMask('dstmask', $pconfig['dstmask'])->setHelp('Global Unicast routable IPv6 prefix');

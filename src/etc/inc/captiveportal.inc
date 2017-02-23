@@ -1082,35 +1082,31 @@ function captiveportal_disconnect_all($term_cause = 6, $logoutReason = "DISCONNE
 	global $g, $config, $cpzone, $cpzoneid;
 
 	/* check if we're pruning old entries and eventually wait */
-	$rcprunelock = try_lock("rcprunecaptiveportal{$cpzone}", 60);
+	$rcprunelock = try_lock("rcprunecaptiveportal{$cpzone}", 15);
 
 	/* if we still don't have the lock, unlock forcefully and take it */
 	if (!$rcprunelock) {
-		log_error("CP zone ${cpzone}: could not obtain the lock for more than 60 seconds, lock taken forcefully to disconnect all users");
+		log_error("CP zone ${cpzone}: could not obtain the lock for more than 15 seconds, lock taken forcefully to disconnect all users");
 		unlock_force("rcprunecaptiveportal{$cpzone}");
 		$rcprunelock = lock("rcprunecaptiveportal{$cpzone}", LOCK_EX);
 	}
 
-	$radiussrvs = captiveportal_get_radius_servers();
-	$cpdb = captiveportal_read_db();
+	/* take a lock so new users won't be able to log in */
+	$cpdblck = lock("captiveportaldb{$cpzone}", LOCK_EX);
 
-	/* remove immediately the active users from the database to avoid races */
+	captiveportal_radius_stop_all($term_cause, $logoutReason);
+
+	/* remove users from the database */
+	$cpdb = captiveportal_read_db();
 	$unsetindexes = array_column($cpdb,5);
 	if (!empty($unsetindexes)) {
 		captiveportal_remove_entries($unsetindexes);
 	}
 
-	foreach ($cpdb as $cpentry) {
-		if (empty($cpentry[11])) {
-			$cpentry[11] = 'first';
-		}
-		$radiusservers = $radiussrvs[$cpentry[11]];
+	/* reinit ipfw rules */
+	captiveportal_init_rules(true);
 
-		captiveportal_disconnect($cpentry, $radiusservers, $term_cause);
-		captiveportal_logportalauth($cpentry[4], $cpentry[3], $cpentry[2], $logoutReason);
-	}
-	unset($cpdb);
-
+	unlock($cpdblck);
 	unlock($rcprunelock);
 }
 
@@ -1750,7 +1746,7 @@ function captiveportal_write_elements() {
 				unlink_if_exists("{$g['captiveportal_element_path']}/{$data['name']}");
 				touch("{$g['captiveportal_element_path']}/{$data['name']}");
 			} elseif (!@file_put_contents("{$g['captiveportal_element_path']}/{$data['name']}", base64_decode($data['content']))) {
-				printf(gettext("Error: cannot open '%s' in captiveportal_write_elements()%s"), $data['name'], "\n");
+				printf(gettext('Error: cannot open \'%1$s\' in captiveportal_write_elements()%2$s'), $data['name'], "\n");
 				return 1;
 			}
 			if (!file_exists("{$g['captiveportal_path']}/{$data['name']}")) {

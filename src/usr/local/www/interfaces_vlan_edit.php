@@ -47,11 +47,8 @@ if (is_array($config['laggs']['lagg']) && count($config['laggs']['lagg'])) {
 	}
 }
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_vlans[$id]) {
@@ -62,7 +59,7 @@ if (isset($id) && $a_vlans[$id]) {
 	$pconfig['descr'] = $a_vlans[$id]['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -170,6 +167,7 @@ function build_interfaces_list() {
 }
 
 $pgtitle = array(gettext("Interfaces"), gettext("VLANs"), gettext("Edit"));
+$pglinks = array("", "interfaces_vlan.php", "@self");
 $shortcut_section = "interfaces";
 include("head.inc");
 
@@ -182,18 +180,18 @@ $section = new Form_Section('VLAN Configuration');
 
 $section->addInput(new Form_Select(
 	'if',
-	'Parent Interface',
+	'*Parent Interface',
 	$pconfig['if'],
 	build_interfaces_list()
 ))->setWidth(6)->setHelp('Only VLAN capable interfaces will be shown.');
 
 $section->addInput(new Form_Input(
 	'tag',
-	'VLAN Tag',
+	'*VLAN Tag',
 	'text',
 	$pconfig['tag'],
 	['placeholder' => '1']
-))->setWidth(6)->setHelp(gettext('802.1Q VLAN tag (between 1 and 4094).'));
+))->setWidth(6)->setHelp('802.1Q VLAN tag (between 1 and 4094).');
 
 $section->addInput(new Form_Input(
 	'pcp',
@@ -201,7 +199,7 @@ $section->addInput(new Form_Input(
 	'text',
 	$pconfig['pcp'],
 	['placeholder' => '0']
-))->setWidth(6)->setHelp(gettext('802.1Q VLAN Priority (between 0 and 7).'));
+))->setWidth(6)->setHelp('802.1Q VLAN Priority (between 0 and 7).');
 
 $section->addInput(new Form_Input(
 	'descr',

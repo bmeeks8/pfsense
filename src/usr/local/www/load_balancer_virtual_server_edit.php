@@ -38,14 +38,9 @@ if (isset($_POST['referer'])) {
 if (!is_array($config['load_balancer']['virtual_server'])) {
 	$config['load_balancer']['virtual_server'] = array();
 }
-$a_vs = &$config['load_balancer']['virtual_server'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$a_vs = &$config['load_balancer']['virtual_server'];
+$id = $_REQUEST['id'];
 
 if (isset($id) && $a_vs[$id]) {
   $pconfig = $a_vs[$id];
@@ -59,7 +54,7 @@ $changecount = 0;
 
 $allowed_protocols = array("tcp", "dns");
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -157,6 +152,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Load Balancer"), gettext("Virtual Servers"), gettext("Edit"));
+$pglinks = array("", "load_balancer_pool.php", "load_balancer_virtual_server.php", "@self");
 $shortcut_section = "relayd-virtualservers";
 
 include("head.inc");
@@ -173,7 +169,7 @@ $section = new Form_Section('Edit Load Balancer - Virtual Server Entry');
 
 $section->addInput(new Form_Input(
 	'name',
-	'Name',
+	'*Name',
 	'text',
 	$pconfig['name']
 ));
@@ -187,7 +183,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'ipaddr',
-	'IP Address',
+	'*IP Address',
 	'text',
 	$pconfig['ipaddr']
 ))->setHelp('This is normally the WAN IP address for the server to listen on. ' .
@@ -256,7 +252,7 @@ $section->addInput(new Form_Select(
 	['tcp' => 'TCP', 'dns' => 'DNS']
 ));
 
-if (isset($id) && $a_vs[$id] && $_GET['act'] != 'dup') {
+if (isset($id) && $a_vs[$id] && $_REQUEST['act'] != 'dup') {
 	$section->addInput(new Form_Input(
 		'id',
 		null,

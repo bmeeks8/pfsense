@@ -337,63 +337,70 @@ function get_package_internal_name($package_data) {
 }
 
 // Get information about packages.
-function get_pkg_info($pkgs = 'all', $local_only = false, $installed_only = false) {
+function get_pkg_info($pkgs = 'all', $remote_repo_usage_disabled = false, $installed_pkgs_only = false) {
 
 	global $g, $input_errors;
 
-	$out = '';
-	$err = '';
+	$out = $err = $extra_param = '';
 	$rc = 0;
 
 	unset($pkg_filter);
+
 	if (is_array($pkgs)) {
 		$pkg_filter = $pkgs;
-		$pkgs = 'all';
+		$pkgs = $g['pkg_prefix'] . '*';
+	} elseif ($pkgs == 'all') {
+		$pkgs = $g['pkg_prefix'] . '*';
 	}
 
-	if ($pkgs == 'all') {
-		$pkgs = $g['pkg_prefix'] . '*'; // Allows same prefix to work with both pkg search + pkg info
-	}
-
+	
 	if (!function_exists('is_subsystem_dirty')) {
 		require_once("util.inc");
 	}
 
 	/* Do not run remote operations if pkg has a lock */
 	if (is_subsystem_dirty('pkg')) {
-		$local_only = true;
+		$remote_repo_usage_disabled = true;
 		$lock = false;
 	} else {
 		$lock = true;
-	}
-
-	$extra_param = "";
-	if ($local_only) {
-		$extra_param = "-U ";
 	}
 
 	if ($lock) {
 		mark_subsystem_dirty('pkg');
 	}
 
-	if (!$installed_only) {
-		// repo catalog search (either remote or local_only)
+	if ($remote_repo_usage_disabled) {
+		$extra_param = "-U ";
+	}
+
+	if (!$installed_pkgs_only) {
 		$rc = pkg_exec("search {$extra_param}-R --raw-format json-compact " . $pkgs, $out, $err);
 	}
-	if ($installed_only || ($local_only && $rc != 0)) {
-		/* use pkg info if (1) installed pkg search or (2) local catalog copy search requested + failed.
+	if (($installed_pkgs_only || ($rc != 0 && $remote_repo_usage_disabled)) && is_package_installed($pkgs)) {
+		/* Fall back on pkg info to return locally installed matching pkgs instead, if 
 		 *
-		 * The local repo catalog copy may be cleared if a previous call to pkg search couldn't get the
-		 * remote repo catalog.
+		 *   (1) only installed pkgs needed, or
+		 *       we tried to check the local catalog copy (implying that we would have accepted incomplete/outdated pkg info)
+		 *       but it didn't have any contents, or for other reasons returned an error. 
+		 *   AND
+		 *   (2) at least some pkgs matching <pattern> are installed
 		 *
-		 * If the calling code would have accepted local copy info (which isn't assumed up to date) then it
-		 * makes sense to fall back on pkg info to at least return the known info about installed pkgs (pkg
-		 * info should still work), instead of failing and returning no info at all. For example, this
-		 * enables offline view + management of installed pkgs.
-		 */
-
-		$rc = pkg_exec("info -R --raw-format json-compact " . $pkgs, $out, $err);
+		 * Following an unsuccessful attempt to access a remote repo catalog, the local copy is wiped clear. Thereafter any
+		 * "pkg search" will return an error until online+updated again. If the calling code would have accepted local copy info
+		 * (which could be incomplete/out of date), then it makes sense to fall back on pkg info to at least return the known
+		 * info about installed pkgs (pkg info should still work), instead of failing and returning no info at all. 
+		 * For example, this at least enables offline view + management of installed pkgs in GUI/console.
+		 *
+		 * We skip this step if no matching pkgs are installed, because then pkg info would return a "no matching pkgs"
+		 * RC code, even though this wouldn't be considered an "error" (and $out+$err would be correct empty strings if none match).
+		 * Note that is_package_installed() is a wrapper for pkg info -e <pattern> which is what we need here.
+		*/
+		
+		// ok, 1 or more packages match, so pkg info can be safely called to get the pkg list  
+		$rc = pkg_exec("info -R --raw-format json-compact " . $pkgs, $out, $err);  
 	}
+
 	if ($lock) {
 		clear_subsystem_dirty('pkg');
 	}
@@ -710,7 +717,7 @@ function install_package_xml($package_name) {
 	update_status($to_output);
 
 	if (($pkgid = get_package_id($package_name)) == -1) {
-		update_status(sprintf(gettext("The %s package is not installed.%sInstallation aborted."), $package_name, "\n\n"));
+		update_status(sprintf(gettext('The %1$s package is not installed.%2$sInstallation aborted.'), $package_name, "\n\n"));
 
 		uninstall_package($package_name);
 		write_config($changedesc);
@@ -839,7 +846,7 @@ function delete_package_xml($package_name, $when = "post-deinstall") {
 
 	$pkgid = get_package_id($package_name);
 	if ($pkgid == -1) {
-		update_status(sprintf(gettext("The %s package is not installed.%sDeletion aborted."), $package_name, "\n\n"));
+		update_status(sprintf(gettext('The %1$s package is not installed.%2$sDeletion aborted.'), $package_name, "\n\n"));
 		ob_flush();
 		sleep(1);
 		return;
@@ -1124,6 +1131,14 @@ function get_base_pkg_name() {
 function get_system_pkg_version($baseonly = false) {
 	global $g;
 
+	$output = exec("/usr/local/sbin/{$g['product_name']}-upgrade -c", $_gc,
+	    $rc);
+
+	/* pfSense-upgrade returns 2 when there is a new version */
+	if ($rc == 2) {
+		$new_version = explode(' ', $output)[0];
+	}
+
 	$base_pkg = get_base_pkg_name();
 	$meta_pkg = get_meta_pkg_name();
 
@@ -1131,23 +1146,24 @@ function get_system_pkg_version($baseonly = false) {
 		return false;
 	}
 
-	$info = get_pkg_info($base_pkg);
-	$pkg_name = $base_pkg;
+	$info = get_pkg_info($base_pkg, true);
 
 	$pkg_info = array();
 	foreach ($info as $item) {
 		if ($item['name'] == $base_pkg) {
 			$pkg_info = $item;
+			break;
 		}
 	}
 
-	if (empty($pkg_info) || (!$baseonly && ($pkg_info['version'] == $pkg_info['installed_version']))) {
-		$info = get_pkg_info($meta_pkg);
-		$pkg_name = $meta_pkg;
+	if (empty($pkg_info) || (!$baseonly && ($pkg_info['version'] ==
+	    $pkg_info['installed_version']))) {
+		$info = get_pkg_info($meta_pkg, true);
 
 		foreach ($info as $item) {
 			if ($item['name'] == $meta_pkg) {
 				$pkg_info = $item;
+				break;
 			}
 		}
 	}
@@ -1157,8 +1173,7 @@ function get_system_pkg_version($baseonly = false) {
 	}
 
 	return array(
-	    'pkg_name'          => $pkg_name,
-	    'version'           => $pkg_info['version'],
+	    'version'           => $new_version ?: $pkg_info['version'],
 	    'installed_version' => $pkg_info['installed_version']
 	);
 }

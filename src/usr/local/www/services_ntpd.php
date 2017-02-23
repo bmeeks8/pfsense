@@ -151,9 +151,9 @@ if ($_POST) {
 
 		write_config("Updated NTP Server Settings");
 
+		$changes_applied = true;
 		$retval = 0;
-		$retval = system_ntp_configure();
-		$savemsg = get_std_save_message($retval);
+		$retval |= system_ntp_configure();
 	}
 }
 
@@ -186,14 +186,16 @@ if (empty($pconfig['interface'])) {
 	$pconfig['interface'] = explode(",", $pconfig['interface']);
 }
 $pgtitle = array(gettext("Services"), gettext("NTP"), gettext("Settings"));
+$pglinks = array("", "@self", "@self");
 $shortcut_section = "ntp";
 include("head.inc");
 
 if ($input_errors) {
 	print_input_errors($input_errors);
 }
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 $tab_array = array();
@@ -216,9 +218,9 @@ $section->addInput(new Form_Select(
 	$iflist['selected'],
 	$iflist['options'],
 	true
-))->setHelp('Interfaces without an IP address will not be shown.' . '<br />' .
-			'Selecting no interfaces will listen on all interfaces with a wildcard.' . '<br />' .
-			'Selecting all interfaces will explicitly listen on only the interfaces/IPs specified.');
+))->setHelp('Interfaces without an IP address will not be shown.%1$s' .
+			'Selecting no interfaces will listen on all interfaces with a wildcard.%1$s' .
+			'Selecting all interfaces will explicitly listen on only the interfaces/IPs specified.', '<br />');
 
 $timeservers = explode(' ', $config['system']['timeservers']);
 $maxrows = max(count($timeservers), 1);
@@ -226,6 +228,8 @@ $auto_pool_suffix = "pool.ntp.org";
 for ($counter=0; $counter < $maxrows; $counter++) {
 	$group = new Form_Group($counter == 0 ? 'Time Servers':'');
 	$group->addClass('repeatable');
+	$group->setAttribute('max_repeats', NUMTIMESERVERS);
+	$group->setAttribute('max_repeats_alert', sprintf(gettext('%d is the maximum number of configured servers.'), NUMTIMESERVERS));
 
 	$group->add(new Form_Input(
 		'server' . $counter,
@@ -277,10 +281,11 @@ $section->addInput(new Form_Button(
 $section->addInput(new Form_StaticText(
 	null,
 	$btnaddrow
-))->setHelp('For best results three to five servers should be configured here, or at least one pool.' . '<br />' .
-			'The <b>Prefer</b> option indicates that NTP should favor the use of this server more than all others.' . '<br />' .
-			'The <b>No Select</b> option indicates that NTP should not use this server for time, but stats for this server will be collected and displayed.' . '<br />' .
-			'The <b>Is a Pool</b> option indicates this entry is a pool of NTP servers and not a single address. This is assumed for *.pool.ntp.org.');
+))->setHelp('For best results three to five servers should be configured here, or at least one pool.%1$s' .
+			'The %2$sPrefer%3$s option indicates that NTP should favor the use of this server more than all others.%1$s' .
+			'The %2$sNo Select%3$s option indicates that NTP should not use this server for time, but stats for this server will be collected and displayed.%1$s' .
+			'The %2$sIs a Pool%3$s option indicates this entry is a pool of NTP servers and not a single address. This is assumed for *.pool.ntp.org.',
+			'<br />', '<b>', '</b>');
 
 $section->addInput(new Form_Input(
 	'ntporphan',
@@ -311,8 +316,8 @@ $section->addInput(new Form_Checkbox(
 	null,
 	'Log system messages (default: disabled).',
 	$pconfig['logsys']
-))->setHelp('These options enable additional messages from NTP to be written to the System Log ' .
-			'<a href="status_logs.php?logfile=ntpd">' . 'Status > System Logs > NTP' . '</a>.');
+))->setHelp('These options enable additional messages from NTP to be written to the System Log %1$sStatus > System Logs > NTP%2$s',
+			'<a href="status_logs.php?logfile=ntpd">', '</a>.');
 
 // Statistics logging section
 $btnadv = new Form_Button(

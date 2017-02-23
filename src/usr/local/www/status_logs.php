@@ -64,11 +64,11 @@ $allowed_logs = array(
 		    "shortcut" => "wireless"),
 );
 
-// The logs to display are specified in a GET argument. Default to 'system' logs
-if (!$_GET['logfile']) {
+// The logs to display are specified in a REQUEST argument. Default to 'system' logs
+if (!$_REQUEST['logfile']) {
 	$logfile = 'system';
 } else {
-	$logfile = $_GET['logfile'];
+	$logfile = $_REQUEST['logfile'];
 	if (!array_key_exists($logfile, $allowed_logs)) {
 		/* Do not let someone attempt to load an unauthorized log. */
 		$logfile = 'system';
@@ -94,13 +94,15 @@ if ($filtertext) {
 
 if (in_array($logfile, array('system', 'gateways', 'routing', 'resolver', 'wireless'))) {
 	$pgtitle = array(gettext("Status"), gettext("System Logs"), gettext("System"), $allowed_logs[$logfile]["name"]);
+	$pglinks = array("", "status_logs.php", "status_logs.php", "@self");
 } else {
 	$pgtitle = array(gettext("Status"), gettext("System Logs"), $allowed_logs[$logfile]["name"]);
+	$pglinks = array("", "status_logs.php", "@self");
 }
 include("head.inc");
 
-if (!$input_errors && $savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval, $extra_save_msg);
 	$manage_log_active = false;
 }
 

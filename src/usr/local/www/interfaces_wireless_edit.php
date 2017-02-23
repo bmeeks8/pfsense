@@ -58,11 +58,8 @@ function clone_compare($a, $b) {
 
 $portlist = get_interface_list();
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_clones[$id]) {
@@ -72,7 +69,7 @@ if (isset($id) && $a_clones[$id]) {
 	$pconfig['descr'] = $a_clones[$id]['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -163,6 +160,7 @@ function build_parent_list() {
 }
 
 $pgtitle = array(gettext("Interfaces"), gettext("Wireless"), gettext("Edit"));
+$pglinks = array("", "interfaces_wireless.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -175,14 +173,14 @@ $section = new Form_Section('Wireless Interface Configuration');
 
 $section->addInput(new Form_Select(
 	'if',
-	'Parent Interface',
+	'*Parent Interface',
 	$pconfig['if'],
 	build_parent_list()
 ));
 
 $section->addInput(new Form_Select(
 	'mode',
-	'Mode',
+	'*Mode',
 	$pconfig['mode'],
 	array(
 		'bss' => gettext('Infrastructure (BSS)'),

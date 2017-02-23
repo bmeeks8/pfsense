@@ -92,9 +92,26 @@ wbr:after {
     font-family: Roboto, sans-serif;
 }
 
-tr.disabled td,
-tr.disabled th {
+.table-striped>tbody>tr.disabled:nth-of-type(odd) {
+    background-color: rgba(249, 249, 249, .5);
+    color: rgba(51,51,51,.5);
+}
+
+.table-striped>tbody>tr.disabled:nth-of-type(even) {
+    background-color: rgba(255, 255, 255, .5);
+    color: rgba(51,51,51,.5);
+}
+
+.table-hover>tbody>tr.disabled:hover {
+    background-color: rgba(245, 245, 245, .5);
+}
+
+tr.disabled i.fa {
     opacity: .5;
+}
+
+tr.disabled a {
+    color: rgba(51, 122, 183, .5)
 }
 
 .contains-table table {
@@ -978,6 +995,10 @@ svg {
     background-color: #eeeeee;
 }
 
-input[type="checkbox"]{
-  outline: 1px solid #888888;
+/* Required input elements have a title that begins with "*". This causes
+Group.class.php to add <span class="element-required" to the title, which
+can then be used to style required input here. Example below uses a custom
+text underline, but text-color, background, font etc. could also be used */
+.element-required {
+    box-shadow: inset 0 0px 0 white, inset 0 -1px 0 black
 }

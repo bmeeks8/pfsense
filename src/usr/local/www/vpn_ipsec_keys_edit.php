@@ -41,11 +41,8 @@ if (!is_array($config['ipsec']['mobilekey'])) {
 ipsec_mobilekey_sort();
 $a_secret = &$config['ipsec']['mobilekey'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_secret[$id]) {
@@ -54,7 +51,7 @@ if (isset($id) && $a_secret[$id]) {
 	$pconfig['psk'] = $a_secret[$id]['pre-shared-key'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	$userids = array();
 	foreach ($config['system']['user'] as $uid => $user) {
 		$userids[$user['name']] = $uid;
@@ -120,6 +117,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Pre-Shared Keys"), gettext("Edit"));
+$pglinks = array("", "vpn_ipsec.php", "vpn_ipsec_keys.php", "@self");
 $shortcut_section = "ipsec";
 
 include("head.inc");
@@ -133,21 +131,21 @@ $section = new Form_Section('Edit Pre-Shared-Secret');
 
 $section->addInput(new Form_Input(
 	'ident',
-	'Identifier',
+	'*Identifier',
 	'text',
 	$pconfig['ident']
 ))->setHelp('This can be either an IP address, fully qualified domain name or an e-mail address.');
 
 $section->addInput(new Form_Select(
 	'type',
-	'Secret type',
+	'*Secret type',
 	$pconfig['type'],
 	$ipsec_preshared_key_type
 ))->setWidth(2);
 
 $section->addInput(new Form_Input(
 	'psk',
-	'Pre-Shared Key',
+	'*Pre-Shared Key',
 	'text',
 	$pconfig['psk']
 ));

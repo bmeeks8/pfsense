@@ -2120,7 +2120,7 @@ function filter_nat_rules_generate() {
 	$xinetd_fd = fopen("{$g['varetc_path']}/xinetd.conf", "w");
 
 	if (!empty($config['system']['tftpinterface'])) {
-		/* add tftp protocol helper */
+		/* add tftp helper */
 		$ftp_proxy_entry = array(
 			'port' => 6969,
 			'socket_type' => 'dgram',
@@ -2784,8 +2784,8 @@ function filter_generate_user_rule($rule) {
 	}
 	$aline['dst'] = "to $dst ";
 
-	if ($rule['protocol'] == "icmp" && $rule['icmptype']) {
-		$icmptype_key = ($rule['ipprotocol'] == 'inet' ? 'icmp-type' : 'icmp6-type');
+	if ($rule['protocol'] == "icmp" && $rule['icmptype'] && ($rule['icmptype'] != 'any')) {
+		$icmptype_key = ($rule['ipprotocol'] == 'inet6' ? 'icmp6-type' : 'icmp-type');
 		$icmptype_text = (strpos($rule['icmptype'], ",") === false ? $rule['icmptype'] : '{ ' . $rule['icmptype'] . ' }');
 		$aline[$icmptype_key] = "{$icmptype_key} {$icmptype_text} ";
 	}

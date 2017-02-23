@@ -242,10 +242,12 @@ $tab_array = array();
 
 if ($firmwareupdate) {
 	$pgtitle = array(gettext("System"), gettext("Update"), gettext("System Update"));
+	$pglinks = array("", "@self", "@self");
 	$tab_array[] = array(gettext("System Update"), true, "pkg_mgr_install.php?id=firmware");
 	$tab_array[] = array(gettext("Update Settings"), false, "system_update_settings.php");
 } else {
 	$pgtitle = array(gettext("System"), gettext("Package Manager"), gettext("Package Installer"));
+	$pglinks = array("", "pkg_mgr_installed.php", "@self");
 	$tab_array[] = array(gettext("Installed Packages"), false, "pkg_mgr_installed.php");
 	$tab_array[] = array(gettext("Available Packages"), false, "pkg_mgr.php");
 	$tab_array[] = array(gettext("Package Installer"), true, "");
@@ -290,9 +292,9 @@ if (!$confirmed && !$completed &&
 ?>
 				<?=gettext("Confirmation Required to reinstall all packages.");?>
 <?php
-			elseif ($_GET['from'] && $_GET['to']):
+			elseif ($_REQUEST['from'] && $_REQUEST['to']):
 ?>
-				<?=sprintf(gettext('Confirmation Required to upgrade package %1$s from %2$s to %3$s.'), $pkgname, $_GET['from'], $_GET['to'])?>
+				<?=sprintf(gettext('Confirmation Required to upgrade package %1$s from %2$s to %3$s.'), $pkgname, htmlspecialchars($_REQUEST['from']), htmlspecialchars($_REQUEST['to']))?>
 <?php
 			elseif ($firmwareupdate):
 ?>
@@ -373,6 +375,8 @@ if ($_POST) {
 	}
 }
 
+$pkgname_bold = '<b>' . $pkgname . '</b>';
+
 if ($firmwareupdate) {
 	$panel_heading_txt = gettext("Updating System");
 	$pkg_success_txt = gettext('System update successfully completed.');
@@ -380,9 +384,9 @@ if ($firmwareupdate) {
 	$pkg_wait_txt = gettext('Please wait while the system update completes.');
 } else if ($pkgmode == 'delete') {
 	$panel_heading_txt = gettext("Package Removal");
-	$pkg_success_txt = sprintf(gettext('<b>%1$s</b> removal successfully completed.'), $pkgname);
-	$pkg_fail_txt = sprintf(gettext('<b>%1$s</b> removal failed!'), $pkgname);
-	$pkg_wait_txt = sprintf(gettext('Please wait while the removal of <b>%1$s</b> completes.'), $pkgname);
+	$pkg_success_txt = sprintf(gettext('%1$s removal successfully completed.'), $pkgname_bold);
+	$pkg_fail_txt = sprintf(gettext('%1$s removal failed!'), $pkgname_bold);
+	$pkg_wait_txt = sprintf(gettext('Please wait while the removal of %1$s completes.'), $pkgname_bold);
 } else if ($pkgmode == 'reinstallall') {
 	$panel_heading_txt = gettext("Packages Reinstallation");
 	$pkg_success_txt = gettext('All packages reinstallation successfully completed.');
@@ -390,14 +394,14 @@ if ($firmwareupdate) {
 	$pkg_wait_txt = gettext('Please wait while the reinstallation of all packages completes.');
 } else if ($pkgmode == 'reinstallpkg') {
 	$panel_heading_txt = gettext("Package Reinstallation");
-	$pkg_success_txt = sprintf(gettext('<b>%1$s</b> reinstallation successfully completed.'), $pkgname);
-	$pkg_fail_txt = sprintf(gettext('<b>%1$s</b> reinstallation failed!'), $pkgname);
-	$pkg_wait_txt = sprintf(gettext('Please wait while the reinstallation of <b>%1$s</b> completes.'), $pkgname);
+	$pkg_success_txt = sprintf(gettext('%1$s reinstallation successfully completed.'), $pkgname_bold);
+	$pkg_fail_txt = sprintf(gettext('%1$s reinstallation failed!'), $pkgname_bold);
+	$pkg_wait_txt = sprintf(gettext('Please wait while the reinstallation of %1$s completes.'), $pkgname_bold);
 } else {
 	$panel_heading_txt = gettext("Package Installation");
-	$pkg_success_txt = sprintf(gettext('<b>%1$s</b> installation successfully completed.'), $pkgname);
-	$pkg_fail_txt = sprintf(gettext('<b>%1$s</b> installation failed!'), $pkgname);
-	$pkg_wait_txt = sprintf(gettext('Please wait while the installation of <b>%1$s</b> completes.'), $pkgname);
+	$pkg_success_txt = sprintf(gettext('%1$s installation successfully completed.'), $pkgname_bold);
+	$pkg_fail_txt = sprintf(gettext('%1$s installation failed!'), $pkgname_bold);
+	$pkg_wait_txt = sprintf(gettext('Please wait while the installation of %1$s completes.'), $pkgname_bold);
 }
 
 if ($confirmed):
@@ -410,6 +414,7 @@ if ($confirmed):
 ?>
 	<input type="hidden" name="id" value="<?=$_REQUEST['id']?>" />
 	<input type="hidden" name="mode" value="<?=$pkgmode?>" />
+	<input type="hidden" name="pkg" value="<?=$pkgname?>" />
 	<input type="hidden" name="completed" value="true" />
 	<input type="hidden" name="confirmed" value="true" />
 	<input type="hidden" id="reboot_needed" name="reboot_needed" value="no" />
@@ -494,7 +499,7 @@ if ($completed):
 	if ($firmwareupdate && $reboot_needed):
 
 ?>
-<script>
+<script type="text/javascript">
 //<![CDATA[
 events.push(function() {
 	time = "<?=$guitimeout?>";
@@ -508,7 +513,7 @@ endif;
 
 ?>
 
-<script>
+<script type="text/javascript">
 //<![CDATA[
 // Update the progress indicator
 // transition = true allows the bar to move at default speed, false = instantaneous
@@ -696,7 +701,7 @@ function checkonline() {
 function startCountdown() {
 	setInterval(function() {
 		if (time == "<?=$guitimeout?>") {
-			$('#countdown').html('<h4><?=sprintf(gettext("Rebooting%sPage will automatically reload in %s seconds"), "<br />", "<span id=\"secs\"></span>");?></h4>');
+			$('#countdown').html('<h4><?=sprintf(gettext('Rebooting%1$sPage will automatically reload in %2$s seconds'), "<br />", "<span id=\"secs\"></span>");?></h4>');
 		}
 
 		if (time > 0) {
@@ -704,7 +709,7 @@ function startCountdown() {
 			time--;
 		} else {
 			time = "<?=$guiretry?>";
-			$('#countdown').html('<h4><?=sprintf(gettext("Not yet ready%s Retrying in another %s seconds"), "<br />", "<span id=\"secs\"></span>");?></h4>');
+			$('#countdown').html('<h4><?=sprintf(gettext('Not yet ready%1$s Retrying in another %2$s seconds'), "<br />", "<span id=\"secs\"></span>");?></h4>');
 			$('#secs').html(time);
 			checkonline();
 		}

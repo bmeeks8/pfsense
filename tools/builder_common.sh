@@ -282,14 +282,26 @@ create_ova_image() {
 
 	LOGFILE=${BUILDER_LOGS}/ova.${TARGET}.log
 
-	if [ -d "${OVA_TMP}" ]; then
+	local _mntdir=${OVA_TMP}/mnt
+
+	if [ -d "${_mntdir}" ]; then
+		local _dev
+		# XXX Root cause still didn't found but it doesn't umount
+		#     properly on looped builds and then require this extra
+		#     check
+		while true; do
+			_dev=$(mount -p ${_mntdir} 2>/dev/null | awk '{print $1}')
+			[ $? -ne 0 -o -z "${_dev}" ] \
+				&& break
+			umount -f ${_mntdir}
+			mdconfig -d -u ${_dev#/dev/}
+		done
 		chflags -R noschg ${OVA_TMP}
 		rm -rf ${OVA_TMP}
 	fi
 
 	mkdir -p $(dirname ${OVAPATH})
 
-	local _mntdir=${OVA_TMP}/mnt
 	mkdir -p ${_mntdir}
 
 	if [ -z "${OVA_SWAP_PART_SIZE_IN_GB}" -o "${OVA_SWAP_PART_SIZE_IN_GB}" = "0" ]; then
@@ -721,6 +733,8 @@ create_distribution_tarball() {
 }
 
 create_iso_image() {
+	local _variant="$1"
+
 	LOGFILE=${BUILDER_LOGS}/isoimage.${TARGET}
 
 	if [ -z "${ISOPATH}" ]; then
@@ -732,7 +746,14 @@ create_iso_image() {
 
 	mkdir -p $(dirname ${ISOPATH})
 
-	customize_stagearea_for_image "iso"
+	local _image_path=${ISOPATH}
+	if [ -n "${_variant}" ]; then
+		_image_path=$(echo "$_image_path" | \
+			sed "s/${PRODUCT_NAME_SUFFIX}-/&${_variant}-/")
+		VARIANTIMAGES="${VARIANTIMAGES}${VARIANTIMAGES:+ }${_image_path}"
+	fi
+
+	customize_stagearea_for_image "iso" "" $_variant
 	install_default_kernel ${DEFAULT_KERNEL}
 
 	BOOTCONF=${INSTALLER_CHROOT_DIR}/boot.config
@@ -748,15 +769,15 @@ create_iso_image() {
 
 	sh ${FREEBSD_SRC_DIR}/release/${TARGET}/mkisoimages.sh -b \
 		${FSLABEL} \
-		${ISOPATH} \
+		${_image_path} \
 		${INSTALLER_CHROOT_DIR}
 
-	if [ ! -f "${ISOPATH}" ]; then
+	if [ ! -f "${_image_path}" ]; then
 		echo "ERROR! ISO image was not built"
 		print_error_pfS
 	fi
 
-	gzip -qf $ISOPATH &
+	gzip -qf $_image_path &
 	_bg_pids="${_bg_pids}${_bg_pids:+ }$!"
 
 	echo ">>> ISO created: $(LC_ALL=C date)" | tee -a ${LOGFILE}

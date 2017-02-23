@@ -35,7 +35,7 @@ require_once("filter.inc");
 require_once("shaper.inc");
 require_once("captiveportal.inc");
 
-if (substr($_GET['act'], 0, 3) == "get") {
+if (substr($_REQUEST['act'], 0, 3) == "get") {
 	$nocsrf = true;
 }
 
@@ -45,10 +45,8 @@ global $cpzone;
 global $cpzoneid;
 
 $cpzoneid = 1; /* Just a default */
-$cpzone = $_GET['zone'];
-if (isset($_POST['zone'])) {
-	$cpzone = $_POST['zone'];
-}
+$cpzone = $_REQUEST['zone'];
+
 $cpzone = strtolower($cpzone);
 
 if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
@@ -59,17 +57,19 @@ if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
 if (!is_array($config['captiveportal'])) {
 	$config['captiveportal'] = array();
 }
+
 $a_cp =& $config['captiveportal'];
 
 $pgtitle = array(gettext("Services"), gettext("Captive Portal"), $a_cp[$cpzone]['zone'], gettext("Configuration"));
+$pglinks = array("", "services_captiveportal_zones.php", "@self", "@self");
 $shortcut_section = "captiveportal";
 
-if ($_GET['act'] == "viewhtml") {
+if ($_REQUEST['act'] == "viewhtml") {
 	if ($a_cp[$cpzone] && $a_cp[$cpzone]['page']['htmltext']) {
 		echo base64_decode($a_cp[$cpzone]['page']['htmltext']);
 	}
 	exit;
-} else if ($_GET['act'] == "gethtmlhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['htmltext']) {
+} else if ($_REQUEST['act'] == "gethtmlhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['htmltext']) {
 	$file_data = base64_decode($a_cp[$cpzone]['page']['htmltext']);
 	$file_size = strlen($file_data);
 
@@ -79,17 +79,17 @@ if ($_GET['act'] == "viewhtml") {
 	echo $file_data;
 
 	exit;
-} else if ($_GET['act'] == "delhtmlhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['htmltext']) {
+} else if ($_REQUEST['act'] == "delhtmlhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['htmltext']) {
 	unset($a_cp[$cpzone]['page']['htmltext']);
 	write_config(sprintf(gettext("Captive Portal: zone %s: Restore default portal page"), $cpzone));
 	header("Location: services_captiveportal.php?zone={$cpzone}");
 	exit;
-} else if ($_GET['act'] == "viewerrhtml") {
+} else if ($_REQUEST['act'] == "viewerrhtml") {
 	if ($a_cp[$cpzone] && $a_cp[$cpzone]['page']['errtext']) {
 		echo base64_decode($a_cp[$cpzone]['page']['errtext']);
 	}
 	exit;
-} else if ($_GET['act'] == "geterrhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['errtext']) {
+} else if ($_REQUEST['act'] == "geterrhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['errtext']) {
 	$file_data = base64_decode($a_cp[$cpzone]['page']['errtext']);
 	$file_size = strlen($file_data);
 
@@ -99,17 +99,17 @@ if ($_GET['act'] == "viewhtml") {
 	echo $file_data;
 
 	exit;
-} else if ($_GET['act'] == "delerrhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['errtext']) {
+} else if ($_REQUEST['act'] == "delerrhtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['errtext']) {
 	unset($a_cp[$cpzone]['page']['errtext']);
 	write_config(sprintf(gettext("Captive Portal: zone %s: Restore default error page"), $cpzone));
 	header("Location: services_captiveportal.php?zone={$cpzone}");
 	exit;
-} else if ($_GET['act'] == "viewlogouthtml") {
+} else if ($_REQUEST['act'] == "viewlogouthtml") {
 	if ($a_cp[$cpzone] && $a_cp[$cpzone]['page']['logouttext']) {
 		echo base64_decode($a_cp[$cpzone]['page']['logouttext']);
 	}
 	exit;
-} else if ($_GET['act'] == "getlogouthtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['logouttext']) {
+} else if ($_REQUEST['act'] == "getlogouthtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['logouttext']) {
 	$file_data = base64_decode($a_cp[$cpzone]['page']['logouttext']);
 	$file_size = strlen($file_data);
 
@@ -119,7 +119,7 @@ if ($_GET['act'] == "viewhtml") {
 	echo $file_data;
 
 	exit;
-} else if ($_GET['act'] == "dellogouthtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['logouttext']) {
+} else if ($_REQUEST['act'] == "dellogouthtml" && $a_cp[$cpzone] && $a_cp[$cpzone]['page']['logouttext']) {
 	unset($a_cp[$cpzone]['page']['logouttext']);
 	write_config(sprintf(gettext("Captive Portal: zone %s: Restore default logout page"), $cpzone));
 	header("Location: services_captiveportal.php?zone={$cpzone}");
@@ -204,15 +204,15 @@ if ($a_cp[$cpzone]) {
 	}
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
 
 	/* input validation */
 	if ($_POST['enable']) {
-		$reqdfields = explode(" ", "zone cinterface");
-		$reqdfieldsn = array(gettext("Zone name"), gettext("Interface"));
+		$reqdfields = explode(" ", "zone cinterface auth_method");
+		$reqdfieldsn = array(gettext("Zone name"), gettext("Interface"), gettext("Authentication method"));
 
 		if (isset($_POST['auth_method']) && $_POST['auth_method'] == "radius") {
 			$reqdfields[] = "radius_protocol";
@@ -232,11 +232,15 @@ if ($_POST) {
 				foreach ($a_cp as $cpkey => $cp) {
 					if ($cpkey != $cpzone || empty($cpzone)) {
 						if (in_array($cpbrif, explode(",", $cp['interface']))) {
-							$input_errors[] = sprintf(gettext("The captive portal cannot be used on interface %s since it is used already on %s instance."), $cpbrif, $cp['zone']);
+							$input_errors[] = sprintf(gettext('The captive portal cannot be used on interface %1$s since it is used already on %2$s instance.'), $cpbrif, $cp['zone']);
 						}
 					}
 				}
 			}
+		}
+
+		if ($_POST['auth_method'] && !in_array($_POST['auth_method'], array('none', 'local', 'radius'))) {
+			$input_errors[] = sprintf(gettext("Authentication method %s is invalid."), $_POST['auth_method']);
 		}
 
 		if ($_POST['httpslogin_enable']) {
@@ -535,7 +539,7 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Select(
 	'cinterface',
-	'Interfaces',
+	'*Interfaces',
 	explode(",", $pconfig['cinterface']),
 	get_configured_interface_with_descr(),
 	true
@@ -640,19 +644,19 @@ $section->addInput(new Form_Checkbox(
 	'Pass-through MAC Auto Entry',
 	'Enable Pass-through MAC automatic additions',
 	$pconfig['passthrumacadd']
-))->setHelp(sprintf('When enabled, a MAC passthrough entry is automatically added after the user has successfully authenticated. Users of that MAC address will ' .
+))->setHelp('When enabled, a MAC passthrough entry is automatically added after the user has successfully authenticated. Users of that MAC address will ' .
 			'never have to authenticate again. To remove the passthrough MAC entry either log in and remove it manually from the ' .
-			'%s or send a POST from another system. '  .
-			'If this is enabled, RADIUS MAC authentication cannot be used. Also, the logout window will not be shown.', '<a href="services_captiveportal_mac.php">MAC tab</a>'));
+			'%1$sMAC tab%2$s or send a POST from another system. '  .
+			'If this is enabled, RADIUS MAC authentication cannot be used. Also, the logout window will not be shown.', '<a href="services_captiveportal_mac.php">', '</a>');
 
 $section->addInput(new Form_Checkbox(
 	'passthrumacaddusername',
 	null,
 	'Enable Pass-through MAC automatic addition with username',
 	$pconfig['passthrumacaddusername']
-))->setHelp(sprintf('If enabled with the automatically MAC passthrough entry created, the username used during authentication will be saved. ' .
-			'To remove the passthrough MAC entry either log in and remove it manually from the %s or send a POST from another system.',
-			'<a href="services_captiveportal_mac.php">MAC tab</a>'));
+))->setHelp('If enabled with the automatically MAC passthrough entry created, the username used during authentication will be saved. ' .
+			'To remove the passthrough MAC entry either log in and remove it manually from the %1$sMAC tab%2$s or send a POST from another system.',
+			'<a href="services_captiveportal_mac.php">', '</a>');
 
 $section->addInput(new Form_Checkbox(
 	'peruserbw',
@@ -681,7 +685,7 @@ $form->add($section);
 $section = new Form_Section('Authentication');
 $section->addClass('Authentication');
 
-$group = new Form_Group('Authentication method');
+$group = new Form_Group('*Authentication method');
 
 $group->add(new Form_Checkbox(
 	'auth_method',
@@ -716,7 +720,7 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['localauth_priv']
 ));
 
-$group = new Form_Group('RADIUS protocol');
+$group = new Form_Group('*RADIUS protocol');
 $group->addClass("radiusproto");
 
 $group->add(new Form_Checkbox(
@@ -758,7 +762,7 @@ $form->add($section);
 $section = new Form_Section('Primary Authentication Source');
 $section->addClass('Primary');
 
-$group = new Form_Group('Primary RADIUS server');
+$group = new Form_Group('*Primary RADIUS server');
 
 $group->add(new Form_IpAddress(
 	'radiusip',
@@ -994,12 +998,12 @@ $section->addInput(new Form_Select(
 	$pconfig['radmac_format'],
 	['default' => 'Default', 'singledash' => gettext('Single dash'), 'ietf' => 'IETF', 'cisco' => 'Cisco', 'unformatted' => gettext('Unformatted')]
 ))->setHelp('This option changes the MAC address format used in the whole RADIUS system. Change this if the username format also needs to be changed for ' .
-			'RADIUS MAC authentication.' . '<br />' .
-			'Default: 00:11:22:33:44:55' . '<br />' .
-			'Single dash: 001122-334455' . '<br />' .
-			'IETF: 00-11-22-33-44-55' . '<br />' .
-			'Cisco: 0011.2233.4455' . '<br />' .
-			'Unformatted: 001122334455');
+			'RADIUS MAC authentication. %1$s' .
+			'Default: 00:11:22:33:44:55 %1$s' .
+			'Single dash: 001122-334455 %1$s' .
+			'IETF: 00-11-22-33-44-55 %1$s' .
+			'Cisco: 0011.2233.4455 %1$s' .
+			'Unformatted: 001122334455', '<br />');
 
 $form->add($section);
 
@@ -1016,7 +1020,7 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Input(
 	'httpsname',
-	'HTTPS server name',
+	'*HTTPS server name',
 	'text',
 	$pconfig['httpsname']
 ))->setHelp('This name will be used in the form action for the HTTPS POST and should match the Common Name (CN) in the certificate ' .
@@ -1025,17 +1029,17 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Select(
 	'certref',
-	'SSL Certificate',
+	'*SSL Certificate',
 	$pconfig['certref'],
 	build_cert_list()
-))->setHelp('If no certificates are defined, one may be defined here: ' . '<a href="system_certmanager.php">System &gt; Cert. Manager</a>');
+))->setHelp('If no certificates are defined, one may be defined here: %1$sSystem &gt; Cert. Manager%2$s', '<a href="system_certmanager.php">', '</a>');
 
 $section->addInput(new Form_Checkbox(
 	'nohttpsforwards',
 	'HTTPS Forwards',
 	'Disable HTTPS Forwards',
 	$pconfig['nohttpsforwards']
-))->setHelp('If this option is set, attempts to connect to SSL/HTTPS (Port 443) sites will not be forwarded to the captive portal' .
+))->setHelp('If this option is set, attempts to connect to SSL/HTTPS (Port 443) sites will not be forwarded to the captive portal. ' .
 			'This prevents certificate errors from being presented to the user even if HTTPS logins are enabled. ' .
 			'Users must attempt a connecton to an HTTP (Port 80) site to get forwarded to the captive portal. ' .
 			'If HTTPS logins are enabled, the user will be redirected to the HTTPS login page.');
@@ -1052,16 +1056,16 @@ $section->addInput(new Form_Input(
 	$pconfig['htmlfile']
 ))->setHelp('Upload an HTML/PHP file for the portal page here (leave blank to keep the current one). Make sure to include a form (POST to "$PORTAL_ACTION$") ' .
 			'with a submit button (name="accept") and a hidden field with name="redirurl" and value="$PORTAL_REDIRURL$". ' .
-			'Include the "auth_user" and "auth_pass" and/or "auth_voucher" input fields if authentication is enabled, otherwise it will always fail.' . '<br />' .
-			'Example code for the form:' . '<br />' .
-			'&lt;form method=&quot;post&quot; action=&quot;$PORTAL_ACTION$&quot;&gt;<br />
-			 &nbsp;&nbsp;&nbsp;&lt;input name=&quot;auth_user&quot; type=&quot;text&quot;&gt;<br />
-			 &nbsp;&nbsp;&nbsp;&lt;input name=&quot;auth_pass&quot; type=&quot;password&quot;&gt;<br />
-			 &nbsp;&nbsp;&nbsp;&lt;input name=&quot;auth_voucher&quot; type=&quot;text&quot;&gt;<br />
-			 &nbsp;&nbsp;&nbsp;&lt;input name=&quot;redirurl&quot; type=&quot;hidden&quot; value=&quot;$PORTAL_REDIRURL$&quot;&gt;<br />
-			 &nbsp;&nbsp;&nbsp;&lt;input name=&quot;zone&quot; type=&quot;hidden&quot; value=&quot;$PORTAL_ZONE$&quot;&gt;<br />
-			 &nbsp;&nbsp;&nbsp;&lt;input name=&quot;accept&quot; type=&quot;submit&quot; value=&quot;Continue&quot;&gt;<br />
-			 &lt;/form&gt;')->addClass('btn btn-info btn-sm');
+			'Include the "auth_user" and "auth_pass" and/or "auth_voucher" input fields if authentication is enabled, otherwise it will always fail.%1$s' .
+			'Example code for the form: %1$s' .
+			'&lt;form method=&quot;post&quot; action=&quot;$PORTAL_ACTION$&quot;&gt;%1$s' .
+			'&nbsp;&nbsp;&nbsp;&lt;input name=&quot;auth_user&quot; type=&quot;text&quot;&gt;%1$s' .
+			'&nbsp;&nbsp;&nbsp;&lt;input name=&quot;auth_pass&quot; type=&quot;password&quot;&gt;%1$s' .
+			'&nbsp;&nbsp;&nbsp;&lt;input name=&quot;auth_voucher&quot; type=&quot;text&quot;&gt;%1$s' .
+			'&nbsp;&nbsp;&nbsp;&lt;input name=&quot;redirurl&quot; type=&quot;hidden&quot; value=&quot;$PORTAL_REDIRURL$&quot;&gt;%1$s' .
+			'&nbsp;&nbsp;&nbsp;&lt;input name=&quot;zone&quot; type=&quot;hidden&quot; value=&quot;$PORTAL_ZONE$&quot;&gt;%1$s' .
+			'&nbsp;&nbsp;&nbsp;&lt;input name=&quot;accept&quot; type=&quot;submit&quot; value=&quot;Continue&quot;&gt;%1$s' .
+			'&lt;/form&gt;', '<br />')->addClass('btn btn-info btn-sm');
 
 list($host) = explode(":", $_SERVER['HTTP_HOST']);
 $zoneid = $pconfig['zoneid'] ? $pconfig['zoneid'] : 8000;

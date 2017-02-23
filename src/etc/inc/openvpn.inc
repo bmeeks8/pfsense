@@ -726,19 +726,14 @@ function openvpn_reconfigure($mode, $settings) {
 	// If "any" interface was selected, local directive will be omitted.
 	if (is_ipaddrv4($ipaddr)) {
 		$iface_ip = $ipaddr;
-	} else {
-		if ((!empty($interface)) && (strcmp($interface, "any"))) {
-			$iface_ip=get_interface_ip($interface);
-		}
+	} elseif (!empty($interface) && strcmp($interface, "any")) {
+		$iface_ip=get_interface_ip($interface);
 	}
 	if (is_ipaddrv6($ipaddr)) {
 		$iface_ipv6 = $ipaddr;
-	} else {
-		if ((!empty($interface)) && (strcmp($interface, "any"))) {
-			$iface_ipv6=get_interface_ipv6($interface);
-		}
+	} elseif (!empty($interface) && strcmp($interface, "any")) {
+		$iface_ipv6=get_interface_ipv6($interface);
 	}
-
 
 	$conf = "dev {$devname}\n";
 	if (isset($settings['verbosity_level'])) {
@@ -771,6 +766,12 @@ function openvpn_reconfigure($mode, $settings) {
 		}
 	}
 
+	/*
+	 * When binding specific address, wait cases where interface is in
+	 * tentative state otherwise it will fail
+	 */
+	$wait_tentative = false;
+
 	/* Determine the local IP to use - and make sure it matches with the selected protocol. */
 	switch ($settings['protocol']) {
 		case 'UDP':
@@ -790,6 +791,7 @@ function openvpn_reconfigure($mode, $settings) {
 		case 'TCP6':
 			if (is_ipaddrv6($iface_ipv6)) {
 				$conf .= "local {$iface_ipv6}\n";
+				$wait_tentative = true;
 			}
 			if ($settings['interface'] == "any") {
 				$conf .= "multihome\n";
@@ -962,7 +964,7 @@ function openvpn_reconfigure($mode, $settings) {
 		// If there is no bind option at all (ip and/or port), add "nobind" directive
 		//  Otherwise, use the local port if defined, failing that, use lport 0 to
 		//  ensure a random source port.
-		if ((empty($iface_ip)) && (!$settings['local_port'])) {
+		if ((empty($iface_ip)) && empty($iface_ipv6) && (!$settings['local_port'])) {
 			$conf .= "nobind\n";
 		} elseif ($settings['local_port']) {
 			$conf .= "lport {$settings['local_port']}\n";
@@ -1193,6 +1195,10 @@ function openvpn_reconfigure($mode, $settings) {
 	@chmod("{$g['varetc_path']}/openvpn/{$mode_id}.key", 0600);
 	@chmod("{$g['varetc_path']}/openvpn/{$mode_id}.tls-auth", 0600);
 	@chmod("{$g['varetc_path']}/openvpn/{$mode_id}.conf", 0600);
+
+	if ($wait_tentative) {
+		interface_wait_tentative($interface);
+	}
 }
 
 function openvpn_restart($mode, $settings) {
@@ -1201,6 +1207,7 @@ function openvpn_restart($mode, $settings) {
 	$vpnid = $settings['vpnid'];
 	$mode_id = $mode.$vpnid;
 	$lockhandle = lock("openvpnservice{$mode_id}", LOCK_EX);
+	openvpn_reconfigure($mode, $settings);
 	/* kill the process if running */
 	$pfile = $g['varrun_path']."/openvpn_{$mode_id}.pid";
 	if (file_exists($pfile)) {
@@ -1208,6 +1215,7 @@ function openvpn_restart($mode, $settings) {
 		/* read the pid file */
 		$pid = rtrim(file_get_contents($pfile));
 		unlink($pfile);
+		syslog(LOG_INFO, "OpenVPN terminate old pid: {$pid}");
 
 		/* send a term signal to the process */
 		posix_kill($pid, SIGTERM);
@@ -1231,7 +1239,7 @@ function openvpn_restart($mode, $settings) {
 	}
 
 	/* Do not start an instance if we are not CARP master on this vip! */
-	if (strstr($settings['interface'], "_vip") && get_carp_interface_status($settings['interface']) != "MASTER") {
+	if (strstr($settings['interface'], "_vip") && !in_array(get_carp_interface_status($settings['interface']), array("MASTER", ""))) {
 		unlock($lockhandle);
 		return;
 	}
@@ -1240,7 +1248,7 @@ function openvpn_restart($mode, $settings) {
 	$a_groups = return_gateway_groups_array();
 	if (is_array($a_groups[$settings['interface']])) {
 		/* the interface is a gateway group. If a vip is defined and its a CARP backup then do not start */
-		if (($a_groups[$settings['interface']][0]['vip'] <> "") && (get_carp_interface_status($a_groups[$settings['interface']][0]['vip']) != "MASTER")) {
+		if (($a_groups[$settings['interface']][0]['vip'] <> "") && (!in_array(get_carp_interface_status($a_groups[$settings['interface']][0]['vip']), array("MASTER", "")))) {
 			unlock($lockhandle);
 			return;
 		}
@@ -1249,8 +1257,22 @@ function openvpn_restart($mode, $settings) {
 	/* start the new process */
 	$fpath = $g['varetc_path']."/openvpn/{$mode_id}.conf";
 	openvpn_clear_route($mode, $settings);
-	mwexec("/usr/local/sbin/openvpn --config " . escapeshellarg($fpath));
-
+	$res = mwexec("/usr/local/sbin/openvpn --config " . escapeshellarg($fpath));
+	if ($res == 0) {
+		$i = 0;
+		$pid = "--";
+		while ($i < 3000) {
+			if (isvalidpid($pfile)) {
+				$pid = rtrim(file_get_contents($pfile));
+				break;
+			}
+			usleep(1000);
+			$i++;
+		}
+		syslog(LOG_INFO, "OpenVPN PID written: {$pid}");
+	} else {
+		syslog(LOG_ERR, "OpenVPN failed to start");
+	}
 	if (!platform_booting()) {
 		send_event("filter reload");
 	}
@@ -1408,7 +1430,6 @@ function openvpn_delete_csc(& $settings) {
 
 // Resync the configuration and restart the VPN
 function openvpn_resync($mode, $settings) {
-	openvpn_reconfigure($mode, $settings);
 	openvpn_restart($mode, $settings);
 }
 
@@ -1842,8 +1863,8 @@ function openvpn_get_interface_ipv6($ipv6, $prefix) {
 	// Is there a better way to do this math?
 	$ipv6_arr = explode(':', $basev6);
 	$last = hexdec(array_pop($ipv6_arr));
-	$ipv6_1 = Net_IPv6::compress(Net_IPv6::uncompress(implode(':', $ipv6_arr) . ':' . dechex($last + 1)));
-	$ipv6_2 = Net_IPv6::compress(Net_IPv6::uncompress(implode(':', $ipv6_arr) . ':' . dechex($last + 2)));
+	$ipv6_1 = text_to_compressed_ip6(implode(':', $ipv6_arr) . ':' . dechex($last + 1));
+	$ipv6_2 = text_to_compressed_ip6(implode(':', $ipv6_arr) . ':' . dechex($last + 2));
 	return array($ipv6_1, $ipv6_2);
 }
 

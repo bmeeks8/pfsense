@@ -66,6 +66,36 @@ if ($_POST) {
 		}
 	}
 
+	if ($_POST['minimal'] == "yes") {
+		$config['system']['gitsync']['minimal'] = true;
+	} else {
+		unset($config['system']['gitsync']['minimal']);
+	}
+
+	if ($_POST['diff'] == "yes") {
+		$config['system']['gitsync']['diff'] = true;
+	} else {
+		unset($config['system']['gitsync']['diff']);
+	}
+
+	if ($_POST['show_files'] == "yes") {
+		$config['system']['gitsync']['show_files'] = true;
+	} else {
+		unset($config['system']['gitsync']['show_files']);
+	}
+
+	if ($_POST['show_command'] == "yes") {
+		$config['system']['gitsync']['show_command'] = true;
+	} else {
+		unset($config['system']['gitsync']['show_command']);
+	}
+
+	if ($_POST['dryrun'] == "yes") {
+		$config['system']['gitsync']['dryrun'] = true;
+	} else {
+		unset($config['system']['gitsync']['dryrun']);
+	}
+
 	write_config();
 
 	$savemsg = gettext("Changes have been saved successfully");
@@ -75,6 +105,7 @@ $curcfg = $config['system']['firmware'];
 $gitcfg = $config['system']['gitsync'];
 
 $pgtitle = array(gettext("System"), gettext("Update"), gettext("Update Settings"));
+$pglinks = array("", "pkg_mgr_install.php?id=firmware", "@self");
 
 // Create an array of repo names and descriptions to populate the "Branch" selector
 function build_repo_list() {
@@ -123,11 +154,11 @@ $section = new Form_Section('Firmware Branch');
 
 $section->addInput(new Form_Select(
 	fwbranch,
-	'Branch',
+	'*Branch',
 	get_repo_name($config['system']['pkg_repo_conf_path']),
 	build_repo_list()
-))->setHelp('Please select the stable, or the development branch from which to update the system firmware. ' . ' <br />' .
-			'Use of the development version is at your own risk!');
+))->setHelp('Please select the stable, or the development branch from which to update the system firmware. %1$s' .
+			'Use of the development version is at your own risk!', '<br />');
 
 $form->add($section);
 
@@ -165,7 +196,7 @@ if (file_exists("/usr/local/bin/git")) {
 		'Repository URL',
 		'text',
 		($gitcfg['repositoryurl'] ? $gitcfg['repositoryurl'] : '')
-		))->setHelp('The most recently used repository was %s. This repository will be used if the field is left blank.', [$lastrepositoryurl]);
+		))->setHelp('The most recently used repository was %s. This repository will be used if the field is left blank.', $lastrepositoryurl);
 
 	if (is_dir("/root/pfsense/pfSenseGITREPO/pfSenseGITREPO")) {
 		exec("cd /root/pfsense/pfSenseGITREPO/pfSenseGITREPO && git branch", $output_str);
@@ -186,8 +217,48 @@ if (file_exists("/usr/local/bin/git")) {
 		'Branch name',
 		'text',
 		($gitcfg['branch'] ? $gitcfg['branch'] : '')
-		))->setHelp('The most recently used branch was "%s". (Usually the branch name is master)' .
-					'<br />Note: Sync will not be performed if a branch is not specified.', [$lastbranch]);
+		))->setHelp('The most recently used branch was "%1$s". (Usually the branch name is master)' .
+					'%2$sNote: Sync will not be performed if a branch is not specified.', $lastbranch, '<br />');
+
+	$group = new Form_Group('Sync options');
+
+	$group->add(new Form_Checkbox(
+		'minimal',
+		null,
+		'Minimal',
+		isset($gitcfg['minimal'])
+		))->setHelp('Copy of only the updated files.');
+
+	$group->add(new Form_Checkbox(
+		'diff',
+		null,
+		'Diff',
+		isset($gitcfg['diff'])
+		))->setHelp('Copy of only the different or missing files.');
+
+	$group->add(new Form_Checkbox(
+		'show_files',
+		null,
+		'Show Files',
+		isset($gitcfg['show_files'])
+		))->setHelp('Show different and missing files.%1$sWith \'Diff/Minimal\' option..', '<br />');
+
+	$group->add(new Form_Checkbox(
+		'show_command',
+		null,
+		'Show Command',
+		isset($gitcfg['show_command'])
+		))->setHelp('Show constructed command.%1$sWith \'Diff/Minimal\' option.', '<br />');
+
+	$group->add(new Form_Checkbox(
+		'dryrun',
+		null,
+		'Dry Run',
+		isset($gitcfg['dryrun'])
+		))->setHelp('Dry-run only.%1$sNo files copied.', '<br />');
+
+	$group->setHelp('See "playback gitsync --help" in console "PHP Shell + pfSense tools" for additional information.');
+	$section->add($group);
 
 	$form->add($section);
 } // e-o-if (file_exists())

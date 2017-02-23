@@ -54,10 +54,22 @@ class Form_Group extends Form_Element
 		$this->_labelTarget = $input;
 	}
 
-	public function setHelp($help, array $params = array())
+	public function setHelp()
 	{
-		$this->_help = $help;
-		$this->_helpParams = $params;
+		$args = func_get_args();
+		$arg0_len = strlen($args[0]);
+
+		if (($arg0_len > 0) && ($arg0_len < 4096)) {
+			$args[0] = gettext($args[0]);
+		}
+
+		if (func_num_args() == 1) {
+			$this->_help = $args[0];
+		} else {
+			$this->_help = call_user_func_array('sprintf', $args);
+		}
+
+		$this->_helpParams = "";
 
 		return $this;
 	}
@@ -86,10 +98,7 @@ class Form_Group extends Form_Element
 		$group = new Form_Element;
 		$group->addClass('col-sm-'. Form::MAX_INPUT_WIDTH, 'col-sm-offset-'. Form::LABEL_WIDTH);
 
-		$help = gettext($this->_help);
-
-		if (!empty($this->_helpParams))
-			$help = call_user_func_array('sprintf', array_merge([$help], $this->_helpParams));
+		$help = $this->_help;
 
 		return <<<EOT
 	{$group}
@@ -123,27 +132,41 @@ EOT;
 				array_push($missingWidth, $input);
 		}
 
-		foreach ($missingWidth as $input)
+		foreach ($missingWidth as $input) {
 			$input->setWidth($spaceLeft / count($missingWidth));
+		}
 
-		if (strtolower($this->_labelTarget->getType()) == 'hidden')
+		if (strtolower($this->_labelTarget->getType()) == 'hidden') {
 			$hidden = true;
+		}
 
 		$form_controls = array('input', 'select', 'button', 'textarea', 'option', 'optgroup', 'fieldset', 'label');
-		if (in_array(strtolower($this->_labelTarget->getTagName()), $form_controls) && !$hidden)
+
+		if (in_array(strtolower($this->_labelTarget->getTagName()), $form_controls) && !$hidden) {
 			$target = $this->_labelTarget->getId();
+		}
 
 		$inputs = implode('', $this->_inputs);
 		$help = $this->_getHelp();
 
-		if (!$user_settings['webgui']['webguileftcolumnhyper'])
+		if (!$user_settings['webgui']['webguileftcolumnhyper']) {
 			$target = null;
+		}
 
 		$label = new Form_Element('label', false, ['for' => $target]);
 		$label->addClass('col-sm-'.Form::LABEL_WIDTH, 'control-label');
 
 		if (!empty(trim($this->_title)) || is_numeric($this->_title)) {
 			$title = htmlspecialchars(gettext($this->_title));
+
+			// If the element tile (label) begins with a '*', remove the '*' and add a span with class
+			// 'element-required'. Text decoration can then be added in the CSS to indicate that this is a
+			// required field
+			if (substr($title, 0, 1 ) === "*" ) {
+				$title = '<span class="element-required">' . substr($title, 1) . '</span>';
+			} else {
+				$title = '<span>' . $title . '</span>';
+			}
 		}
 
 		return <<<EOT

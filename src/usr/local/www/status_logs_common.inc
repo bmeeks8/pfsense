@@ -140,15 +140,15 @@ function system_log_table_panel_title() {
 
 	if ($rawfilter) {
 		if (($filtersubmit) || ($filterlogentries_submit)) {
-			$rtnstr .= sprintf(gettext("%s Matched %s Log Entries."), "<span id='count'>_ _</span>", gettext($allowed_logs[$logfile]["name"]));
+			$rtnstr .= sprintf(gettext('%1$s Matched %2$s Log Entries.'), "<span id='count'>_ _</span>", gettext($allowed_logs[$logfile]["name"]));
 		} else {
-			$rtnstr .= sprintf(gettext("Last %s %s Log Entries."), "<span id='count'>_ _</span>", gettext($allowed_logs[$logfile]["name"]));
+			$rtnstr .= sprintf(gettext('Last %1$s %2$s Log Entries.'), "<span id='count'>_ _</span>", gettext($allowed_logs[$logfile]["name"]));
 		}
 	} else {
 		if (($filtersubmit) || ($filterlogentries_submit)) {
-			$rtnstr .= sprintf(gettext("%d Matched %s Log Entries."), count($filterlog), gettext($allowed_logs[$logfile]["name"]));
+			$rtnstr .= sprintf(gettext('%1$d Matched %2$s Log Entries.'), count($filterlog), gettext($allowed_logs[$logfile]["name"]));
 		} else {
-			$rtnstr .= sprintf(gettext("Last %d %s Log Entries."), count($filterlog), gettext($allowed_logs[$logfile]["name"]));
+			$rtnstr .= sprintf(gettext('Last %1$d %2$s Log Entries.'), count($filterlog), gettext($allowed_logs[$logfile]["name"]));
 		}
 	}
 
@@ -584,8 +584,10 @@ function manage_log_code() {
 		return;
 	}
 
-	global $logfile, $specific_log, $config, $pconfig, $save_settings, $input_errors, $savemsg;
+	global $logfile, $specific_log, $config, $pconfig, $save_settings, $input_errors, $extra_save_msg, $retval, $changes_applied;
 
+	$changes_applied = false;
+	$extra_save_msg = "";
 	$specific_log = basename($logfile) . '_settings';
 
 	// Common to All Logs
@@ -711,28 +713,27 @@ function manage_log_code() {
 				}
 			}
 
+			$retval = 0;
+			$changes_applied = true;
 
 		// If any of the logging settings were changed then backup and sync (standard write_config).  Otherwise only write config (don't backup, don't sync).
-		if ($logging_changed) {
-			write_config($desc = gettext("Log Display Settings Saved: ") . gettext($allowed_logs[$logfile]["name"]), $backup = true, $write_config_only = false);
-			$retval = 0;
-			$retval = system_syslogd_start();
-			$savemsg = gettext("The changes have been applied successfully.");
-		} else {
-			write_config($desc = gettext("Log Display Settings Saved (no backup, no sync): ") . gettext($allowed_logs[$logfile]["name"]), $backup = false, $write_config_only = true);
-			$savemsg = '';
-		}
+			if ($logging_changed) {
+				write_config($desc = gettext("Log Display Settings Saved: ") . gettext($allowed_logs[$logfile]["name"]), $backup = true, $write_config_only = false);
+				system_syslogd_start();
+			} else {
+				write_config($desc = gettext("Log Display Settings Saved (no backup, no sync): ") . gettext($allowed_logs[$logfile]["name"]), $backup = false, $write_config_only = true);
+			}
 
 		// Specific to System General (main) Log
-		if ($logfile == 'system') {
-			if ($nginx_logging_changed) {
-				ob_flush();
-				flush();
-				log_error(gettext("webConfigurator configuration has changed. Restarting webConfigurator."));
-				send_event("service restart webgui");
-				$savemsg .= "<br />" . gettext("WebGUI process is restarting.");
+			if ($logfile == 'system') {
+				if ($nginx_logging_changed) {
+					ob_flush();
+					flush();
+					log_error(gettext("webConfigurator configuration has changed. Restarting webConfigurator."));
+					send_event("service restart webgui");
+					$extra_save_msg = gettext("WebGUI process is restarting.");
+				}
 			}
-		}
 
 		// Specific to Firewall Log
 			if ($logfile == 'filter') {
@@ -740,8 +741,6 @@ function manage_log_code() {
 					require_once("filter.inc");
 					$retval |= filter_configure();
 					filter_pflog_start(true);
-
-					$savemsg = get_std_save_message($retval);
 				}
 			}
 		}
@@ -780,7 +779,7 @@ function manage_log_section() {
 	$form = new Form(false);
 	$form->setAttribute('id', 'manage-log-form')->addClass('collapse ' . $panel_state);
 
-	$section = new Form_Section(gettext('Manage') . ' ' . gettext($allowed_logs[$logfile]["name"]) . ' ' . gettext('Log'), 'manage-log-panel', COLLAPSIBLE|$panel_body_state);
+	$section = new Form_Section(sprintf(gettext('Manage %1$s Log'), gettext($allowed_logs[$logfile]["name"])), 'manage-log-panel', COLLAPSIBLE|$panel_body_state);
 
 	$section->addInput(new Form_StaticText(
 		'',
@@ -842,9 +841,9 @@ function manage_log_section() {
 		$pconfig['logfilesize'],
 		['min' => 100000, 'placeholder' => $config['syslog']['logfilesize'] ? $config['syslog']['logfilesize'] : "511488"]
 	))->setWidth(2);
-	$group->setHelp("The log is held in a constant-size circular log file. This field controls how large the log file is, and thus how many entries may exist inside the log. The default is approximately 500KB." .
-						'<br /><br />' .
-				"NOTE: The log size is changed the next time it is cleared. To immediately change the log size, first save the options to set the size, then clear the log using the \"Clear Log\" action below. ");
+	$group->setHelp('The log is held in a constant-size circular log file. This field controls how large the log file is, and thus how many entries may exist inside the log. The default is approximately 500KB.%1$s' .
+				'NOTE: The log size is changed the next time it is cleared. To immediately change the log size, first save the options to set the size, then clear the log using the "Clear Log" action below. ',
+				'<br /><br />');
 	$section->add($group);
 
 	$group = new Form_Group('Formatted/Raw Display');
@@ -927,8 +926,9 @@ function manage_log_section() {
 				'1' => gettext('Display as column'),
 				'2' => gettext('Display as second row')
 			)
-		))->setHelp('Show the applied rule description below or in the firewall log rows.' . '<br />' .
-					'Displaying rule descriptions for all lines in the log might affect performance with large rule sets.');
+		))->setHelp('Show the applied rule description below or in the firewall log rows.%1$s' .
+					'Displaying rule descriptions for all lines in the log might affect performance with large rule sets.',
+					'<br />');
 	}
 
 

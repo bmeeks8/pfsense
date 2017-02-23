@@ -115,9 +115,9 @@ if ($_POST) {
 
 		write_config();
 
+		$changes_applied = true;
 		$retval = 0;
-		$retval = services_dhcrelay6_configure();
-		$savemsg = get_std_save_message($retval);
+		$retval |= services_dhcrelay6_configure();
 	}
 }
 
@@ -135,8 +135,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 $form = new Form;
@@ -152,7 +152,7 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface(s)',
+	'*Interface(s)',
 	$pconfig['interface'],
 	$iflist,
 	true
@@ -166,11 +166,11 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['agentoption']
 ))->setHelp(
 	'If this is checked, the DHCPv6 relay will append the circuit ID (%s interface number) and the agent ID to the DHCPv6 request.',
-	[$g['product_name']]
+	$g['product_name']
 );
 
 function createDestinationServerInputGroup($value = null) {
-	$group = new Form_Group('Destination server');
+	$group = new Form_Group('*Destination server');
 
 	$group->add(new Form_IpAddress(
 		'server',

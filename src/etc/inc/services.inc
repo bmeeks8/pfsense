@@ -480,23 +480,6 @@ function services_dhcpdv4_configure() {
 		}
 	}
 
-	if (platform_booting()) {
-		/* restore the leases, if we have them */
-		if (file_exists("{$g['cf_conf_path']}/dhcpleases.tgz")) {
-			$dhcprestore = "";
-			$dhcpreturn = "";
-			exec("cd /;LANG=C /usr/bin/tar -xzf {$g['cf_conf_path']}/dhcpleases.tgz 2>&1", $dhcprestore, $dhcpreturn);
-			$dhcprestore = implode(" ", $dhcprestore);
-			if ($dhcpreturn <> 0) {
-				log_error(sprintf(gettext('DHCP leases restore failed exited with %1$s, the error is: %2$s%3$s'), $dhcpreturn, $dhcprestore, "\n"));
-			}
-		}
-		/* If this backup is still there on a full install, but we aren't going to use ram disks, remove the archive since this is a transition. */
-		if (!isset($config['system']['use_mfs_tmpvar'])) {
-			unlink_if_exists("{$g['cf_conf_path']}/dhcpleases.tgz");
-		}
-	}
-
 	$syscfg = $config['system'];
 	if (!is_array($config['dhcpd'])) {
 		$config['dhcpd'] = array();
@@ -788,7 +771,7 @@ EOPP;
 				// If the user has changed the subnet from the interfaces page and applied,
 				// but has not updated the DHCP range, then the range to/from of the pool can be outside the subnet.
 				// This can also happen when implementing the batch of changes when the setup wizard reloads the new settings.
-				$error_msg = sprintf(gettext("Invalid DHCP pool %s - %s for %s subnet %s/%s detected. Please correct the settings in Services, DHCP Server"), $poolconf['range']['from'], $poolconf['range']['to'], convert_real_interface_to_friendly_descr($dhcpif), $subnet, $ifcfgsn);
+				$error_msg = sprintf(gettext('Invalid DHCP pool %1$s - %2$s for %3$s subnet %4$s/%5$s detected. Please correct the settings in Services, DHCP Server'), $poolconf['range']['from'], $poolconf['range']['to'], convert_real_interface_to_friendly_descr($dhcpif), $subnet, $ifcfgsn);
 				$do_file_notice = true;
 				$conf_ipv4_address = $ifcfg['ipaddr'];
 				$conf_ipv4_subnetmask = $ifcfg['subnet'];
@@ -1275,22 +1258,6 @@ function services_dhcpdv6_configure($blacklist = array()) {
 	/* DHCP enabled on any interfaces? */
 	if (!is_dhcpv6_server_enabled()) {
 		return 0;
-	}
-
-	/* restore the leases, if we have them */
-	if (platform_booting() &&
-	    isset($config['system']['use_mfs_tmpvar']) &&
-	    file_exists("{$g['cf_conf_path']}/dhcp6leases.tgz")) {
-		$dhcprestore = "";
-		$dhcpreturn = "";
-		exec("cd /;LANG=C /usr/bin/tar -xzf {$g['cf_conf_path']}/dhcp6leases.tgz 2>&1",
-		    $dhcprestore, $dhcpreturn);
-		$dhcprestore = implode(" ", $dhcprestore);
-		if ($dhcpreturn <> 0) {
-			log_error(sprintf(gettext(
-			    'DHCP leases v6 restore failed exited with %1$s, the error is: %2$s'),
-			    $dhcpreturn, $dhcprestore));
-		}
 	}
 
 	$syscfg = $config['system'];
@@ -2470,7 +2437,8 @@ begemotSnmpdModulePath."pf"     = "/usr/lib/snmp_pf.so"
 EOD;
 			}
 
-			if (isset($config['snmpd']['modules']['hostres'])) {
+			if (isset($config['snmpd']['modules']['hostres'])
+			    && !(($specplatform['name'] == 'VMware') && (file_exists('/dev/cd0')))) {
 				$snmpdconf .= <<<EOD
 begemotSnmpdModulePath."hostres"     = "/usr/lib/snmp_hostres.so"
 
@@ -2624,10 +2592,14 @@ EOD;
 			$upinst .= "server {$dnsupdate['server']}\n";
 		}
 
+		$cachedipv4 = '';
+		$cacheTimev4 = 0;
 		if (file_exists($cacheFile)) {
 			list($cachedipv4, $cacheTimev4) = explode("|",
 			    file_get_contents($cacheFile));
 		}
+		$cachedipv6 = '';
+		$cacheTimev6 = 0;
 		if (file_exists($cacheFilev6)) {
 			list($cachedipv6, $cacheTimev6) = explode("|",
 			    file_get_contents($cacheFilev6));
@@ -2845,11 +2817,12 @@ function upnp_start() {
 	}
 }
 
-function install_cron_job($command, $active = false, $minute = "0", $hour = "*", $monthday = "*", $month = "*", $weekday = "*", $who = "root") {
+function install_cron_job($command, $active = false, $minute = "0", $hour = "*", $monthday = "*", $month = "*", $weekday = "*", $who = "root", $write_config = true) {
 	global $config, $g;
 
 	$is_installed = false;
 	$cron_changed = true;
+	$change_message = "";
 
 	if (!is_array($config['cron'])) {
 		$config['cron'] = array();
@@ -2878,24 +2851,30 @@ function install_cron_job($command, $active = false, $minute = "0", $hour = "*",
 		$cron_item['command'] = $command;
 		if (!$is_installed) {
 			$config['cron']['item'][] = $cron_item;
-			write_config(sprintf(gettext("Installed cron job for %s"), $command));
+			$change_message = "Installed cron job for %s";
 		} else {
 			if ($config['cron']['item'][$x] == $cron_item) {
 				$cron_changed = false;
-				log_error(sprintf(gettext("Checked cron job for %s, no change needed"), $command));
 			} else {
 				$config['cron']['item'][$x] = $cron_item;
-				write_config(sprintf(gettext("Updated cron job for %s"), $command));
+				$change_message = "Updated cron job for %s";
 			}
 		}
 	} else {
 		if ($is_installed == true) {
 			unset($config['cron']['item'][$x]);
-			write_config(sprintf(gettext("Removed cron job for %s"), $command));
+			$change_message = "Removed cron job for %s";
 		}
 	}
 
 	if ($cron_changed) {
+		/* Optionally write the configuration if this function made changes.
+		 * Performing a write_config() in this way can have unintended side effects. See #7146
+		 * Base system instances of this function do not need to write, packages may.
+		 */
+		if ($write_config) {
+			write_config(sprintf(gettext($change_message), $command));
+		}
 		configure_cron();
 	}
 }

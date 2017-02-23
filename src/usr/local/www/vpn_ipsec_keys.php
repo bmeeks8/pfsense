@@ -50,18 +50,18 @@ foreach ($config['system']['user'] as $id => $user) {
 }
 
 if (isset($_POST['apply'])) {
-	$retval = vpn_ipsec_configure();
+	vpn_ipsec_configure();
 	/* reload the filter in the background */
-	filter_configure();
-	$savemsg = get_std_save_message($retval);
+	$retval = 0;
+	$retval |= filter_configure();
 	if (is_subsystem_dirty('ipsec')) {
 		clear_subsystem_dirty('ipsec');
 	}
 }
 
-if ($_GET['act'] == "del") {
-	if ($a_secret[$_GET['id']]) {
-		unset($a_secret[$_GET['id']]);
+if ($_POST['act'] == "del") {
+	if ($a_secret[$_POST['id']]) {
+		unset($a_secret[$_POST['id']]);
 		write_config(gettext("Deleted IPsec Pre-Shared Key"));
 		mark_subsystem_dirty('ipsec');
 		header("Location: vpn_ipsec_keys.php");
@@ -70,12 +70,13 @@ if ($_GET['act'] == "del") {
 }
 
 $pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Pre-Shared Keys"));
+$pglinks = array("", "vpn_ipsec.php", "@self");
 $shortcut_section = "ipsec";
 
 include("head.inc");
 
-if ($savemsg) {
-	print_info_box($savemsg);
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('ipsec')) {
@@ -152,7 +153,7 @@ if (is_subsystem_dirty('ipsec')) {
 						</td>
 						<td>
 							<a class="fa fa-pencil"	title="<?=gettext('Edit key')?>" href="vpn_ipsec_keys_edit.php?id=<?=$i?>"></a>
-							<a class="fa fa-trash"	title="<?=gettext('Delete key')?>" href="vpn_ipsec_keys.php?act=del&amp;id=<?=$i?>"></a>
+							<a class="fa fa-trash"	title="<?=gettext('Delete key')?>" href="vpn_ipsec_keys.php?act=del&amp;id=<?=$i?>" usepost></a>
 						</td>
 					</tr>
 <?php $i++; endforeach; ?>

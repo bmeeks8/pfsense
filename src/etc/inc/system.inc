@@ -198,14 +198,12 @@ function system_resolvconf_generate($dynupdate = false) {
 	}
 
 	/* setup static routes for DNS servers. */
-	for ($dnscounter=1; $dnscounter<5; $dnscounter++) {
+	$dnscounter = 1;
+	$dnsgw = "dns{$dnscounter}gw";
+	while (isset($config['system'][$dnsgw])) {
 		/* setup static routes for dns servers */
-		$dnsgw = "dns{$dnscounter}gw";
-		if (isset($config['system'][$dnsgw])) {
-			if (empty($config['system'][$dnsgw]) ||
-			    $config['system'][$dnsgw] == "none") {
-				continue;
-			}
+		if (!(empty($config['system'][$dnsgw]) ||
+		    $config['system'][$dnsgw] == "none")) {
 			$gwname = $config['system'][$dnsgw];
 			$gatewayip = lookup_gateway_ip_by_name($gwname);
 			$inet6 = is_ipaddrv6($gatewayip) ? '-inet6 ' : '';
@@ -223,6 +221,8 @@ function system_resolvconf_generate($dynupdate = false) {
 				}
 			}
 		}
+		$dnscounter++;
+		$dnsgw = "dns{$dnscounter}gw";
 	}
 
 	unlock($dnslock);
@@ -289,6 +289,222 @@ function get_nameservers() {
 	return $master_list;
 }
 
+/* Create localhost + local interfaces entries for /etc/hosts */
+function system_hosts_local_entries() {
+	global $config;
+
+	$syscfg = $config['system'];
+
+	$hosts = array();
+	$hosts[] = array(
+	    'ipaddr' => '127.0.0.1',
+	    'fqdn' => 'localhost',
+	    'name' => 'localhost.' . $syscfg['domain']
+	);
+	$hosts[] = array(
+	    'ipaddr' => '::1',
+	    'fqdn' => 'localhost',
+	    'name' => 'localhost.' . $syscfg['domain']
+	);
+
+	if ($config['interfaces']['lan']) {
+		$sysiflist = array('lan' => "lan");
+	} else {
+		$sysiflist = get_configured_interface_list();
+	}
+
+	$hosts_if_found = false;
+	$local_fqdn = "{$syscfg['hostname']}.{$syscfg['domain']}";
+	foreach ($sysiflist as $sysif) {
+		if ($sysif != 'lan' && interface_has_gateway($sysif)) {
+			continue;
+		}
+		$cfgip = get_interface_ip($sysif);
+		if (is_ipaddrv4($cfgip)) {
+			$hosts[] = array(
+			    'ipaddr' => $cfgip,
+			    'fqdn' => $local_fqdn
+			);
+			$hosts_if_found = true;
+		}
+		$cfgipv6 = get_interface_ipv6($sysif);
+		if (is_ipaddrv6($cfgipv6)) {
+			$hosts[] = array(
+			    'ipaddr' => $cfgipv6,
+			    'fqdn' => $local_fqdn
+			);
+			$hosts_if_found = true;
+		}
+		if ($hosts_if_found == true) {
+			break;
+		}
+	}
+
+	return $hosts;
+}
+
+/* Read host override entries from dnsmasq or unbound */
+function system_hosts_override_entries($dnscfg) {
+	$hosts = array();
+
+	if (!is_array($dnscfg) ||
+	    !is_array($dnscfg['hosts']) ||
+	    !isset($dnscfg['enable'])) {
+		return $hosts;
+	}
+
+	foreach ($dnscfg['hosts'] as $host) {
+		$fqdn = '';
+		if ($host['host'] || $host['host'] == "0") {
+			$fqdn .= "{$host['host']}.";
+		}
+		$fqdn .= $host['domain'];
+
+		$hosts[] = array(
+		    'ipaddr' => $host['ip'],
+		    'fqdn' => $fqdn
+		);
+
+		if (!is_array($host['aliases']) ||
+		    !is_array($host['aliases']['item'])) {
+			continue;
+		}
+
+		foreach ($host['aliases']['item'] as $alias) {
+			$fqdn = '';
+			if ($alias['host'] || $alias['host'] == "0") {
+				$fqdn .= "{$alias['host']}.";
+			}
+			$fqdn .= $alias['domain'];
+
+			$hosts[] = array(
+			    'ipaddr' => $host['ip'],
+			    'fqdn' => $fqdn
+			);
+		}
+	}
+
+	return $hosts;
+}
+
+/* Read all dhcpd/dhcpdv6 staticmap entries */
+function system_hosts_dhcpd_entries() {
+	global $config;
+
+	$hosts = array();
+	$syscfg = $config['system'];
+
+	if (is_array($config['dhcpd'])) {
+		$conf_dhcpd = $config['dhcpd'];
+	} else {
+		$conf_dhcpd = array();
+	}
+
+	foreach ($conf_dhcpd as $dhcpif => $dhcpifconf) {
+		if (!is_array($dhcpifconf['staticmap']) ||
+		    !isset($dhcpifconf['enable'])) {
+			continue;
+		}
+		foreach ($dhcpifconf['staticmap'] as $host) {
+			if (!$host['ipaddr'] ||
+			    !$host['hostname']) {
+				continue;
+			}
+
+			$fqdn = $host['hostname'] . ".";
+			if ($host['domain']) {
+				$fqdn .= $host['domain'];
+			} elseif ($dhcpifconf['domain']) {
+				$fqdn .= $dhcpifconf['domain'];
+			} else {
+				$fqdn .= $syscfg['domain'];
+			}
+
+			$hosts[] = array(
+			    'ipaddr' => $host['ipaddr'],
+			    'fqdn' => $fqdn
+			);
+		}
+	}
+	unset($conf_dhcpd);
+
+	if (is_array($config['dhcpdv6'])) {
+		$conf_dhcpdv6 = $config['dhcpdv6'];
+	} else {
+		$conf_dhcpdv6 = array();
+	}
+
+	foreach ($conf_dhcpdv6 as $dhcpif => $dhcpifconf) {
+		if (!is_array($dhcpifconf['staticmap']) ||
+		    !isset($dhcpifconf['enable'])) {
+			continue;
+		}
+
+		if (isset($config['interfaces'][$dhcpif]['ipaddrv6']) &&
+		    $config['interfaces'][$dhcpif]['ipaddrv6'] ==
+		    'track6') {
+			$isdelegated = true;
+		} else {
+			$isdelegated = false;
+		}
+
+		foreach ($dhcpifconf['staticmap'] as $host) {
+			$ipaddrv6 = $host['ipaddrv6'];
+
+			if (!$ipaddrv6 || !$host['hostname']) {
+				continue;
+			}
+
+			if ($isdelegated) {
+				/*
+				 * We are always in an "end-user" subnet
+				 * here, which all are /64 for IPv6.
+				 */
+				$ipaddrv6 = merge_ipv6_delegated_prefix(
+				    get_interface_ipv6($dhcpif),
+				    $ipaddrv6, 64);
+			}
+
+			$fqdn = $host['hostname'] . ".";
+			if ($host['domain']) {
+				$fqdn .= $host['domain'];
+			} else if ($dhcpifconf['domain']) {
+				$fqdn .= $dhcpifconf['domain'];
+			} else {
+				$fqdn .= $syscfg['domain'];
+			}
+
+			$hosts[] = array(
+			    'ipaddr' => $ipaddrv6,
+			    'fqdn' => $fqdn
+			);
+		}
+	}
+	unset($conf_dhcpdv6);
+
+	return $hosts;
+}
+
+/* Concatenate local, dnsmasq/unbound and dhcpd/dhcpdv6 hosts entries */
+function system_hosts_entries($dnscfg) {
+	$local = system_hosts_local_entries();
+
+	$dns = array();
+	$dhcpd = array();
+	if (isset($dnscfg['enable'])) {
+		$dns = system_hosts_override_entries($dnscfg);
+		if (isset($dnscfg['regdhcpstatic'])) {
+			$dhcpd = system_hosts_dhcpd_entries();
+		}
+	}
+
+	if (isset($dnscfg['dhcpfirst'])) {
+		return array_merge($local, $dns, $dhcpd);
+	} else {
+		return array_merge($local, $dhcpd, $dns);
+	}
+}
+
 function system_hosts_generate() {
 	global $config, $g;
 	if (isset($config['system']['developerspew'])) {
@@ -296,7 +512,6 @@ function system_hosts_generate() {
 		echo "system_hosts_generate() being called $mt\n";
 	}
 
-	$syscfg = $config['system'];
 	// prefer dnsmasq for hosts generation where it's enabled. It relies
 	// on hosts for name resolution of its overrides, unbound does not.
 	if (isset($config['dnsmasq']) && isset($config['dnsmasq']['enable'])) {
@@ -305,124 +520,38 @@ function system_hosts_generate() {
 		$dnsmasqcfg = $config['unbound'];
 	}
 
-	$hosts = "127.0.0.1	localhost localhost.{$syscfg['domain']}\n";
-	$hosts .= "::1		localhost localhost.{$syscfg['domain']}\n";
+	$syscfg = $config['system'];
+	$hosts = "";
 	$lhosts = "";
 	$dhosts = "";
 
-	if ($config['interfaces']['lan']) {
-		$cfgip = get_interface_ip("lan");
-		if (is_ipaddr($cfgip)) {
-			$hosts .= "{$cfgip}	{$syscfg['hostname']}.{$syscfg['domain']}\n";
+	$hosts_array = system_hosts_entries($dnsmasqcfg);
+	foreach ($hosts_array as $host) {
+		$hosts .= "{$host['ipaddr']}\t{$host['fqdn']}";
+		if (!empty($host['name'])) {
+			$hosts .= " {$host['name']}";
 		}
-		$cfgipv6 = get_interface_ipv6("lan");
-		if (is_ipaddrv6($cfgipv6)) {
-			$hosts .= "{$cfgipv6}	{$syscfg['hostname']}.{$syscfg['domain']}\n";
-		}
-	} else {
-		$sysiflist = get_configured_interface_list();
-		$hosts_if_found = false;
-		foreach ($sysiflist as $sysif) {
-			if (!interface_has_gateway($sysif)) {
-				$cfgip = get_interface_ip($sysif);
-				if (is_ipaddr($cfgip)) {
-					$hosts .= "{$cfgip}	{$syscfg['hostname']}.{$syscfg['domain']}\n";
-					$hosts_if_found = true;
-				}
-				$cfgipv6 = get_interface_ipv6($sysif);
-				if (is_ipaddrv6($cfgipv6)) {
-					$hosts .= "{$cfgipv6}	{$syscfg['hostname']}.{$syscfg['domain']}\n";
-					$hosts_if_found = true;
-				}
-				if ($hosts_if_found == true) {
-					break;
-				}
-			}
-		}
+		$hosts .= "\n";
 	}
+	unset($hosts_array);
 
-	if (isset($dnsmasqcfg['enable'])) {
-		if (!is_array($dnsmasqcfg['hosts'])) {
-			$dnsmasqcfg['hosts'] = array();
-		}
-
-		foreach ($dnsmasqcfg['hosts'] as $host) {
-			if ($host['host'] || $host['host'] == "0") {
-				$lhosts .= "{$host['ip']}	{$host['host']}.{$host['domain']}\n";
-			} else {
-				$lhosts .= "{$host['ip']}	{$host['domain']}\n";
-			}
-			if (!is_array($host['aliases']) || !is_array($host['aliases']['item'])) {
-				continue;
-			}
-			foreach ($host['aliases']['item'] as $alias) {
-				if ($alias['host'] || $alias['host'] == "0") {
-					$lhosts .= "{$host['ip']}	{$alias['host']}.{$alias['domain']}\n";
-				} else {
-					$lhosts .= "{$host['ip']}	{$alias['domain']}\n";
-				}
-			}
-		}
-		if (isset($dnsmasqcfg['regdhcpstatic']) && is_array($config['dhcpd'])) {
-			foreach ($config['dhcpd'] as $dhcpif => $dhcpifconf) {
-				if (is_array($dhcpifconf['staticmap']) && isset($dhcpifconf['enable'])) {
-					foreach ($dhcpifconf['staticmap'] as $host) {
-						if ($host['ipaddr'] && $host['hostname'] && $host['domain']) {
-							$dhosts .= "{$host['ipaddr']}	{$host['hostname']}.{$host['domain']}\n";
-						} else if ($host['ipaddr'] && $host['hostname'] && $dhcpifconf['domain']) {
-							$dhosts .= "{$host['ipaddr']}	{$host['hostname']}.{$dhcpifconf['domain']}\n";
-						} else if ($host['ipaddr'] && $host['hostname']) {
-							$dhosts .= "{$host['ipaddr']}	{$host['hostname']}.{$syscfg['domain']}\n";
-						}
-					}
-				}
-			}
-		}
-		if (isset($dnsmasqcfg['regdhcpstatic']) && is_array($config['dhcpdv6'])) {
-			foreach ($config['dhcpdv6'] as $dhcpif => $dhcpifconf) {
-				if (is_array($dhcpifconf['staticmap']) && isset($dhcpifconf['enable'])) {
-					$isdelegated = $config['interfaces'][$dhcpif]['ipaddrv6'] == 'track6';
-					foreach ($dhcpifconf['staticmap'] as $host) {
-						$ipaddrv6 = $host['ipaddrv6'];
-						if ($ipaddrv6 && $host['hostname']) {
-							if ($isdelegated) {
-								// We are always in an "end-user" subnet here, which all are /64 for IPv6.
-								$ipaddrv6 = merge_ipv6_delegated_prefix(get_interface_ipv6($dhcpif), $ipaddrv6, 64);
-							}
-							if ($host['domain']) {
-								$dhosts .= "{$ipaddrv6}	{$host['hostname']}.{$host['domain']}\n";
-							} else if ($dhcpifconf['domain']) {
-								$dhosts .= "{$ipaddrv6}	{$host['hostname']}.{$dhcpifconf['domain']}\n";
-							} else {
-								$dhosts .= "{$ipaddrv6}	{$host['hostname']}.{$syscfg['domain']}\n";
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if (isset($dnsmasqcfg['dhcpfirst'])) {
-			$hosts .= $dhosts . $lhosts;
-		} else {
-			$hosts .= $lhosts . $dhosts;
-		}
+	$fd = fopen("{$g['etc_path']}/hosts", "w");
+	if (!$fd) {
+		log_error(gettext(
+		    "Error: cannot open hosts file in system_hosts_generate()."
+		    ));
+		return 1;
 	}
 
 	/*
-	 * Do not remove this because dhcpleases monitors with kqueue it needs to be
-	 * killed before writing to hosts files.
+	 * Do not remove this because dhcpleases monitors with kqueue it needs
+	 * to be killed before writing to hosts files.
 	 */
 	if (file_exists("{$g['varrun_path']}/dhcpleases.pid")) {
 		sigkillbypid("{$g['varrun_path']}/dhcpleases.pid", "TERM");
 		@unlink("{$g['varrun_path']}/dhcpleases.pid");
 	}
 
-	$fd = fopen("{$g['etc_path']}/hosts", "w");
-	if (!$fd) {
-		log_error(gettext("Error: cannot open hosts file in system_hosts_generate()."));
-		return 1;
-	}
 	fwrite($fd, $hosts);
 	fclose($fd);
 
@@ -441,12 +570,15 @@ function system_hosts_generate() {
 
 function system_dhcpleases_configure() {
 	global $config, $g;
-
+	if (!function_exists('is_dhcp_server_enabled')) {
+		require_once('pfsense-utils.inc');
+	}
 	$pidfile = "{$g['varrun_path']}/dhcpleases.pid";
 
 	/* Start the monitoring process for dynamic dhcpclients. */
-	if ((isset($config['dnsmasq']['enable']) && isset($config['dnsmasq']['regdhcp'])) ||
-	    (isset($config['unbound']['enable']) && isset($config['unbound']['regdhcp']))) {
+	if (((isset($config['dnsmasq']['enable']) && isset($config['dnsmasq']['regdhcp'])) ||
+	    (isset($config['unbound']['enable']) && isset($config['unbound']['regdhcp']))) &&
+	    (is_dhcp_server_enabled())) {
 		/* Make sure we do not error out */
 		mwexec("/bin/mkdir -p {$g['dhcpd_chroot_path']}/var/db");
 		if (!file_exists("{$g['dhcpd_chroot_path']}/var/db/dhcpd.leases")) {
@@ -808,6 +940,10 @@ function clear_log_file($logfile = "/var/log/system.log", $restart_syslogd = tru
 	if ($restart_syslogd) {
 		system_syslogd_start();
 	}
+	// Bug #6915
+	if ($logfile == "/var/log/resolver.log") {
+		services_unbound_configure(true);
+	}
 }
 
 function clear_all_log_files($restart = false) {
@@ -826,6 +962,7 @@ function clear_all_log_files($restart = false) {
 			require_once('services.inc');
 		}
 		services_dhcpd_configure();
+		// Bug #6915
 		services_unbound_configure(false);
 	}
 	return;
@@ -1418,7 +1555,7 @@ EOD;
 
 	$fd = fopen("{$filename}", "w");
 	if (!$fd) {
-		printf(gettext("Error: cannot open %s in system_generate_nginx_config().%s"), $filename, "\n");
+		printf(gettext('Error: cannot open %1$s in system_generate_nginx_config().%2$s'), $filename, "\n");
 		return 1;
 	}
 	fwrite($fd, $nginx_config);
@@ -1631,7 +1768,7 @@ function system_ntp_configure() {
 		$ntpcfg .= "\n";
 		$ntpcfg .= "# GPS Setup\n";
 		$ntpcfg .= 'server 127.127.20.0 mode ';
-		if (!empty($config['ntpd']['gps']['nmea']) || !empty($config['ntpd']['gps']['speed']) || !empty($config['ntpd']['gps']['subsec'])) {
+		if (!empty($config['ntpd']['gps']['nmea']) || !empty($config['ntpd']['gps']['speed']) || !empty($config['ntpd']['gps']['subsec']) || !empty($config['ntpd']['gps']['processpgrmf'])) {
 			if (!empty($config['ntpd']['gps']['nmea'])) {
 				$ntpmode = (int) $config['ntpd']['gps']['nmea'];
 			}
@@ -1640,6 +1777,9 @@ function system_ntp_configure() {
 			}
 			if (!empty($config['ntpd']['gps']['subsec'])) {
 				$ntpmode += 128;
+			}
+			if (!empty($config['ntpd']['gps']['processpgrmf'])) {
+				$ntpmode += 256;
 			}
 			$ntpcfg .= (string) $ntpmode;
 		} else {
@@ -1813,35 +1953,37 @@ function system_ntp_configure() {
 	if (is_array($config['ntpd']['restrictions']) && is_array($config['ntpd']['restrictions']['row'])) {
 		$networkacl = $config['ntpd']['restrictions']['row'];
 		foreach ($networkacl as $acl) {
-			$ntpcfg .= "\nrestrict ";
+			$restrict = "";
 			if (is_ipaddrv6($acl['acl_network'])) {
-				$ntpcfg .= "{$acl['acl_network']} mask " . gen_subnet_mask_v6($acl['mask']) . " ";
+				$restrict .= "{$acl['acl_network']} mask " . gen_subnet_mask_v6($acl['mask']) . " ";
 			} elseif (is_ipaddrv4($acl['acl_network'])) {
-				$ntpcfg .= "{$acl['acl_network']} mask " . gen_subnet_mask($acl['mask']) . " ";
+				$restrict .= "{$acl['acl_network']} mask " . gen_subnet_mask($acl['mask']) . " ";
 			} else {
 				continue;
 			}
 			if (!empty($acl['kod'])) {
-				$ntpcfg .= ' kod limited';
+				$restrict .= ' kod limited';
 			}
 			if (!empty($acl['nomodify'])) {
-				$ntpcfg .= ' nomodify';
+				$restrict .= ' nomodify';
 			}
 			if (!empty($acl['noquery'])) {
-				$ntpcfg .= ' noquery';
+				$restrict .= ' noquery';
 			}
 			if (!empty($acl['nopeer'])) {
-				$ntpcfg .= ' nopeer';
+				$restrict .= ' nopeer';
 			}
 			if (!empty($acl['noserve'])) {
-				$ntpcfg .= ' noserve';
+				$restrict .= ' noserve';
 			}
 			if (!empty($acl['notrap'])) {
-				$ntpcfg .= ' notrap';
+				$restrict .= ' notrap';
+			}
+			if (!empty($restrict)) {
+				$ntpcfg .= "\nrestrict {$restrict} ";
 			}
 		}
 	}
-	$ntpcfg .= "\n";
 	/* End Custom Access Restrictions */
 
 	/* A leapseconds file is really only useful if this clock is stratum 1 */
@@ -2231,6 +2373,11 @@ function system_identify_specific_platform() {
 		case 'Virtual Machine':
 			if ($maker[0] == "Microsoft Corporation") {
 				return (array('name' => 'Hyper-V', 'descr' => 'Hyper-V Virtual Machine'));
+			}
+			break;
+		case 'VMware Virtual Platform':
+			if ($maker[0] == "VMware, Inc.") {
+				return (array('name' => 'VMware', 'descr' => 'VMware Virtual Machine'));
 			}
 			break;
 	}

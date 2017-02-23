@@ -39,12 +39,8 @@ if (!is_array($config['load_balancer']['lbpool'])) {
 
 $a_pool = &$config['load_balancer']['lbpool'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
+
 
 if (isset($id) && $a_pool[$id]) {
 	$pconfig['name'] = $a_pool[$id]['name'];
@@ -62,7 +58,7 @@ $changecount = 0;
 
 $allowed_modes = array("loadbalance", "failover");
 
-if ($_POST) {
+if ($_POST['save']) {
 	$changecount++;
 
 	unset($input_errors);
@@ -183,6 +179,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Load Balancer"), gettext("Pools"), gettext("Edit"));
+$pglinks = array("", "load_balancer_pool.php", "load_balancer_pool.php", "@self");
 $shortcut_section = "relayd";
 
 include("head.inc");
@@ -302,7 +299,7 @@ $section = new Form_Section('Add/Edit Load Balancer - Pool Entry');
 
 $section->addInput(new Form_Input(
 	'name',
-	'Name',
+	'*Name',
 	'text',
 	$pconfig['name']
 ));
@@ -326,7 +323,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'port',
-	'Port',
+	'*Port',
 	'text',
 	$pconfig['port']
 ))->setHelp('This is the port the servers are listening on. A port alias listed in Firewall -> Aliases may also be specified here.');
@@ -384,7 +381,7 @@ $form->add($section);
 
 $section = new Form_Section('Current Pool Members');
 
-$group = new Form_Group('Members');
+$group = new Form_Group('*Members');
 
 $list = array();
 
@@ -450,7 +447,7 @@ $group->add(new Form_Button(
 
 $section->add($group);
 
-if (isset($id) && $a_pool[$id] && $_GET['act'] != 'dup') {
+if (isset($id) && $a_pool[$id] && $_REQUEST['act'] != 'dup') {
 	$section->addInput(new Form_Input(
 		'id',
 		null,

@@ -39,25 +39,20 @@ if (!is_array($config['igmpproxy']['igmpentry'])) {
 //igmpproxy_sort();
 $a_igmpproxy = &$config['igmpproxy']['igmpentry'];
 
-if ($_POST) {
+if ($_POST['submit']) {
 	$pconfig = $_POST;
 
+	$changes_applied = true;
 	$retval = 0;
 	/* reload all components that use igmpproxy */
-	$retval = services_igmpproxy_configure();
-
-	if (stristr($retval, "error") <> true) {
-		$savemsg = get_std_save_message($retval);
-	} else {
-		$savemsg = $retval;
-	}
+	$retval |= services_igmpproxy_configure();
 
 	clear_subsystem_dirty('igmpproxy');
 }
 
-if ($_GET['act'] == "del") {
-	if ($a_igmpproxy[$_GET['id']]) {
-		unset($a_igmpproxy[$_GET['id']]);
+if ($_POST['act'] == "del") {
+	if ($a_igmpproxy[$_POST['id']]) {
+		unset($a_igmpproxy[$_POST['id']]);
 		write_config();
 		mark_subsystem_dirty('igmpproxy');
 		header("Location: services_igmpproxy.php");
@@ -68,8 +63,8 @@ if ($_GET['act'] == "del") {
 $pgtitle = array(gettext("Services"), gettext("IGMP Proxy"));
 include("head.inc");
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('igmpproxy')) {
@@ -121,7 +116,7 @@ foreach ($a_igmpproxy as $igmpentry):
 							</td>
 							<td>
 								<a class="fa fa-pencil"	title="<?=gettext('Edit IGMP entry')?>" href="services_igmpproxy_edit.php?id=<?=$i?>"></a>
-								<a class="fa fa-trash"	title="<?=gettext('Delete IGMP entry')?>" href="services_igmpproxy.php?act=del&amp;id=<?=$i?>"></a>
+								<a class="fa fa-trash"	title="<?=gettext('Delete IGMP entry')?>" href="services_igmpproxy.php?act=del&amp;id=<?=$i?>" usepost></a>
 							</td>
 						</tr>
 <?php

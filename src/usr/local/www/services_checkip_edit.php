@@ -34,8 +34,8 @@ if (!is_array($config['checkipservices']['checkipservice'])) {
 
 $a_checkip = &$config['checkipservices']['checkipservice'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($_POST['id']) && is_numericint($_POST['id'])) {
@@ -104,6 +104,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Dynamic DNS"), gettext("Check IP Services"), gettext("Edit"));
+$pglinks = array("", "services_dyndns.php", "services_checkip.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -123,14 +124,14 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_Input(
 	'name',
-	'Name',
+	'*Name',
 	'text',
 	$pconfig['name']
 ))->setHelp('The name of the service may only consist of the characters "a-z, A-Z, 0-9 and _".');
 
 $section->addInput(new Form_Input(
 	'url',
-	'URL',
+	'*URL',
 	'text',
 	$pconfig['url']
 ));

@@ -27,6 +27,7 @@
 ##|*IDENT=page-diagnostics-backup-restore
 ##|*NAME=Diagnostics: Backup & Restore
 ##|*DESCR=Allow access to the 'Diagnostics: Backup & Restore' page.
+##|*WARN=standard-warning-root
 ##|*MATCH=diag_backup.php*
 ##|-PRIV
 
@@ -170,16 +171,14 @@ if ($_POST['apply']) {
 
 if ($_POST) {
 	unset($input_errors);
-	if (stristr($_POST['Submit'], gettext("Restore configuration"))) {
+	if ($_POST['restore']) {
 		$mode = "restore";
-	} else if (stristr($_POST['Submit'], gettext("Reinstall"))) {
+	} else if ($_POST['reinstallpackages']) {
 		$mode = "reinstallpackages";
-	} else if (stristr($_POST['Submit'], gettext("Clear Package Lock"))) {
+	} else if ($_POST['clearpackagelock']) {
 		$mode = "clearpackagelock";
-	} else if (stristr($_POST['Submit'], gettext("Download"))) {
+	} else if ($_POST['download']) {
 		$mode = "download";
-	} else if (stristr($_POST['Submit'], gettext("Restore version"))) {
-		$mode = "restore_ver";
 	}
 	if ($_POST["nopackages"] <> "") {
 		$options = "nopackages";
@@ -450,18 +449,6 @@ if ($_POST) {
 		} else if ($mode == "clearpackagelock") {
 			clear_subsystem_dirty('packagelock');
 			$savemsg = "Package lock cleared.";
-		} else if ($mode == "restore_ver") {
-			$input_errors[] = gettext("XXX - this feature may hose the config (do NOT backrev configs!) - billm");
-			if ($ver2restore <> "") {
-				$conf_file = "{$g['cf_conf_path']}/bak/config-" . strtotime($ver2restore) . ".xml";
-				if (config_install($conf_file) == 0) {
-					mark_subsystem_dirty("restore");
-				} else {
-					$input_errors[] = gettext("The configuration could not be restored.");
-				}
-			} else {
-				$input_errors[] = gettext("No version selected.");
-			}
 		}
 	}
 }
@@ -516,6 +503,7 @@ function build_area_list($showall) {
 }
 
 $pgtitle = array(gettext("Diagnostics"), htmlspecialchars(gettext("Backup & Restore")), htmlspecialchars(gettext("Backup & Restore")));
+$pglinks = array("", "@self", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -585,7 +573,7 @@ $section->addInput(new Form_Input(
 $group = new Form_Group('');
 // Note: ID attribute of each element created is to be unique.  Not being used, suppressing it.
 $group->add(new Form_Button(
-	'Submit',
+	'download',
 	'Download configuration as XML',
 	null,
 	'fa-download'
@@ -633,7 +621,7 @@ $section->addInput(new Form_Input(
 $group = new Form_Group('');
 // Note: ID attribute of each element created is to be unique.  Not being used, suppressing it.
 $group->add(new Form_Button(
-	'Submit',
+	'restore',
 	'Restore Configuration',
 	null,
 	'fa-undo'
@@ -650,7 +638,7 @@ if (($config['installedpackages']['package'] != "") || (is_subsystem_dirty("pack
 		$group = new Form_Group('');
 		// Note: ID attribute of each element created is to be unique.  Not being used, suppressing it.
 		$group->add(new Form_Button(
-			'Submit',
+			'reinstallpackages',
 			'Reinstall Packages',
 			null,
 			'fa-retweet'
@@ -663,7 +651,7 @@ if (($config['installedpackages']['package'] != "") || (is_subsystem_dirty("pack
 		$group = new Form_Group('');
 		// Note: ID attribute of each element created is to be unique.  Not being used, suppressing it.
 		$group->add(new Form_Button(
-			'Submit',
+			'clearpackagelock',
 			'Clear Package Lock',
 			null,
 			'fa-wrench'

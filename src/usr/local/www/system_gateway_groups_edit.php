@@ -44,15 +44,12 @@ $categories = array(
 	'downlatency' => gettext("High Latency"),
 	'downlosslatency' => gettext("Packet Loss or High Latency"));
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
-	$id = $_GET['dup'];
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_gateway_groups[$id]) {
@@ -62,11 +59,11 @@ if (isset($id) && $a_gateway_groups[$id]) {
 	$pconfig['trigger'] = $a_gateway_groups[$id]['trigger'];
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
 	unset($id);
 }
 
-if ($_POST) {
+if (isset($_POST['save'])) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -145,6 +142,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("System"), gettext("Routing"), gettext("Gateway Groups"), gettext("Edit"));
+$pglinks = array("", "system_gateways.php", "system_gateway_groups.php", "@self");
 $shortcut_section = "gateway-groups";
 
 function build_gateway_protocol_map (&$a_gateways) {
@@ -205,7 +203,7 @@ $section = new Form_Section('Edit Gateway Group Entry');
 
 $section->addInput(new Form_Input(
 	'name',
-	'Group Name',
+	'*Group Name',
 	'text',
 	$pconfig['name']
 ));
@@ -213,14 +211,14 @@ $section->addInput(new Form_Input(
 $row = 0;
 $numrows = count($a_gateways) - 1;
 
-$group = new Form_Group('Gateway Priority');
+$group = new Form_Group('*Gateway Priority');
 $group->add(new Form_StaticText('', ''))->setReadonly();
 $group->add(new Form_StaticText('', ''))->setReadonly();
 $group->add(new Form_StaticText('', ''))->setReadonly();
 $group->add(new Form_StaticText('', ''))->setWidth(3)->setReadonly();
 $section->add($group);
 
-// Determine the protocol familily this group pertains to. We loop through every item
+// Determine the protocol family this group pertains to. We loop through every item
 // just in case any have been removed and so have no family (orphans?)
 
 if (is_array($pconfig['item'])) {
@@ -322,7 +320,7 @@ $section->addInput(new Form_StaticText(
 
 $section->addInput(new Form_Select(
 	'trigger',
-	'Trigger Level',
+	'*Trigger Level',
 	$pconfig['trigger'],
 	array(
 		'0' => gettext('Member down'),

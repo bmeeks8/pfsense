@@ -24,6 +24,7 @@
 ##|*IDENT=page-system-authservers
 ##|*NAME=System: Authentication Servers
 ##|*DESCR=Allow access to the 'System: Authentication Servers' page.
+##|*WARN=standard-warning-root
 ##|*MATCH=system_authservers.php*
 ##|-PRIV
 
@@ -95,19 +96,14 @@ if ($_REQUEST['ajax']) {
 	exit;
 }
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
 
 if (!is_array($config['system']['authserver'])) {
 	$config['system']['authserver'] = array();
 }
 
 $a_servers = auth_get_authserver_list();
+
 foreach ($a_servers as $servers) {
 	$a_server[] = $servers;
 }
@@ -115,22 +111,20 @@ foreach ($a_servers as $servers) {
 if (!is_array($config['ca'])) {
 	$config['ca'] = array();
 }
+
 $a_ca =& $config['ca'];
 
-$act = $_GET['act'];
-if ($_POST['act']) {
-	$act = $_POST['act'];
-}
+$act = $_REQUEST['act'];
 
-if ($act == "del") {
+if ($_POST['act'] == "del") {
 
-	if (!$a_server[$_GET['id']]) {
+	if (!$a_server[$_POST['id']]) {
 		pfSenseHeader("system_authservers.php");
 		exit;
 	}
 
 	/* Remove server from main list. */
-	$serverdeleted = $a_server[$_GET['id']]['name'];
+	$serverdeleted = $a_server[$_POST['id']]['name'];
 	foreach ($config['system']['authserver'] as $k => $as) {
 		if ($config['system']['authserver'][$k]['name'] == $serverdeleted) {
 			unset($config['system']['authserver'][$k]);
@@ -138,7 +132,7 @@ if ($act == "del") {
 	}
 
 	/* Remove server from temp list used later on this page. */
-	unset($a_server[$_GET['id']]);
+	unset($a_server[$_POST['id']]);
 
 	$savemsg = sprintf(gettext("Authentication Server %s deleted."), htmlspecialchars($serverdeleted));
 	write_config($savemsg);
@@ -178,6 +172,7 @@ if ($act == "edit") {
 		}
 
 		if ($pconfig['type'] == "radius") {
+			$pconfig['radius_protocol'] = $a_server[$id]['radius_protocol'];
 			$pconfig['radius_host'] = $a_server[$id]['host'];
 			$pconfig['radius_auth_port'] = $a_server[$id]['radius_auth_port'];
 			$pconfig['radius_acct_port'] = $a_server[$id]['radius_acct_port'];
@@ -208,12 +203,13 @@ if ($act == "edit") {
 if ($act == "new") {
 	$pconfig['ldap_protver'] = 3;
 	$pconfig['ldap_anon'] = true;
+	$pconfig['radius_protocol'] = "MSCHAPv2";
 	$pconfig['radius_srvcs'] = "both";
 	$pconfig['radius_auth_port'] = "1812";
 	$pconfig['radius_acct_port'] = "1813";
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -247,10 +243,11 @@ if ($_POST) {
 	}
 
 	if ($pconfig['type'] == "radius") {
-		$reqdfields = explode(" ", "name type radius_host radius_srvcs");
+		$reqdfields = explode(" ", "name type radius_protocol radius_host radius_srvcs");
 		$reqdfieldsn = array(
 			gettext("Descriptive name"),
 			gettext("Type"),
+			gettext("Radius Protocol"),
 			gettext("Hostname or IP"),
 			gettext("Services"));
 
@@ -353,6 +350,7 @@ if ($_POST) {
 
 		if ($server['type'] == "radius") {
 
+			$server['radius_protocol'] = $pconfig['radius_protocol'];
 			$server['host'] = $pconfig['radius_host'];
 
 			if ($pconfig['radius_secret']) {
@@ -401,9 +399,11 @@ if ($_POST && $input_errors) {
 }
 
 $pgtitle = array(gettext("System"), gettext("User Manager"), gettext("Authentication Servers"));
+$pglinks = array("", "system_usermanager.php", "system_authservers.php");
 
 if ($act == "new" || $act == "edit" || $input_errors) {
 	$pgtitle[] = gettext('Edit');
+	$pglinks[] = "@self";
 }
 $shortcut_section = "authentication";
 include("head.inc");
@@ -447,7 +447,7 @@ if (!($act == "new" || $act == "edit" || $input_errors)) {
 						<td>
 						<?php if ($i < (count($a_server) - 1)): ?>
 							<a class="fa fa-pencil" title="<?=gettext("Edit server"); ?>" href="system_authservers.php?act=edit&amp;id=<?=$i?>"></a>
-							<a class="fa fa-trash"  title="<?=gettext("Delete server")?>" href="system_authservers.php?act=del&amp;id=<?=$i?>"></a>
+							<a class="fa fa-trash"  title="<?=gettext("Delete server")?>" href="system_authservers.php?act=del&amp;id=<?=$i?>" usepost></a>
 						<?php endif?>
 						</td>
 					</tr>
@@ -483,14 +483,14 @@ $section = new Form_Section('Server Settings');
 
 $section->addInput($input = new Form_Input(
 	'name',
-	'Descriptive name',
+	'*Descriptive name',
 	'text',
 	$pconfig['name']
 ));
 
 $section->addInput($input = new Form_Select(
 	'type',
-	'Type',
+	'*Type',
 	$pconfig['type'],
 	$auth_server_types
 ))->toggles();
@@ -506,7 +506,7 @@ if (!isset($pconfig['type']) || $pconfig['type'] == 'ldap')
 
 $section->addInput(new Form_Input(
 	'ldap_host',
-	'Hostname or IP address',
+	'*Hostname or IP address',
 	'text',
 	$pconfig['ldap_host']
 ))->setHelp('NOTE: When using SSL or STARTTLS, this hostname MUST match the Common Name '.
@@ -514,14 +514,14 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'ldap_port',
-	'Port value',
+	'*Port value',
 	'number',
 	$pconfig['ldap_port']
 ));
 
 $section->addInput(new Form_Select(
 	'ldap_urltype',
-	'Transport',
+	'*Transport',
 	$pconfig['ldap_urltype'],
 	array_combine(array_keys($ldap_urltypes), array_keys($ldap_urltypes))
 ));
@@ -551,7 +551,7 @@ else
 
 $section->addInput(new Form_Select(
 	'ldap_protver',
-	'Protocol version',
+	'*Protocol version',
 	$pconfig['ldap_protver'],
 	array_combine($ldap_protvers, $ldap_protvers)
 ));
@@ -568,7 +568,7 @@ $group = new Form_Group('Search scope');
 
 $SSF = new Form_Select(
 	'ldap_scope',
-	'Level',
+	'*Level',
 	$pconfig['ldap_scope'],
 	$ldap_scopes
 );
@@ -589,12 +589,12 @@ $section->addInput(new Form_StaticText(
 $group = new Form_Group('Authentication containers');
 $group->add(new Form_Input(
 	'ldapauthcontainers',
-	'Containers',
+	'*Containers',
 	'text',
 	$pconfig['ldap_authcn']
 ))->setHelp('Note: Semi-Colon separated. This will be prepended to the search '.
 	'base dn above or the full container path can be specified containing a dc= '.
-	'component.<br/>Example: CN=Users;DC=example,DC=com or OU=Staff;OU=Freelancers');
+	'component.%1$sExample: CN=Users;DC=example,DC=com or OU=Staff;OU=Freelancers', '<br/>');
 
 $group->add(new Form_Button(
 	'Select',
@@ -631,7 +631,7 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['ldap_anon']
 ));
 
-$group = new Form_Group('Bind credentials');
+$group = new Form_Group('*Bind credentials');
 $group->addClass('ldapanon');
 
 $group->add(new Form_Input(
@@ -666,21 +666,21 @@ if (!isset($id)) {
 
 $section->addInput(new Form_Input(
 	'ldap_attr_user',
-	'User naming attribute',
+	'*User naming attribute',
 	'text',
 	$pconfig['ldap_attr_user']
 ));
 
 $section->addInput(new Form_Input(
 	'ldap_attr_group',
-	'Group naming attribute',
+	'*Group naming attribute',
 	'text',
 	$pconfig['ldap_attr_group']
 ));
 
 $section->addInput(new Form_Input(
 	'ldap_attr_member',
-	'Group member attribute',
+	'*Group member attribute',
 	'text',
 	$pconfig['ldap_attr_member']
 ));
@@ -724,23 +724,30 @@ $form->add($section);
 $section = new Form_Section('RADIUS Server Settings');
 $section->addClass('toggle-radius collapse');
 
+$section->addInput(new Form_Select(
+	'radius_protocol',
+	'*Protocol',
+	$pconfig['radius_protocol'],
+	$radius_protocol
+));
+
 $section->addInput(new Form_Input(
 	'radius_host',
-	'Hostname or IP address',
+	'*Hostname or IP address',
 	'text',
 	$pconfig['radius_host']
 ));
 
 $section->addInput(new Form_Input(
 	'radius_secret',
-	'Shared Secret',
+	'*Shared Secret',
 	'password',
 	$pconfig['radius_secret']
 ));
 
 $section->addInput(new Form_Select(
 	'radius_srvcs',
-	'Services offered',
+	'*Services offered',
 	$pconfig['radius_srvcs'],
 	$radius_srvcs
 ));
@@ -887,6 +894,19 @@ events.push(function() {
 			$('#ldap_port').val('389');
 	}
 
+	function set_required_port_fields() {
+		if (document.getElementById("radius_srvcs").value == 'auth') {
+			setRequired('radius_auth_port', true);
+			setRequired('radius_acct_port', false);
+		} else if (document.getElementById("radius_srvcs").value == 'acct') {
+			setRequired('radius_auth_port', false);
+			setRequired('radius_acct_port', true);
+		} else { // both
+			setRequired('radius_auth_port', true);
+			setRequired('radius_acct_port', true);
+		}
+	}
+
 	// Hides all elements of the specified class. This will usually be a section
 	function hideClass(s_class, hide) {
 		if (hide)
@@ -921,6 +941,7 @@ events.push(function() {
 
 	hideClass('ldapanon', $('#ldap_anon').prop('checked'));
 	hideClass('extended', !$('#ldap_extended_enabled').prop('checked'));
+	set_required_port_fields();
 
 	if ($('#ldap_port').val() == "")
 		set_ldap_port();
@@ -960,6 +981,10 @@ events.push(function() {
 
 	$('#ldap_extended_enabled').click(function () {
 		hideClass('extended', !this.checked);
+	});
+
+	$('#radius_srvcs').on('change', function() {
+		set_required_port_fields();
 	});
 
 });

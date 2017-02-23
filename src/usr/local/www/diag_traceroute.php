@@ -122,7 +122,7 @@ $section = new Form_Section('Traceroute');
 
 $section->addInput(new Form_Input(
 	'host',
-	'Hostname',
+	'*Hostname',
 	'text',
 	$host,
 	['placeholder' => 'Hostname to trace.']
@@ -130,14 +130,14 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Select(
 	'ipproto',
-	'IP Protocol',
+	'*IP Protocol',
 	$ipproto,
 	array('ipv4' => 'IPv4', 'ipv6' => 'IPv6')
 ))->setHelp('Select the protocol to use.');
 
 $section->addInput(new Form_Select(
 	'sourceip',
-	'Source Address',
+	'*Source Address',
 	$sourceip,
 	array('any' => gettext('Any')) + get_possible_traffic_source_addresses(true)
 ))->setHelp('Select source address for the trace.');

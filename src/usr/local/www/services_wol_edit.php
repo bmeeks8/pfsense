@@ -41,33 +41,35 @@ function wol_sort() {
 }
 
 require_once("guiconfig.inc");
+
 if (!is_array($config['wol']['wolentry'])) {
 	$config['wol']['wolentry'] = array();
 }
+
 $a_wol = &$config['wol']['wolentry'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+
 
 if (isset($id) && $a_wol[$id]) {
 	$pconfig['interface'] = $a_wol[$id]['interface'];
 	$pconfig['mac'] = $a_wol[$id]['mac'];
 	$pconfig['descr'] = $a_wol[$id]['descr'];
 } else {
-	$pconfig['interface'] = $_GET['if'];
-	$pconfig['mac'] = $_GET['mac'];
-	$pconfig['descr'] = $_GET['descr'];
+	$pconfig['interface'] = $_REQUEST['if'];
+	$pconfig['mac'] = $_REQUEST['mac'];
+	$pconfig['descr'] = $_REQUEST['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
 
+
+	)
 	/* input validation */
 	$reqdfields = explode(" ", "interface mac");
 	$reqdfieldsn = array(gettext("Interface"), gettext("MAC address"));
@@ -79,6 +81,13 @@ if ($_POST) {
 
 	if (($_POST['mac'] && !is_macaddr($_POST['mac']))) {
 		$input_errors[] = gettext("A valid MAC address must be specified.");
+	}
+
+	foreach ($a_wol as $wolidx => $wolentry) {
+		if ((!isset($id) || ($wolidx != $id)) && ($wolentry['interface'] == $_POST['interface']) && ($wolentry['mac'] == $_POST['mac'])) {
+			$input_errors[] = gettext("This interface and MAC address wake-on-LAN entry already exists.");
+			break;
+		}
 	}
 
 	if (!$input_errors) {
@@ -102,6 +111,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Wake-on-LAN"), gettext("Edit"));
+$pglinks = array("", "services_wol.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -123,24 +133,24 @@ $section = new Form_Section('Edit WOL Entry');
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	(link_interface_to_bridge($pconfig['interface']) ? null : $pconfig['interface']),
 	get_configured_interface_with_descr()
 ))->setHelp('Choose which interface this host is connected to.');
 
 $section->addInput(new Form_Input(
 	'mac',
-	'MAC address',
+	'*MAC address',
 	'text',
 	$pconfig['mac']
-))->setHelp(gettext('Enter a MAC address in the following format: xx:xx:xx:xx:xx:xx'));
+))->setHelp('Enter a MAC address in the following format: xx:xx:xx:xx:xx:xx');
 
 $section->addInput(new Form_Input(
 	'descr',
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp(gettext('A description may be entered here for administrative reference (not parsed).'));
+))->setHelp('A description may be entered here for administrative reference (not parsed).');
 
 $form->add($section);
 print $form;

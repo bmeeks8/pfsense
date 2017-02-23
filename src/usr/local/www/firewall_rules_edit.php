@@ -39,6 +39,7 @@ require_once("shaper.inc");
 $icmptypes4 = array('any' => gettext('any'));
 $icmptypes6 = array('any' => gettext('any'));
 $icmptypes46 = array('any' => gettext('any'));
+
 foreach ($icmptypes as $k => $v) {
 	if ($v['valid4']) {
 		$icmptypes4[$k] = $v['descrip'];
@@ -50,10 +51,11 @@ foreach ($icmptypes as $k => $v) {
 		$icmptypes6[$k] = $v['descrip'];
 	}
 }
+
 $icmplookup = array(
 	'inet' => array('name' => 'IPv4', 'icmptypes' => $icmptypes4, 'helpmsg' => gettext('For ICMP rules on IPv4, one or more of these ICMP subtypes may be specified.')),
 	'inet6' => array('name' => 'IPv6', 'icmptypes' => $icmptypes6, 'helpmsg' => gettext('For ICMP rules on IPv6, one or more of these ICMP subtypes may be specified.')),
-	'inet46' => array('name' => 'IPv4+6', 'icmptypes' => $icmptypes46, 'helpmsg' => gettext('For ICMP rules on IPv4+IPv6, one or more of these ICMP subtypes may be specified. (Other ICMP subtypes are only valid under IPv4 <i>or</i> IPv6, not both)'))
+	'inet46' => array('name' => 'IPv4+6', 'icmptypes' => $icmptypes46, 'helpmsg' => sprintf(gettext('For ICMP rules on IPv4+IPv6, one or more of these ICMP subtypes may be specified. (Other ICMP subtypes are only valid under IPv4 %1$sor%2$s IPv6, not both)'), '<i>', '</i>'))
 );
 
 if (isset($_POST['referer'])) {
@@ -128,6 +130,7 @@ if (count($ostypes) > 2) {
 
 $specialsrcdst = explode(" ", "any (self) pptp pppoe l2tp openvpn");
 $ifdisp = get_configured_interface_with_descr();
+
 foreach ($ifdisp as $kif => $kdescr) {
 	$specialsrcdst[] = "{$kif}";
 	$specialsrcdst[] = "{$kif}ip";
@@ -136,26 +139,21 @@ foreach ($ifdisp as $kif => $kdescr) {
 if (!is_array($config['filter']['rule'])) {
 	$config['filter']['rule'] = array();
 }
+
 filter_rules_sort();
 $a_filter = &$config['filter']['rule'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-if (is_numericint($_GET['after']) || $_GET['after'] == "-1") {
-	$after = $_GET['after'];
-}
-if (isset($_POST['after']) && (is_numericint($_POST['after']) || $_POST['after'] == "-1")) {
-	$after = $_POST['after'];
+if (isset($_REQUEST['after']) && (is_numericint($_REQUEST['after']) || $_REQUEST['after'] == "-1")) {
+	$after = $_REQUEST['after'];
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
-	$id = $_GET['dup'];
-	$after = $_GET['dup'];
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
+	$after = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_filter[$id]) {
@@ -284,7 +282,7 @@ if (isset($id) && $a_filter[$id]) {
 	$pconfig['sched'] = (($a_filter[$id]['sched'] == "none") ? '' : $a_filter[$id]['sched']);
 	$pconfig['vlanprio'] = (($a_filter[$id]['vlanprio'] == "none") ? '' : $a_filter[$id]['vlanprio']);
 	$pconfig['vlanprioset'] = (($a_filter[$id]['vlanprioset'] == "none") ? '' : $a_filter[$id]['vlanprioset']);
-	if (!isset($_GET['dup']) || !is_numericint($_GET['dup'])) {
+	if (!isset($_REQUEST['dup']) || !is_numericint($_REQUEST['dup'])) {
 		$pconfig['associated-rule-id'] = $a_filter[$id]['associated-rule-id'];
 	}
 
@@ -292,8 +290,8 @@ if (isset($id) && $a_filter[$id]) {
 
 } else {
 	/* defaults */
-	if ($_GET['if']) {
-		$pconfig['interface'] = $_GET['if'];
+	if ($_REQUEST['if']) {
+		$pconfig['interface'] = $_REQUEST['if'];
 	}
 	$pconfig['type'] = "pass";
 	$pconfig['proto'] = "tcp"; // for new blank rules, default=tcp, also ensures ports fields are visible
@@ -303,7 +301,7 @@ if (isset($id) && $a_filter[$id]) {
 /* Allow the FloatingRules to work */
 $if = $pconfig['interface'];
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
 	unset($id);
 }
 
@@ -313,7 +311,7 @@ read_dummynet_config(); /* XXX: */
 $dnqlist =& get_unique_dnqueue_list();
 $a_gatewaygroups = return_gateway_groups_array();
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 
@@ -1089,11 +1087,20 @@ function build_if_list() {
 }
 
 $pgtitle = array(gettext("Firewall"), gettext("Rules"));
+$pglinks = array("");
 
 if ($if == "FloatingRules" || isset($pconfig['floating'])) {
+	$pglinks[] = "firewall_rules.php?if=FloatingRules";
 	$pgtitle[] = gettext('Floating');
+	$pglinks[] = "firewall_rules.php?if=FloatingRules";
+} elseif (!empty($if)) {
+	$pglinks = array("", "firewall_rules.php?if=" . $if);
+} else {
+	$pglinks = array("", "firewall_rules.php");
 }
+
 $pgtitle[] = gettext("Edit");
+$pglinks[] = "@self";
 $shortcut_section = "firewall";
 
 $page_filename = "firewall_rules_edit.php";
@@ -1153,14 +1160,14 @@ if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 
 $section->addInput(new Form_Select(
 	'type',
-	'Action',
+	'*Action',
 	$pconfig['type'],
 	$values
 ))->setHelp('Choose what to do with packets that match the criteria specified '.
-	'below.<br/>Hint: the difference between block and reject is that with '.
+	'below.%sHint: the difference between block and reject is that with '.
 	'reject, a packet (TCP RST or ICMP port unreachable for UDP) is returned '.
 	'to the sender, whereas with block the packet is dropped silently. In '.
-	'either case, the original packet is discarded.');
+	'either case, the original packet is discarded.', '<br/>');
 
 $section->addInput(new Form_Checkbox(
 	'disabled',
@@ -1219,7 +1226,7 @@ if ($edit_disabled) {
 if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 	$section->addInput($input = new Form_Select(
 		'interface',
-		'Interface',
+		'*Interface',
 		$pconfig['interface'],
 		build_if_list(),
 		true
@@ -1227,7 +1234,7 @@ if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 } else {
 	$section->addInput($input = new Form_Select(
 		'interface',
-		'Interface',
+		'*Interface',
 		$pconfig['interface'],
 		build_if_list()
 	))->setHelp('Choose the interface from which packets must come to match this rule.');
@@ -1236,7 +1243,7 @@ if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 	$section->addInput(new Form_Select(
 		'direction',
-		'Direction',
+		'*Direction',
 		$pconfig['direction'],
 		array(
 			'any' => gettext('any'),
@@ -1255,7 +1262,7 @@ if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 
 $section->addInput(new Form_Select(
 	'ipprotocol',
-	'Address Family',
+	'*Address Family',
 	$pconfig['ipprotocol'],
 	array(
 		'inet' => 'IPv4',
@@ -1266,7 +1273,7 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_Select(
 	'proto',
-	'Protocol',
+	'*Protocol',
 	$pconfig['proto'],
 	array(
 		'any' => gettext('Any'),
@@ -1294,7 +1301,7 @@ $group->add(new Form_Select(
 	((isset($pconfig['icmptype']) && strlen($pconfig['icmptype']) > 0) ? explode(',', $pconfig['icmptype']) : 'any'),
 	isset($icmplookup[$pconfig['ipprotocol']]) ? $icmplookup[$pconfig['ipprotocol']]['icmptypes'] : array('any' => gettext('any')),
 	true
-))->setHelp('<div id="icmptype_help">' . (isset($icmplookup[$pconfig['ipprotocol']]) ? $icmplookup[$pconfig['ipprotocol']]['helpmsg'] : '') . '</div>');
+))->setHelp('%s', '<div id="icmptype_help">' . (isset($icmplookup[$pconfig['ipprotocol']]) ? $icmplookup[$pconfig['ipprotocol']]['helpmsg'] : '') . '</div>');
 $group->addClass('icmptype_section');
 
 $section->add($group);
@@ -1303,10 +1310,10 @@ $form->add($section);
 
 // Source and destination share a lot of logic. Loop over the two
 // ToDo: Unfortunately they seem to differ more than they share. This needs to be unrolled
-foreach (['src' => 'Source', 'dst' => 'Destination'] as $type => $name) {
+foreach (['src' => gettext('Source'), 'dst' => gettext('Destination')] as $type => $name) {
 	$section = new Form_Section($name);
 
-	$group = new Form_Group($name);
+	$group = new Form_Group('*' . $name);
 	$group->add(new Form_Checkbox(
 		$type .'not',
 		$name .' not',
@@ -1384,9 +1391,9 @@ foreach (['src' => 'Source', 'dst' => 'Destination'] as $type => $name) {
 			null,
 			'fa-cog'
 		))->setAttribute('type','button')->addClass('btn-info btn-sm')->setHelp(
-			'The <b>Source Port Range</b> for a connection is typically random '.
+			'The %1$sSource Port Range%2$s for a connection is typically random '.
 			'and almost never equal to the destination port. '.
-			'In most cases this setting must remain at its default value, <b>any</b>.');
+			'In most cases this setting must remain at its default value, %1$sany%2$s.', '<b>', '</b>');
 	}
 
 	$portValues = ['' => gettext('(other)'), 'any' => gettext('any')];
@@ -1394,7 +1401,7 @@ foreach (['src' => 'Source', 'dst' => 'Destination'] as $type => $name) {
 		$portValues[$port] = $portName.' ('. $port .')';
 	}
 
-	$group = new Form_Group($name .' Port Range');
+	$group = new Form_Group($type == 'src' ? gettext('Source Port Range') : gettext('Destination Port Range'));
 
 	$group->addClass($type . 'portrange');
 
@@ -1426,7 +1433,7 @@ foreach (['src' => 'Source', 'dst' => 'Destination'] as $type => $name) {
 		(isset($portValues[ $pconfig[$type .'endport'] ]) ? null : $pconfig[$type .'endport'])
 	))->setHelp('Custom');
 
-	$group->setHelp(sprintf('Specify the %s port or port range for this rule. The "To" field may be left empty if only filtering a single port.',strtolower($name)));
+	$group->setHelp('Specify the %s port or port range for this rule. The "To" field may be left empty if only filtering a single port.', strtolower($name));
 
 	$group->addClass(($type == 'src') ? 'srcprtr':'dstprtr');
 	$section->add($group);
@@ -1441,8 +1448,7 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['log']
 ))->setHelp('Hint: the firewall has limited local log space. Don\'t turn on logging '.
 	'for everything. If doing a lot of logging, consider using a remote '.
-	'syslog server (see the <a href="status_logs_settings.php">Status: System Logs: '.
-	'Settings</a> page).');
+	'syslog server (see the %1$sStatus: System Logs: Settings%2$s page).', '<a href="status_logs_settings.php">', '</a>');
 
 $section->addInput(new Form_Input(
 	'descr',
@@ -1505,7 +1511,7 @@ $section->addInput(new Form_Input(
 	'text',
 	$pconfig['tag']
 ))->setHelp('A packet matching this rule can be marked and this mark used to match '.
-	'on other NAT/filter rules. It is called <b>Policy filtering</b>.');
+	'on other NAT/filter rules. It is called %1$sPolicy filtering%2$s.', '<b>', '</b>');
 
 $section->addInput(new Form_Input(
 	'tagged',
@@ -1587,8 +1593,8 @@ $section->addInput(new Form_Select(
 		'synproxy state' => gettext('Synproxy'),
 		'none' => gettext('None'),
 	)
-))->setHelp('Select which type of state tracking mechanism to use.  If in doubt, use keep state.' . '<br />' .
-			'<span></span>');
+))->setHelp('Select which type of state tracking mechanism to use.  If in doubt, use keep state.%1$s',
+			'<br /><span></span>');
 
 $section->addInput(new Form_Checkbox(
 	'nosync',
@@ -1678,9 +1684,10 @@ $group->add(new Form_Select(
 $section->add($group)->setHelp('Choose the Out queue/Virtual interface only if '.
 	'In is also selected. The Out selection is applied to traffic leaving '.
 	'the interface where the rule is created, the In selection is applied to traffic coming '.
-	'into the chosen interface.<br />If creating a floating rule, if the '.
+	'into the chosen interface.%1$sIf creating a floating rule, if the '.
 	'direction is In then the same rules apply, if the direction is Out the '.
-	'selections are reversed, Out is for incoming and In is for outgoing.'
+	'selections are reversed, Out is for incoming and In is for outgoing.',
+	'<br />'
 );
 
 $group = new Form_Group('Ackqueue / Queue');
@@ -1727,14 +1734,20 @@ if ($has_created_time || $has_updated_time) {
 	if ($has_created_time) {
 		$section->addInput(new Form_StaticText(
 			'Created',
-			date('n/j/y H:i:s', $a_filter[$id]['created']['time']) . gettext(' by ') .'<b>'. $a_filter[$id]['created']['username'] .'</b>'
+			sprintf(
+				gettext('%1$s by %2$s'),
+				date(gettext("n/j/y H:i:s"), $a_filter[$id]['created']['time']),
+				'<b>' . $a_filter[$id]['created']['username'] . '</b>')
 		));
 	}
 
 	if ($has_updated_time) {
 		$section->addInput(new Form_StaticText(
 			'Updated',
-			date('n/j/y H:i:s', $a_filter[$id]['updated']['time']) . gettext(' by ') .'<b>'. $a_filter[$id]['updated']['username'] .'</b>'
+			sprintf(
+				gettext('%1$s by %2$s'),
+				date(gettext("n/j/y H:i:s"), $a_filter[$id]['updated']['time']),
+				'<b>' . $a_filter[$id]['updated']['username'] . '</b>')
 		));
 	}
 }
@@ -2046,10 +2059,6 @@ events.push(function() {
 	});
 
 	// Change help text based on the selector value
-	function setHelpText(id, text) {
-		$('#' + id).parent().parent('div').find('span').find('span').html(text);
-	}
-
 	function setOptText(target, val) {
 		var dispstr = '<span class="text-success">';
 

@@ -56,21 +56,17 @@ if (!is_array($config['nat']['onetoone'])) {
 
 $a_1to1 = &$config['nat']['onetoone'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-$after = $_GET['after'];
-if (isset($_POST['after'])) {
-	$after = $_POST['after'];
+if (isset($_REQUEST['after'])) {
+	$after = $_REQUEST['after'];
 }
 
-if (isset($_GET['dup'])) {
-	$id = $_GET['dup'];
-	$after = $_GET['dup'];
+if (isset($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
+	$after = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_1to1[$id]) {
@@ -97,11 +93,11 @@ if (isset($id) && $a_1to1[$id]) {
 	$pconfig['interface'] = "wan";
 }
 
-if (isset($_GET['dup'])) {
+if (isset($_REQUEST['dup'])) {
 	unset($id);
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	/*	run through $_POST items encoding HTML entities so that the user
@@ -190,7 +186,7 @@ if ($_POST) {
 				// Check that the address family matches the other IP addresses entered.
 				if ($extipaddrtype && ($srcipaddrtype != $extipaddrtype)) {
 					$input_errors[] = sprintf(
-						gettext("The external IP address (%s) and internal IP address (%s) are of different address families.") .
+						gettext('The external IP address (%1$s) and internal IP address (%2$s) are of different address families.') .
 							get_must_be_both_text(),
 						$_POST['external'],
 						$_POST['src']);
@@ -216,14 +212,14 @@ if ($_POST) {
 				// Check that the address family matches the other IP addresses entered.
 				if ($extipaddrtype && ($dstipaddrtype != $extipaddrtype)) {
 					$input_errors[] = sprintf(
-						gettext("The external IP address (%s) and destination IP address (%s) are of different address families.") .
+						gettext('The external IP address (%1$s) and destination IP address (%2$s) are of different address families.') .
 							get_must_be_both_text(),
 						$_POST['external'],
 						$_POST['dst']);
 				}
 				if ($srcipaddrtype && ($dstipaddrtype != $srcipaddrtype)) {
 					$input_errors[] = sprintf(
-						gettext("The internal IP address (%s) and destination IP address (%s) are of different address families.") .
+						gettext('The internal IP address (%1$s) and destination IP address (%2$s) are of different address families.') .
 							get_must_be_both_text(),
 						$_POST['src'],
 						$_POST['dst']);
@@ -288,6 +284,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("Firewall"), gettext("NAT"), gettext("1:1"), gettext("Edit"));
+$pglinks = array("", "firewall_nat.php", "firewall_nat_1to1.php", "@self");
 include("head.inc");
 
 function build_srctype_list() {
@@ -458,19 +455,19 @@ if	($config['openvpn']["openvpn-server"] || $config['openvpn']["openvpn-client"]
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	$interfaces
 ))->setHelp('Choose which interface this rule applies to. In most cases "WAN" is specified.');
 
 $section->addInput(new Form_IpAddress(
 	'external',
-	'External subnet IP',
+	'*External subnet IP',
 	$pconfig['external']
 ))->setHelp('Enter the external (usually on a WAN) subnet\'s starting address for the 1:1 mapping. ' .
 			'The subnet mask from the internal address below will be applied to this IP address.');
 
-$group = new Form_Group('Internal IP');
+$group = new Form_Group('*Internal IP');
 
 $group->add(new Form_Checkbox(
 	'srcnot',
@@ -497,7 +494,7 @@ $group->setHelp('Enter the internal (LAN) subnet for the 1:1 mapping. ' .
 
 $section->add($group);
 
-$group = new Form_Group('Destination');
+$group = new Form_Group('*Destination');
 
 $group->add(new Form_Checkbox(
 	'dstnot',

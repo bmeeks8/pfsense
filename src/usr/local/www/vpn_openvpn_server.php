@@ -63,16 +63,12 @@ foreach ($a_crl as $cid => $acrl) {
 	}
 }
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-$act = $_GET['act'];
-if (isset($_POST['act'])) {
-	$act = $_POST['act'];
+if (isset($_REQUEST['act'])) {
+	$act = $_REQUEST['act'];
 }
 
 if (isset($id) && $a_server[$id]) {
@@ -81,7 +77,7 @@ if (isset($id) && $a_server[$id]) {
 	$vpnid = 0;
 }
 
-if ($_GET['act'] == "del") {
+if ($_POST['act'] == "del") {
 
 	if (!isset($a_server[$id])) {
 		pfSenseHeader("vpn_openvpn_server.php");
@@ -95,7 +91,7 @@ if ($_GET['act'] == "del") {
 	$savemsg = gettext("Server successfully deleted.");
 }
 
-if ($_GET['act'] == "new") {
+if ($act == "new") {
 	$pconfig['ncp_enable'] = "enabled";
 	$pconfig['ncp-ciphers'] = "AES-256-GCM,AES-128-GCM";
 	$pconfig['autokey_enable'] = "yes";
@@ -112,7 +108,7 @@ if ($_GET['act'] == "new") {
 	$pconfig['digest'] = "SHA1";
 }
 
-if ($_GET['act'] == "edit") {
+if ($act == "edit") {
 
 	if (isset($id) && $a_server[$id]) {
 		$pconfig['disable'] = isset($a_server[$id]['disable']);
@@ -255,7 +251,7 @@ if ($_GET['act'] == "edit") {
 	}
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -450,7 +446,7 @@ if ($_POST) {
 
 	if ($pconfig['dev_mode'] != "tap") {
 		$reqdfields[] = 'tunnel_network';
-		$reqdfieldsn[] = gettext('Tunnel network');
+		$reqdfieldsn[] = gettext('IPv4 Tunnel network');
 	} else {
 		if ($pconfig['serverbridge_dhcp'] && $pconfig['tunnel_network']) {
 			$input_errors[] = gettext("Using a tunnel network and server bridge settings together is not allowed.");
@@ -631,9 +627,11 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("VPN"), gettext("OpenVPN"), gettext("Servers"));
+$pglinks = array("", "vpn_openvpn_server.php", "vpn_openvpn_server.php");
 
 if ($act=="new" || $act=="edit") {
 	$pgtitle[] = gettext('Edit');
+	$pglinks[] = "@self";
 }
 $shortcut_section = "openvpn";
 
@@ -675,7 +673,7 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Select(
 		'mode',
-		'Server mode',
+		'*Server mode',
 		$pconfig['mode'],
 		openvpn_build_mode_list()
 		));
@@ -701,7 +699,7 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Select(
 		'authmode',
-		'Backend for authentication',
+		'*Backend for authentication',
 		$authmodes,
 		$options,
 		true
@@ -709,29 +707,29 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Select(
 		'protocol',
-		'Protocol',
+		'*Protocol',
 		$pconfig['protocol'],
 		$openvpn_prots
 		));
 
 	$section->addInput(new Form_Select(
 		'dev_mode',
-		'Device mode',
+		'*Device mode',
 		empty($pconfig['dev_mode']) ? 'tun':$pconfig['dev_mode'],
 		$openvpn_dev_mode
-		))->setHelp("\"tun\" mode carries IPv4 and IPv6 (OSI layer 3) and is the most common and compatible mode across all platforms." .
-		    "<br/>\"tap\" mode is capable of carrying 802.3 (OSI Layer 2.)");
+		))->setHelp('"tun" mode carries IPv4 and IPv6 (OSI layer 3) and is the most common and compatible mode across all platforms.%1$s' .
+		    '"tap" mode is capable of carrying 802.3 (OSI Layer 2.)', '<br/>');
 
 	$section->addInput(new Form_Select(
 		'interface',
-		'Interface',
+		'*Interface',
 		$pconfig['interface'],
 		openvpn_build_if_list()
 		))->setHelp("The interface or Virtual IP address where OpenVPN will receive client connections.");
 
 	$section->addInput(new Form_Input(
 		'local_port',
-		'Local port',
+		'*Local port',
 		'number',
 		$pconfig['local_port'],
 		['min' => '0']
@@ -768,20 +766,20 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Textarea(
 		'tls',
-		'TLS Key',
+		'*TLS Key',
 		$pconfig['tls']
-	))->setHelp("Paste the TLS key here." .
-	    "<br/>" .
-	    "This key is used to sign control channel packets with an HMAC signature for authentication when establishing the tunnel. ");
+	))->setHelp('Paste the TLS key here.%1$s' .
+	    'This key is used to sign control channel packets with an HMAC signature for authentication when establishing the tunnel. ',
+		'<br/>');
 
 	$section->addInput(new Form_Select(
 		'tls_type',
-		'TLS Key Usage Mode',
+		'*TLS Key Usage Mode',
 		empty($pconfig['tls_type']) ? 'auth':$pconfig['tls_type'],
 		$openvpn_tls_modes
-		))->setHelp("In Authentication mode the TLS key is used only as HMAC authentication for the control channel, protecting the peers from unauthorized connections. " .
-		    "<br/>" .
-		    "Encryption and Authentication mode also encrypts control channel communication, providing more privacy and traffic control channel obfuscation.");
+		))->setHelp('In Authentication mode the TLS key is used only as HMAC authentication for the control channel, protecting the peers from unauthorized connections. %1$s' .
+		    'Encryption and Authentication mode also encrypts control channel communication, providing more privacy and traffic control channel obfuscation.',
+			'<br/>');
 
 	if (count($a_ca)) {
 
@@ -792,13 +790,13 @@ if ($act=="new" || $act=="edit"):
 
 		$section->addInput(new Form_Select(
 			'caref',
-			'Peer Certificate Authority',
+			'*Peer Certificate Authority',
 			$pconfig['caref'],
 			$list
 		));
 	} else {
 		$section->addInput(new Form_StaticText(
-			'Peer Certificate Authority',
+			'*Peer Certificate Authority',
 			sprintf('No Certificate Authorities defined. One may be created here: %s', '<a href="system_camanager.php">System &gt; Cert. Manager</a>')
 		));
 	}
@@ -827,7 +825,7 @@ if ($act=="new" || $act=="edit"):
 			}
 		}
 	} else {
-		$certhelp = sprintf('%s%s%s$s', '<span id="certtype">', gettext('No Certificates defined. One may be created here: '), '<a href="system_camanager.php">' . gettext("System &gt; Cert. Manager") . '</a>', '</span>');
+		$certhelp = sprintf(gettext('No Certificates defined. One may be created here: %1$s%2$s%3$s'), '<span id="certtype">', '<a href="system_camanager.php">' . gettext("System &gt; Cert. Manager") . '</a>', '</span>');
 	}
 
 	$cl = openvpn_build_cert_list(false, true);
@@ -837,23 +835,25 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Select(
 		'certref',
-		'Server certificate',
+		'*Server certificate',
 		$pconfig['certref'],
 		$cl['server'] + $cl['non-server']
 		))->setHelp($certhelp);
 
 	$section->addInput(new Form_Select(
 		'dh_length',
-		'DH Parameter Length',
+		'*DH Parameter Length',
 		$pconfig['dh_length'],
 		$openvpn_dh_lengths
-		))->setHelp('Diffie-Hellman (DH) parameter set used for key exchange.' .
-		    '<div class="infoblock">' .
-		    sprint_info_box('Only DH parameter sets which exist in /etc/ are shown. ' .
+		))->setHelp('Diffie-Hellman (DH) parameter set used for key exchange.%1$s%2$s%3$s',
+		    '<div class="infoblock">',
+		    sprint_info_box(gettext('Only DH parameter sets which exist in /etc/ are shown.') .
 		        '<br/>' .
-		        'Generating new or stronger DH parameters is CPU-intensive and must be performed manually. ' .
-		        'Consult <a href="https://doc.pfsense.org/index.php/DH_Parameters">the doc wiki article on DH Parameters</a> ' .
-		        'for information on generating new or stronger paramater sets.', 'info', false) .
+		        gettext('Generating new or stronger DH parameters is CPU-intensive and must be performed manually.') . ' ' .
+		        sprintf(gettext('Consult %1$sthe doc wiki article on DH Parameters%2$sfor information on generating new or stronger paramater sets.'),
+					'<a href="https://doc.pfsense.org/index.php/DH_Parameters">',
+					'</a> '),
+				'info', false),
 		    '</div>');
 
 	$section->addInput(new Form_Select(
@@ -861,10 +861,10 @@ if ($act=="new" || $act=="edit"):
 		'ECDH Curve',
 		$pconfig['ecdh_curve'],
 		openvpn_get_curvelist()
-		))->setHelp('The Elliptic Curve to use for key exchange. ' .
-		    '<br/>' .
+		))->setHelp('The Elliptic Curve to use for key exchange. %1$s' .
 		    'The curve from the server certificate is used by default when the server uses an ECDSA certificate. ' .
-		    'Otherwise, secp384r1 is used as a fallback.');
+		    'Otherwise, secp384r1 is used as a fallback.',
+			'<br/>');
 
 	if (!$pconfig['shared_key']) {
 		$section->addInput(new Form_Checkbox(
@@ -877,13 +877,13 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Textarea(
 		'shared_key',
-		'Shared Key',
+		'*Shared Key',
 		$pconfig['shared_key']
 	))->setHelp('Paste the shared key here');
 
 	$section->addInput(new Form_Select(
 		'crypto',
-		'Encryption Algorithm',
+		'*Encryption Algorithm',
 		$pconfig['crypto'],
 		openvpn_get_cipherlist()
 		))->setHelp('The Encryption Algorithm used for data channel packets when Negotiable Cryptographic Parameter (NCP) support is not available.');
@@ -893,10 +893,12 @@ if ($act=="new" || $act=="edit"):
 		'Enable NCP',
 		'Enable Negotiable Cryptographic Parameters',
 		($pconfig['ncp_enable'] == "enabled")
-	))->setHelp(		'Check this option to allow OpenVPN clients and servers to negotiate a compatible set of acceptable cryptographic ' .
-				'Encryption Algorithms from those selected in the NCP Algorithms list below.' .
-				'<div class="infoblock">' . sprint_info_box('When both peers support NCP and have it enabled, NCP overrides the Encryption Algorithm above.' . '<br />' .
-				'When disabled, only the selected Encryption Algorithm is allowed.', 'info', false) . '</div>');
+	))->setHelp('Check this option to allow OpenVPN clients and servers to negotiate a compatible set of acceptable cryptographic ' .
+				'Encryption Algorithms from those selected in the NCP Algorithms list below.%1$s%2$s%3$s',
+				'<div class="infoblock">',
+				sprint_info_box(gettext('When both peers support NCP and have it enabled, NCP overrides the Encryption Algorithm above.') . '<br />' .
+					gettext('When disabled, only the selected Encryption Algorithm is allowed.'), 'info', false),
+				'</div>');
 
 	$group = new Form_Group('NCP Algorithms');
 
@@ -907,7 +909,7 @@ if ($act=="new" || $act=="edit"):
 		openvpn_get_cipherlist(),
 		true
 	))->setAttribute('size', '10')
-	  ->setHelp('Available NCP Encryption Algorithms<br />Click to add or remove an algorithm from the list');
+	  ->setHelp('Available NCP Encryption Algorithms%1$sClick to add or remove an algorithm from the list', '<br />');
 
 	$group->add(new Form_Select(
 		'ncp-ciphers',
@@ -919,24 +921,24 @@ if ($act=="new" || $act=="edit"):
 	  ->setAttribute('size', '10')
 	  ->setHelp('Allowed NCP Encryption Algorithms. Click an algorithm name to remove it from the list');
 
-	$group->setHelp(		'The order of the selected NCP Encryption Algorithms is respected by OpenVPN.' .
-					'<div class="infoblock">' . sprint_info_box(
-					'For backward compatibility, when an older peer connects that does not support NCP, OpenVPN will use the Encryption Algorithm ' .
-					'requested by the peer so long as it is selected in this list or chosen as the Encryption Algorithm.', 'info', false) .
+	$group->setHelp('The order of the selected NCP Encryption Algorithms is respected by OpenVPN.%1$s%2$s%3$s',
+					'<div class="infoblock">',
+					sprint_info_box(
+						gettext('For backward compatibility, when an older peer connects that does not support NCP, OpenVPN will use the Encryption Algorithm ' .
+							'requested by the peer so long as it is selected in this list or chosen as the Encryption Algorithm.'), 'info', false),
 					'</div>');
 
 	$section->add($group);
 
 	$section->addInput(new Form_Select(
 		'digest',
-		'Auth digest algorithm',
+		'*Auth digest algorithm',
 		$pconfig['digest'],
 		openvpn_get_digestlist()
-		))->setHelp('The algorithm used to authenticate data channel packets, and control channel packets if a TLS Key is present.' .
-		    '<br />' .
-		    'When an AEAD Encryption Algorithm mode is used, such as AES-GCM, this digest is used for the control channel only, not the data channel.' .
-		    '<br />' .
-		    'Leave this set to SHA1 unless all clients are set to match. SHA1 is the default for OpenVPN. ');
+		))->setHelp('The algorithm used to authenticate data channel packets, and control channel packets if a TLS Key is present.%1$s' .
+		    'When an AEAD Encryption Algorithm mode is used, such as AES-GCM, this digest is used for the control channel only, not the data channel.%1$s' .
+		    'Leave this set to SHA1 unless all clients are set to match. SHA1 is the default for OpenVPN. ',
+			'<br />');
 
 	$section->addInput(new Form_Select(
 		'engine',
@@ -947,7 +949,7 @@ if ($act=="new" || $act=="edit"):
 
 	$section->addInput(new Form_Select(
 		'cert_depth',
-		'Certificate Depth',
+		'*Certificate Depth',
 		$pconfig['cert_depth'],
 		["" => gettext("Do Not Check")] + $openvpn_cert_depths
 		))->setHelp('When a certificate-based client logs in, do not accept certificates below this depth. ' .
@@ -1128,9 +1130,9 @@ if ($act=="new" || $act=="edit"):
 		'Topology',
 		$pconfig['topology'],
 		$openvpn_topologies
-	))->setHelp('Specifies the method used to supply a virtual adapter IP address to clients when using TUN mode on IPv4.' . '<br />' .
+	))->setHelp('Specifies the method used to supply a virtual adapter IP address to clients when using TUN mode on IPv4.%1$s' .
 				'Some clients may require this be set to "subnet" even for IPv6, such as OpenVPN Connect (iOS/Android). ' .
-				'Older versions of OpenVPN (before 2.0.9) or clients such as Yealink phones may require "net30".');
+				'Older versions of OpenVPN (before 2.0.9) or clients such as Yealink phones may require "net30".', '<br />');
 
 	$form->add($section);
 
@@ -1289,19 +1291,19 @@ if ($act=="new" || $act=="edit"):
 		'custom_options',
 		'Custom options',
 		$pconfig['custom_options']
-	))->setHelp('Enter any additional options to add to the OpenVPN server configuration here, separated by semicolon.' . '<br />' .
-				'EXAMPLE: push "route 10.0.0.0 255.255.255.0"');
+	))->setHelp('Enter any additional options to add to the OpenVPN server configuration here, separated by semicolon.%1$s' .
+				'EXAMPLE: push "route 10.0.0.0 255.255.255.0"', '<br />');
 
 	$section->addInput(new Form_Select(
 		'verbosity_level',
 		'Verbosity level',
 		$pconfig['verbosity_level'],
 		$openvpn_verbosity_level
-		))->setHelp('Each level shows all info from the previous levels. Level 3 is recommended for a good summary of what\'s happening without being swamped by output.' . '<br /><br />' .
-					'None: Only fatal errors' . '<br />' .
-					'Default through 4: Normal usage range' . '<br />' .
-					'5: Output R and W characters to the console for each packet read and write. Uppercase is used for TCP/UDP packets and lowercase is used for TUN/TAP packets.' .'<br />' .
-					'6-11: Debug info range');
+		))->setHelp('Each level shows all info from the previous levels. Level 3 is recommended for a good summary of what\'s happening without being swamped by output.%1$s%1$s' .
+					'None: Only fatal errors%1$s' .
+					'Default through 4: Normal usage range%1$s' .
+					'5: Output R and W characters to the console for each packet read and write. Uppercase is used for TCP/UDP packets and lowercase is used for TUN/TAP packets.%1$s' .
+					'6-11: Debug info range', '<br />');
 
 	$section->addInput(new Form_Input(
 		'act',
@@ -1352,7 +1354,7 @@ else:
 						<?=htmlspecialchars($server['tunnel_networkv6'])?>
 					</td>
 					<td>
-						<?=sprintf("Crypto: %s/%s", $server['crypto'], $server['digest']);?>
+						<?=sprintf('Crypto: %1$s/%2$s', $server['crypto'], $server['digest']);?>
 					<?php if (is_numeric($server['dh_length'])): ?>
 						<?=sprintf("<br/>D-H Params: %d bits", $server['dh_length']);?>
 					<?php elseif ($server['dh_length'] == "none"): ?>
@@ -1360,11 +1362,11 @@ else:
 					<?php endif; ?>
 					</td>
 					<td>
-						<?=htmlspecialchars(sprintf('%s (%s)', $server['description'], $server['dev_mode']))?>
+						<?=htmlspecialchars(sprintf('%1$s (%2$s)', $server['description'], $server['dev_mode']))?>
 					</td>
 					<td>
 						<a class="fa fa-pencil"	title="<?=gettext('Edit server')?>" href="vpn_openvpn_server.php?act=edit&amp;id=<?=$i?>"></a>
-						<a class="fa fa-trash"	title="<?=gettext('Delete server')?>" href="vpn_openvpn_server.php?act=del&amp;id=<?=$i?>"></a>
+						<a class="fa fa-trash"	title="<?=gettext('Delete server')?>" href="vpn_openvpn_server.php?act=del&amp;id=<?=$i?>" usepost></a>
 					</td>
 				</tr>
 <?php
@@ -1638,6 +1640,7 @@ events.push(function() {
 				hideInput('serverbridge_interface', true);
 				hideInput('serverbridge_dhcp_start', true);
 				hideInput('serverbridge_dhcp_end', true);
+				setRequired('tunnel_network', true);
 				if (sharedkey) {
 					hideInput('local_network', true);
 					hideInput('local_networkv6', true);
@@ -1653,6 +1656,7 @@ events.push(function() {
 
 			case "tap":
 				hideInput('tunnel_network', false);
+				setRequired('tunnel_network', false);
 
 				if (!p2p) {
 					hideCheckbox('serverbridge_dhcp', false);

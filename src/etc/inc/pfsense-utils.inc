@@ -190,7 +190,7 @@ function gen_webguicss_field(&$section, $value) {
 		'Theme',
 		$value,
 		$csslist
-	))->setHelp(sprintf(gettext('Choose an alternative css file (if installed) to change the appearance of the webConfigurator. css files are located in /usr/local/www/css/%s'), '<span id="csstxt"></span>'));
+	))->setHelp('Choose an alternative css file (if installed) to change the appearance of the webConfigurator. css files are located in /usr/local/www/css/%s', '<span id="csstxt"></span>');
 }
 
 /****f* pfsense-utils/gen_webguifixedmenu_field
@@ -242,7 +242,7 @@ function gen_webguihostnamemenu_field(&$section, $value) {
  ******/
 function gen_dashboardcolumns_field(&$section, $value) {
 
-	if (($value < 1) || ($value > 4)) {
+	if (($value < 1) || ($value > 6)) {
 		$value = 2;
 	}
 
@@ -251,7 +251,7 @@ function gen_dashboardcolumns_field(&$section, $value) {
 		'Dashboard Columns',
 		'number',
 		$value,
-		[min => 1, max => 4]
+		[min => 1, max => 6]
 	));
 }
 
@@ -364,6 +364,26 @@ function gen_user_settings_fields(&$section, $pconfig) {
 		$pconfig['statusmonitoringsettingspanel']);
 	gen_webguileftcolumnhyper_field($section, $pconfig['webguileftcolumnhyper']);
 	gen_pagenamefirst_field($section, $pconfig['pagenamefirst']);
+}
+
+/****f* pfsense-utils/gen_requirestatefilter_field
+ * NAME
+ *   gen_requirestatefilter_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_requirestatefilter_field(&$section, $value) {
+	$section->addInput(new Form_Checkbox(
+		'requirestatefilter',
+		'Require State Filter',
+		'Do not display state table without a filter',
+		$value
+	))->setHelp('By default, the entire state table is displayed when entering '.
+		'Diagnostics > States. This option requires a filter to be entered '.
+		'before the states are displayed. Useful for systems with large state tables.');
 }
 
 function hardware_offloading_applyflags($iface) {
@@ -795,53 +815,6 @@ function merge_config_section($section_name, $new_contents) {
 	write_config(sprintf(gettext("Restored %s of config file (maybe from CARP partner)"), $section_name));
 	disable_security_checks();
 	return;
-}
-
-/*
- *  php_check_syntax($code_tocheck, $errormessage): checks $code_to_check for errors
- */
-if (!function_exists('php_check_syntax')) {
-	global $g;
-	function php_check_syntax($code_to_check, &$errormessage) {
-		return false;
-		$fout = fopen("{$g['tmp_path']}/codetocheck.php", "w");
-		$code = $_POST['content'];
-		$code = str_replace("<?php", "", $code);
-		$code = str_replace("?>", "", $code);
-		fwrite($fout, "<?php\n\n");
-		fwrite($fout, $code_to_check);
-		fwrite($fout, "\n\n?>\n");
-		fclose($fout);
-		$command = "/usr/local/bin/php-cgi -l {$g['tmp_path']}/codetocheck.php";
-		$output = exec_command($command);
-		if (stristr($output, "Errors parsing") == false) {
-			echo "false\n";
-			$errormessage = '';
-			return(false);
-		} else {
-			$errormessage = $output;
-			return(true);
-		}
-	}
-}
-
-/*
- *  php_check_filename_syntax($filename, $errormessage): checks the file $filename for errors
- */
-if (!function_exists('php_check_syntax')) {
-	function php_check_syntax($code_to_check, &$errormessage) {
-		return false;
-		$command = "/usr/local/bin/php-cgi -l " . escapeshellarg($code_to_check);
-		$output = exec_command($command);
-		if (stristr($output, "Errors parsing") == false) {
-			echo "false\n";
-			$errormessage = '';
-			return(false);
-		} else {
-			$errormessage = $output;
-			return(true);
-		}
-	}
 }
 
 /*
@@ -2395,13 +2368,12 @@ function process_alias_urltable($name, $type, $url, $freq, $forceupdate=false, $
 				touch($urltable_filename);
 			}
 
-			/* If this backup is still there on a full install, but we aren't going to use ram disks, remove the archive since this is a transition. */
-			if (!isset($config['system']['use_mfs_tmpvar'])) {
-				unlink_if_exists("{$g['cf_conf_path']}/RAM_Disk_Store{$urltable_filename}.tgz");
-			} else {
-				/* Update the RAM disk store with the new/updated table file. */
-				mwexec("cd / && /usr/bin/tar -czf \"{$g['cf_conf_path']}/RAM_Disk_Store{$urltable_filename}.tgz\" -C / \"{$urltable_filename}\"");
+			/* Remove existing archive and create an up to date archive if RAM disk is enabled. */
+			unlink_if_exists("{$g['cf_conf_path']}/RAM_Disk_Store/{$name}.txt.tgz");
+			if (isset($config['system']['use_mfs_tmpvar'])) {
+				mwexec("/usr/bin/tar -czf " . escapeshellarg("{$g['cf_conf_path']}/RAM_Disk_Store/{$name}.txt.tgz") . " -C / " . escapeshellarg($urltable_filename));
 			}
+
 			unlink_if_exists($tmp_urltable_filename);
 		} else {
 			if (!$validateonly) {
@@ -2709,6 +2681,10 @@ function where_is_ipaddr_configured($ipaddr, $ignore_if = "", $check_localip = f
 
 	$isipv6 = is_ipaddrv6($ipaddr);
 
+	if ($isipv6) {
+		$ipaddr = text_to_compressed_ip6($ipaddr);
+	}
+
 	if ($check_subnets) {
 		$cidrprefix = intval($cidrprefix);
 		if ($isipv6) {
@@ -2767,7 +2743,7 @@ function where_is_ipaddr_configured($ipaddr, $ignore_if = "", $check_localip = f
 	}
 
 	if ($check_localip) {
-		if (!is_array($config['l2tp']) && !empty($config['l2tp']['localip']) && (strcasecmp($ipaddr, $config['l2tp']['localip']) == 0)) {
+		if (!is_array($config['l2tp']) && !empty($config['l2tp']['localip']) && (strcasecmp($ipaddr, text_to_compressed_ip6($config['l2tp']['localip'])) == 0)) {
 			$where_entry = array();
 			$where_entry['if'] = 'l2tp';
 			$where_entry['ip_or_subnet'] = $config['l2tp']['localip'];
@@ -2820,10 +2796,19 @@ function set_language() {
 function get_locale_list() {
 	$locales = array(
 		"en_US" => gettext("English"),
+		"es" => gettext("Spanish"),
 		"pt_BR" => gettext("Portuguese (Brazil)"),
 		"tr" => gettext("Turkish"),
+		"zh_Hans_CN" => gettext("Chinese (Simplified, China)"),
+		"zh_TW" => gettext("Chinese (Taiwan)"),
 	);
-	asort($locales);
+
+	// If the locales are sorted, the order changes depending on the language selected. If the user accidentally
+	// selects the wrong language, this makes it very difficult to guess the intended language. NOT sorting
+	// allows the user to remember that English (say) is the second on the list and to get back to it more easily
+
+	//asort($locales);
+
 	return $locales;
 }
 
@@ -2864,7 +2849,7 @@ function convert_128bit_to_ipv6($ip6bin) {
 	foreach ($ip6binarr as $binpart) {
 		$ip6arr[] = dechex(bindec($binpart));
 	}
-	$ip6addr = Net_IPv6::compress(implode(":", $ip6arr));
+	$ip6addr = text_to_compressed_ip6(implode(":", $ip6arr));
 
 	return($ip6addr);
 }
@@ -2946,7 +2931,7 @@ function merge_ipv6_delegated_prefix($prefix, $suffix, $len = 64) {
 		break;
 	}
 
-	return Net_IPv6::compress(substr($prefix, 0, $prefix_len) .
+	return text_to_compressed_ip6(substr($prefix, 0, $prefix_len) .
 	    substr($suffix, $prefix_len));
 }
 
@@ -3152,38 +3137,6 @@ function pkg_call_plugins($plugin_type, $plugin_params) {
 		}
 	}
 	return $results;
-}
-
-function restore_aliastables() {
-	global $g, $config;
-
-	$dbpath = "{$g['vardb_path']}/aliastables/";
-
-	/* restore the alias tables, if we have them */
-	$files = glob("{$g['cf_conf_path']}/RAM_Disk_Store{$dbpath}*.tgz");
-	if (count($files)) {
-		echo "Restoring alias tables...";
-		foreach ($files as $file) {
-			if (file_exists($file)) {
-				$aliastablesrestore = "";
-				$aliastablesreturn = "";
-				exec("cd /;LANG=C /usr/bin/tar -xzf {$file} 2>&1", $aliastablesrestore, $aliastablesreturn);
-				$aliastablesrestore = implode(" ", $aliastablesrestore);
-				if ($aliastablesreturn <> 0) {
-					log_error(sprintf(gettext('Alias table restore failed exited with %1$s, the error is: %2$s %3$s%4$s'), $aliastablesreturn, $aliastablesrestore, $file, "\n"));
-				} else {
-					log_error(sprintf(gettext('Alias table restore succeeded exited with %1$s, the result is: %2$s %3$s%4$s'), $aliastablesreturn, $aliastablesrestore, $dbpath.basename($file, ".tgz"), "\n"));
-				}
-			}
-			/* If this backup is still there on a full install, but we aren't going to use ram disks, remove the archive since this is a transition. */
-			if (!isset($config['system']['use_mfs_tmpvar'])) {
-				unlink_if_exists("{$file}");
-			}
-		}
-		echo "done.\n";
-		return true;
-	}
-	return false;
 }
 
 // Convert IPv6 addresses to lower case

@@ -50,6 +50,7 @@ require_once("filter.inc");
 require_once("shaper.inc");
 
 $pgtitle = array(gettext("Firewall"), gettext("Schedules"), gettext("Edit"));
+$pglinks = array("", "firewall_schedule.php", "@self");
 
 $referer = (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '/firewall_schedule.php');
 
@@ -62,12 +63,8 @@ if (!is_array($config['schedules']['schedule'])) {
 
 $a_schedules = &$config['schedules']['schedule'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_schedules[$id]) {
@@ -78,7 +75,7 @@ if (isset($id) && $a_schedules[$id]) {
 	$getSchedule = true;
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	if (strtolower($_POST['name']) == "lan") {
 		$input_errors[] = gettext("Schedule may not be named LAN.");
@@ -352,13 +349,16 @@ $section = new Form_Section('Schedule Information');
 
 $input = new Form_Input(
 	'name',
-	'Schedule Name',
+	'*Schedule Name',
 	'text',
 	$pconfig['name']
 );
 
-$input->setHelp((is_schedule_inuse($pconfig['name']) != true) ? 'The name of the schedule may only consist of the characters "a-z, A-Z, 0-9 and _".':
-																'This schedule is in use so the name may not be modified!');
+if (is_schedule_inuse($pconfig['name']) != true) {
+	$input->setHelp('The name of the schedule may only consist of the characters "a-z, A-Z, 0-9 and _".');
+} else {
+	$input->setHelp('This schedule is in use so the name may not be modified!');
+}
 
 if (is_schedule_inuse($pconfig['name']) == true) {
 	$input->setReadonly();
@@ -381,11 +381,11 @@ $section->addInput(new Form_Select(
 ));
 
 $section->addInput(new Form_StaticText(
-	'Date',
+	'*Date',
 	 build_date_table()
 ));
 
-$group = new Form_Group('Time');
+$group = new Form_Group('*Time');
 
 $group->add(new Form_Select(
 	'starttimehour',
@@ -699,7 +699,7 @@ function repeatExistingDays() {
 		tempstr = 'w' + week + 'p' + daypos;
 		daycell = eval('document.getElementById(tempstr)');
 		if (daydone == "-1") {
-			if ($("#"+tempstr).hasClass("bg-info")) { 
+			if ($("#"+tempstr).hasClass("bg-info")) {
 				daytogglerepeating(week,daypos,true);
 			} else {
 				daytogglerepeating(week,daypos,false);
@@ -763,11 +763,11 @@ function daytoggle(id) {
 		var daycell = document.getElementById(idmod);
 
 		if (daycell != null) {
-			if ($("#"+idmod).hasClass("bg-success")) {  
+			if ($("#"+idmod).hasClass("bg-success")) {
 				$("#"+idmod).removeClass("bg-success");
 				str = id + ",";
 				daysSelected = daysSelected.replace(str, "");
-			} else if ($("#"+idmod).hasClass("bg-info")) { 
+			} else if ($("#"+idmod).hasClass("bg-info")) {
 				daytogglerepeating(week,daypos,true);
 			} else { //color is white cell
 				if (!runrepeat) {

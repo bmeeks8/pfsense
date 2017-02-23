@@ -39,13 +39,7 @@ if (!is_array($config['unbound']['domainoverrides'])) {
 }
 
 $a_domainOverrides = &$config['unbound']['domainoverrides'];
-
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
 
 if (isset($id) && $a_domainOverrides[$id]) {
 	$pconfig['domain'] = $a_domainOverrides[$id]['domain'];
@@ -53,7 +47,7 @@ if (isset($id) && $a_domainOverrides[$id]) {
 	$pconfig['descr'] = $a_domainOverrides[$id]['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -110,6 +104,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("Services"), gettext("DNS Resolver"), gettext("General Settings"), gettext("Edit Domain Override"));
+$pglinks = array("", "services_unbound.php", "services_unbound.php", "@self");
 $shortcut_section = "resolver";
 include("head.inc");
 
@@ -123,17 +118,17 @@ $section = new Form_Section('Domain Override');
 
 $section->addInput(new Form_Input(
 	'domain',
-	'Domain',
+	'*Domain',
 	'text',
 	$pconfig['domain']
 ))->setHelp('Domain to override (NOTE: this does not have to be a valid TLD!) e.g.: test or mycompany.localdomain or 1.168.192.in-addr.arpa');
 
 $section->addInput(new Form_IpAddress(
 	'ip',
-	'IP Address',
+	'*IP Address',
 	$pconfig['ip']
-))->setHelp('IP address of the authoritative DNS server for this domain. e.g.: 192.168.100.100' . '<br />' .
-			'To use a non-default port for communication, append an \'@\' with the port number.')->setPattern('[a-zA-Z0-9@.:]+');
+))->setHelp('IP address of the authoritative DNS server for this domain. e.g.: 192.168.100.100%1$s' .
+			'To use a non-default port for communication, append an \'@\' with the port number.', '<br />')->setPattern('[a-zA-Z0-9@.:]+');
 
 $section->addInput(new Form_Input(
 	'descr',

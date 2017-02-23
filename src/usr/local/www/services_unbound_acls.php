@@ -36,7 +36,7 @@ if (!is_array($config['unbound']['acls'])) {
 
 $a_acls = &$config['unbound']['acls'];
 
-$id = $_GET['id'];
+$id = $_REQUEST['id'];
 
 if (isset($_POST['aclid'])) {
 	$id = $_POST['aclid'];
@@ -47,13 +47,9 @@ if (!empty($id) && !is_numeric($id)) {
 	exit;
 }
 
-$act = $_GET['act'];
+$act = $_REQUEST['act'];
 
-if (isset($_POST['act'])) {
-	$act = $_POST['act'];
-}
-
-if ($act == "del") {
+if ($_POST['act'] == "del") {
 	if (!$a_acls[$id]) {
 		pfSenseHeader("services_unbound_acls.php");
 		exit;
@@ -84,96 +80,86 @@ if ($act == 'new') {
 	$networkacl = array('0' => array('acl_network' => '', 'mask' => '', 'description' => ''));
 }
 
-if ($_POST) {
+if ($_POST['apply']) {
+	$retval = 0;
+	$retval |= services_unbound_configure();
+	if ($retval == 0) {
+		clear_subsystem_dirty('unbound');
+	}
+}
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 	$deleting = false;
 
-	// Delete a row from the networks table
-	for ($idx = 0; $idx < 50; $idx++) {
-		if ($pconfig['dlt' . $idx] == 'Delete') {
-			unset($networkacl[$idx]);
-			$deleting = true;
-			break;
+	// input validation - only allow 50 entries in a single ACL
+	for ($x = 0; $x < 50; $x++) {
+		if (isset($pconfig["acl_network{$x}"])) {
+			$networkacl[$x] = array();
+			$networkacl[$x]['acl_network'] = $pconfig["acl_network{$x}"];
+			$networkacl[$x]['mask'] = $pconfig["mask{$x}"];
+			$networkacl[$x]['description'] = $pconfig["description{$x}"];
+			if (!is_ipaddr($networkacl[$x]['acl_network'])) {
+				$input_errors[] = gettext("A valid IP address must be entered for each row under Networks.");
+			}
+
+			if (is_ipaddr($networkacl[$x]['acl_network'])) {
+				if (!is_subnet($networkacl[$x]['acl_network']."/".$networkacl[$x]['mask'])) {
+					$input_errors[] = gettext("A valid IPv4 netmask must be entered for each IPv4 row under Networks.");
+				}
+			} else if (function_exists("is_ipaddrv6")) {
+				if (!is_ipaddrv6($networkacl[$x]['acl_network'])) {
+					$input_errors[] = gettext("A valid IPv6 address must be entered for {$networkacl[$x]['acl_network']}.");
+				} else if (!is_subnetv6($networkacl[$x]['acl_network']."/".$networkacl[$x]['mask'])) {
+					$input_errors[] = gettext("A valid IPv6 netmask must be entered for each IPv6 row under Networks.");
+				}
+			} else {
+				$input_errors[] = gettext("A valid IP address must be entered for each row under Networks.");
+			}
+		} else if (isset($networkacl[$x])) {
+			unset($networkacl[$x]);
 		}
 	}
 
-	if ($_POST['apply']) {
-		$retval = services_unbound_configure();
-		$savemsg = get_std_save_message($retval);
-		if ($retval == 0) {
-			clear_subsystem_dirty('unbound');
-		}
-	} else if (!$deleting) {
+	if (!$input_errors) {
+		if (strtolower($pconfig['save']) == gettext("save")) {
+			$acl_entry = array();
+			$acl_entry['aclid'] = $pconfig['aclid'];
+			$acl_entry['aclname'] = $pconfig['aclname'];
+			$acl_entry['aclaction'] = $pconfig['aclaction'];
+			$acl_entry['description'] = $pconfig['description'];
+			$acl_entry['aclid'] = $pconfig['aclid'];
+			$acl_entry['row'] = array();
 
-		// input validation - only allow 50 entries in a single ACL
-		for ($x = 0; $x < 50; $x++) {
-			if (isset($pconfig["acl_network{$x}"])) {
-				$networkacl[$x] = array();
-				$networkacl[$x]['acl_network'] = $pconfig["acl_network{$x}"];
-				$networkacl[$x]['mask'] = $pconfig["mask{$x}"];
-				$networkacl[$x]['description'] = $pconfig["description{$x}"];
-				if (!is_ipaddr($networkacl[$x]['acl_network'])) {
-					$input_errors[] = gettext("A valid IP address must be entered for each row under Networks.");
-				}
-
-				if (is_ipaddr($networkacl[$x]['acl_network'])) {
-					if (!is_subnet($networkacl[$x]['acl_network']."/".$networkacl[$x]['mask'])) {
-						$input_errors[] = gettext("A valid IPv4 netmask must be entered for each IPv4 row under Networks.");
-					}
-				} else if (function_exists("is_ipaddrv6")) {
-					if (!is_ipaddrv6($networkacl[$x]['acl_network'])) {
-						$input_errors[] = gettext("A valid IPv6 address must be entered for {$networkacl[$x]['acl_network']}.");
-					} else if (!is_subnetv6($networkacl[$x]['acl_network']."/".$networkacl[$x]['mask'])) {
-						$input_errors[] = gettext("A valid IPv6 netmask must be entered for each IPv6 row under Networks.");
-					}
-				} else {
-					$input_errors[] = gettext("A valid IP address must be entered for each row under Networks.");
-				}
-			} else if (isset($networkacl[$x])) {
-				unset($networkacl[$x]);
+			foreach ($networkacl as $acl) {
+				$acl_entry['row'][] = $acl;
 			}
-		}
 
-		if (!$input_errors) {
-			if (strtolower($pconfig['save']) == gettext("save")) {
-				$acl_entry = array();
-				$acl_entry['aclid'] = $pconfig['aclid'];
-				$acl_entry['aclname'] = $pconfig['aclname'];
-				$acl_entry['aclaction'] = $pconfig['aclaction'];
-				$acl_entry['description'] = $pconfig['description'];
-				$acl_entry['aclid'] = $pconfig['aclid'];
-				$acl_entry['row'] = array();
-
-				foreach ($networkacl as $acl) {
-					$acl_entry['row'][] = $acl;
-				}
-
-				if (isset($id) && $a_acls[$id]) {
-					$a_acls[$id] = $acl_entry;
-				} else {
-					$a_acls[] = $acl_entry;
-				}
-
-				mark_subsystem_dirty("unbound");
-				write_config();
-
-				pfSenseHeader("/services_unbound_acls.php");
-				exit;
+			if (isset($id) && $a_acls[$id]) {
+				$a_acls[$id] = $acl_entry;
+			} else {
+				$a_acls[] = $acl_entry;
 			}
+
+			mark_subsystem_dirty("unbound");
+			write_config();
+
+			pfSenseHeader("/services_unbound_acls.php");
+			exit;
 		}
 	}
 }
 
 $actionHelp =
-					sprintf(gettext('%sDeny:%s Stops queries from hosts within the netblock defined below.%s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
-					sprintf(gettext('%sRefuse:%s Stops queries from hosts within the netblock defined below, but sends a DNS rcode REFUSED error message back to the client.%s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
-					sprintf(gettext('%sAllow:%s Allow queries from hosts within the netblock defined below.%s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
-					sprintf(gettext('%sAllow Snoop:%s Allow recursive and nonrecursive access from hosts within the netblock defined below. Used for cache snooping and ideally should only be configured for the administrative host.%s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
-					sprintf(gettext('%sDeny Nonlocal:%s Allow only authoritative local-data queries from hosts within the netblock defined below. Messages that are disallowed are dropped.%s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
-					sprintf(gettext('%sRefuse Nonlocal:%s Allow only authoritative local-data queries from hosts within the netblock defined below. Sends a DNS rcode REFUSED error message back to the client for messages that are disallowed.'), '<span class="text-success"><strong>', '</strong></span>');
+					sprintf(gettext('%1$sDeny:%2$s Stops queries from hosts within the netblock defined below.%3$s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
+					sprintf(gettext('%1$sRefuse:%2$s Stops queries from hosts within the netblock defined below, but sends a DNS rcode REFUSED error message back to the client.%3$s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
+					sprintf(gettext('%1$sAllow:%2$s Allow queries from hosts within the netblock defined below.%3$s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
+					sprintf(gettext('%1$sAllow Snoop:%2$s Allow recursive and nonrecursive access from hosts within the netblock defined below. Used for cache snooping and ideally should only be configured for the administrative host.%3$s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
+					sprintf(gettext('%1$sDeny Nonlocal:%2$s Allow only authoritative local-data queries from hosts within the netblock defined below. Messages that are disallowed are dropped.%3$s'), '<span class="text-success"><strong>', '</strong></span>', '<br />') .
+					sprintf(gettext('%1$sRefuse Nonlocal:%2$s Allow only authoritative local-data queries from hosts within the netblock defined below. Sends a DNS rcode REFUSED error message back to the client for messages that are disallowed.'), '<span class="text-success"><strong>', '</strong></span>');
 
 $pgtitle = array(gettext("Services"), gettext("DNS Resolver"), gettext("Access Lists"));
+$pglinks = array("", "services_unbound.php", "@self");
 
 if ($act == "new" || $act == "edit") {
 	$pgtitle[] = gettext('Edit');
@@ -185,8 +171,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('unbound')) {
@@ -228,7 +214,7 @@ if ($act == "new" || $act == "edit") {
 
 	$section->addInput(new Form_Select(
 		'aclaction',
-		'Action',
+		'*Action',
 		strtolower($pconfig['aclaction']),
 		array('allow' => gettext('Allow'), 'deny' => gettext('Deny'), 'refuse' => gettext('Refuse'), 'allow snoop' => gettext('Allow Snoop'), 'deny nonlocal' => gettext('Deny Nonlocal'), 'refuse nonlocal' => gettext('Refuse Nonlocal'))
 	))->setHelp($actionHelp);
@@ -248,7 +234,7 @@ if ($act == "new" || $act == "edit") {
 		$cidr = $item['mask'];
 		$description = $item['description'];
 
-		$group = new Form_Group($counter == 0 ? 'Networks':'');
+		$group = new Form_Group($counter == 0 ? '*Networks':'');
 
 		$group->add(new Form_IpAddress(
 			'acl_network'.$counter,
@@ -318,7 +304,7 @@ if ($act == "new" || $act == "edit") {
 						</td>
 						<td>
 							<a class="fa fa-pencil"	title="<?=gettext('Edit ACL')?>" href="services_unbound_acls.php?act=edit&amp;id=<?=$i?>"></a>
-							<a class="fa fa-trash"	title="<?=gettext('Delete ACL')?>" href="services_unbound_acls.php?act=del&amp;id=<?=$i?>"></a>
+							<a class="fa fa-trash"	title="<?=gettext('Delete ACL')?>" href="services_unbound_acls.php?act=del&amp;id=<?=$i?>" usepost></a>
 						</td>
 					</tr>
 <?php

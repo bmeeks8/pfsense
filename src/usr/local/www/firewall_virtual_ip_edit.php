@@ -41,11 +41,8 @@ if (!is_array($config['virtualip']['vip'])) {
 
 $a_vip = &$config['virtualip']['vip'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 function return_first_two_octets($ip) {
@@ -86,7 +83,7 @@ if (isset($id) && $a_vip[$id]) {
 	$pconfig['uniqid'] = uniqid();
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -287,6 +284,7 @@ $ipaliashelp = gettext('The mask must be the network\'s subnet mask. It does not
 $proxyarphelp = gettext('Enter a CIDR block of proxy ARP addresses.');
 
 $pgtitle = array(gettext("Firewall"), gettext("Virtual IPs"), gettext("Edit"));
+$pglinks = array("", "firewall_virtual_ip.php", "@self");
 include("head.inc");
 
 function build_if_list() {
@@ -320,7 +318,7 @@ $form = new Form();
 
 $section = new Form_Section('Edit Virtual IP');
 
-$group = new Form_Group('Type');
+$group = new Form_Group('*Type');
 
 $group->add(new Form_Checkbox(
 	'mode',
@@ -358,7 +356,7 @@ $section->add($group);
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	build_if_list()
 ));
@@ -375,9 +373,9 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_IpAddress(
 	'subnet',
-	'Address(es)',
+	'*Address(es)',
 	$pconfig['subnet']
-))->addMask('subnet_bits', $pconfig['subnet_bits'])->setHelp('<span id="address_note"></span>');
+))->addMask('subnet_bits', $pconfig['subnet_bits'])->setHelp('%s', '<span id="address_note"></span>');
 
 $section->addInput(new Form_Checkbox(
 	'noexpand',
@@ -482,10 +480,14 @@ events.push(function() {
 		disableInput('password', true);
 		disableInput('password_confirm', true);
 		hideCheckbox('noexpand', true);
+		setRequired('password', false);
+		setRequired('vhid', false);
+		setRequired('advbase', false);
 
 		if (mode == 'ipalias') {
 			$('#address_note').html("<?=$ipaliashelp?>");
 			$('#type').val('single');
+			setRequired('type', false);
 			disableInput('subnet_bits', false);
 
 		} else if (mode == 'carp') {
@@ -497,14 +499,20 @@ events.push(function() {
 			disableInput('password_confirm', false);
 			disableInput('subnet_bits', false);
 			$('#type').val('single');
+			setRequired('type', false);
+			setRequired('password', true);
+			setRequired('vhid', true);
+			setRequired('advbase', true);
 		} else if (mode == 'proxyarp') {
 			$('#address_note').html("<?=$proxyarphelp?>");
 			disableInput('type', false);
+			setRequired('type', true);
 			disableInput('subnet_bits', ($('#type').val() == 'single'));
 			hideCheckbox('noexpand', false);
 		} else {
 			$('#address_note').html('');
 			disableInput('type', false);
+			setRequired('type', true);
 			disableInput('subnet_bits', ($('#type').val() == 'single'));
 			hideCheckbox('noexpand', false);
 		}

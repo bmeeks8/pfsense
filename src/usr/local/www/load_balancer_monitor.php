@@ -35,25 +35,23 @@ if (!is_array($config['load_balancer']['monitor_type'])) {
 }
 $a_monitor = &$config['load_balancer']['monitor_type'];
 
-if ($_POST) {
-	$pconfig = $_POST;
+$pconfig = $_POST;
 
-	if ($_POST['apply']) {
-		$retval = 0;
-		$retval |= filter_configure();
-		$retval |= relayd_configure();
+if ($_POST['apply']) {
+	$retval = 0;
+	$retval |= filter_configure();
+	$retval |= relayd_configure();
 
-		$savemsg = get_std_save_message($retval);
-		clear_subsystem_dirty('loadbalancer');
-	}
+	clear_subsystem_dirty('loadbalancer');
 }
 
-if ($_GET['act'] == "del") {
-	if (array_key_exists($_GET['id'], $a_monitor)) {
+
+if ($_POST['act'] == "del") {
+	if (array_key_exists($_POST['id'], $a_monitor)) {
 		/* make sure no pools reference this entry */
 		if (is_array($config['load_balancer']['lbpool'])) {
 			foreach ($config['load_balancer']['lbpool'] as $pool) {
-				if ($pool['monitor'] == $a_monitor[$_GET['id']]['name']) {
+				if ($pool['monitor'] == $a_monitor[$_POST['id']]['name']) {
 					$input_errors[] = gettext("This entry cannot be deleted because it is still referenced by at least one pool.");
 					break;
 				}
@@ -61,7 +59,7 @@ if ($_GET['act'] == "del") {
 		}
 
 		if (!$input_errors) {
-			unset($a_monitor[$_GET['id']]);
+			unset($a_monitor[$_POST['id']]);
 			write_config();
 			mark_subsystem_dirty('loadbalancer');
 			header("Location: load_balancer_monitor.php");
@@ -71,6 +69,7 @@ if ($_GET['act'] == "del") {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Load Balancer"), gettext("Monitors"));
+$pglinks = array("", "load_balancer_pool.php", "@self");
 $shortcut_section = "relayd";
 
 include("head.inc");
@@ -79,8 +78,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('loadbalancer')) {
@@ -127,7 +126,7 @@ foreach ($a_monitor as $monitor) {
 						<td>
 							<a class="fa fa-pencil"	title="<?=gettext('Edit monitor')?>"	href="load_balancer_monitor_edit.php?id=<?=$idx?>"></a>
 							<a class="fa fa-clone"	title="<?=gettext('Copy monitor')?>"	href="load_balancer_monitor_edit.php?act=dup&amp;id=<?=$idx?>"></a>
-							<a class="fa fa-trash"	title="<?=gettext('Delete monitor')?>"	href="load_balancer_monitor.php?act=del&amp;id=<?=$idx?>"></a>
+							<a class="fa fa-trash"	title="<?=gettext('Delete monitor')?>"	href="load_balancer_monitor.php?act=del&amp;id=<?=$idx?>" usepost></a>
 						</td>
 					</tr>
 <?php

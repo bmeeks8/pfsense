@@ -34,13 +34,7 @@ if (!is_array($config['gres']['gre'])) {
 }
 
 $a_gres = &$config['gres']['gre'];
-
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
 
 if (isset($id) && $a_gres[$id]) {
 	$pconfig['if'] = $a_gres[$id]['if'];
@@ -55,7 +49,7 @@ if (isset($id) && $a_gres[$id]) {
 	$pconfig['descr'] = $a_gres[$id]['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -157,6 +151,7 @@ function build_parent_list() {
 }
 
 $pgtitle = array(gettext("Interfaces"), gettext("GREs"), gettext("Edit"));
+$pglinks = array("", "interfaces_gre.php", "@self");
 $shortcut_section = "interfaces";
 include("head.inc");
 
@@ -170,32 +165,32 @@ $section = new Form_Section('GRE Configuration');
 
 $section->addInput(new Form_Select(
 	'if',
-	'Parent Interface',
+	'*Parent Interface',
 	$pconfig['if'],
 	build_parent_list()
 ))->setHelp('This interface serves as the local address to be used for the GRE tunnel.');
 
 $section->addInput(new Form_IpAddress(
 	'remote-addr',
-	'GRE Remote Address',
+	'*GRE Remote Address',
 	$pconfig['remote-addr']
 ))->setHelp('Peer address where encapsulated GRE packets will be sent.');
 
 $section->addInput(new Form_IpAddress(
 	'tunnel-local-addr',
-	'GRE tunnel local address',
+	'*GRE tunnel local address',
 	$pconfig['tunnel-local-addr']
 ))->setHelp('Local GRE tunnel endpoint.');
 
 $section->addInput(new Form_IpAddress(
 	'tunnel-remote-addr',
-	'GRE tunnel remote address',
+	'*GRE tunnel remote address',
 	$pconfig['tunnel-remote-addr']
 ))->setHelp('Remote GRE address endpoint.');
 
 $section->addInput(new Form_Select(
 	'tunnel-remote-net',
-	'GRE tunnel subnet',
+	'*GRE tunnel subnet',
 	$pconfig['tunnel-remote-net'],
 	array_combine(range(128, 1, -1), range(128, 1, -1))
 ))->setHelp('The subnet is used for determining the network that is tunnelled.');

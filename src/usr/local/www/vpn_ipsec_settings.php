@@ -33,16 +33,7 @@ require_once("shaper.inc");
 require_once("ipsec.inc");
 require_once("vpn.inc");
 
-$def_loglevel = '1';
-
-foreach (array_keys($ipsec_log_cats) as $cat) {
-	if (isset($config['ipsec']['logging'][$cat])) {
-		$pconfig[$cat] = $config['ipsec']['logging'][$cat];
-	} else {
-		$pconfig[$cat] = $def_loglevel;
-	}
-}
-
+$pconfig['logging'] = ipsec_get_loglevels();
 $pconfig['unityplugin'] = isset($config['ipsec']['unityplugin']);
 $pconfig['strictcrlpolicy'] = isset($config['ipsec']['strictcrlpolicy']);
 $pconfig['makebeforebreak'] = isset($config['ipsec']['makebeforebreak']);
@@ -54,13 +45,15 @@ $pconfig['maxmss_enable'] = isset($config['system']['maxmss_enable']);
 $pconfig['maxmss'] = $config['system']['maxmss'];
 $pconfig['uniqueids'] = $config['ipsec']['uniqueids'];
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
 	foreach ($ipsec_log_cats as $cat => $desc) {
-		if (!in_array(intval($pconfig[$cat]), array_keys($ipsec_log_sevs), true)) {
+		if (!in_array(intval($pconfig['logging_' . $cat]), array_keys($ipsec_log_sevs), true)) {
 			$input_errors[] = sprintf(gettext("A valid value must be specified for %s debug."), $desc);
+		} else {
+			$pconfig['logging'][$cat] = $pconfig['logging_' . $cat];
 		}
 	}
 
@@ -79,12 +72,12 @@ if ($_POST) {
 		 * get set when we save, even if it's to the default level.
 		 */
 		foreach (array_keys($ipsec_log_cats) as $cat) {
-			if (!isset($pconfig[$cat])) {
+			if (!isset($pconfig['logging'][$cat])) {
 				continue;
 			}
-			if ($pconfig[$cat] != $config['ipsec']['logging'][$cat]) {
-				$config['ipsec']['logging'][$cat] = $pconfig[$cat];
-				vpn_update_daemon_loglevel($cat, $pconfig[$cat]);
+			if ($pconfig['logging'][$cat] != $config['ipsec']['logging'][$cat]) {
+				$config['ipsec']['logging'][$cat] = $pconfig['logging'][$cat];
+				vpn_update_daemon_loglevel($cat, $pconfig['logging'][$cat]);
 			}
 		}
 
@@ -172,23 +165,14 @@ if ($_POST) {
 
 		write_config();
 
+		$changes_applied = true;
 		$retval = 0;
-		$retval = filter_configure();
-		if (stristr($retval, "error") <> true) {
-			$savemsg = get_std_save_message(gettext($retval));
-			$class = 'success';
-		} else {
-			$savemsg = gettext($retval);
-			$class = 'warning';
-		}
+		$retval |= filter_configure();
 
 		vpn_ipsec_configure($needsrestart);
-
-		header("Location: vpn_ipsec_settings.php");
-		return;
 	}
 
-	// The logic value sent by $POST for autoexcludelanaddress is opposite to
+	// The logic value sent by $_POST for autoexcludelanaddress is opposite to
 	// the way it is stored in the config as noshuntlaninterfaces.
 	// Reset the $pconfig value so it reflects the opposite of what was $POSTed.
 	// This helps a redrawn UI page after Save to correctly display the most recently entered setting.
@@ -200,6 +184,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Advanced Settings"));
+$pglinks = array("", "vpn_ipsec.php", "@self");
 $shortcut_section = "ipsec";
 
 include("head.inc");
@@ -220,8 +205,8 @@ function maxmss_checked(obj) {
 </script>
 
 <?php
-if ($savemsg) {
-	print_info_box($savemsg, $class);
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 if ($input_errors) {
@@ -241,9 +226,9 @@ $section = new Form_Section('IPsec Logging Controls');
 
 foreach ($ipsec_log_cats as $cat => $desc) {
 	$section->addInput(new Form_Select(
-		$cat,
+		'logging_' . $cat,
 		$desc,
-		$pconfig[$cat],
+		$pconfig['logging'][$cat],
 		$ipsec_log_sevs
 	))->setWidth(2);
 }
@@ -265,10 +250,11 @@ $section->addInput(new Form_Select(
 	'Whether a particular participant ID should be kept unique, with any new IKE_SA using an ID ' .
 	'deemed to replace all old ones using that ID. Participant IDs normally are unique, so a new ' .
 	'IKE_SA using the same ID is almost invariably intended to replace an old one. ' .
-	'The difference between <b>no</b> and <b>never</b> is that the old IKE_SAs will be replaced when receiving an ' .
-	'INITIAL_CONTACT notify if the option is no but will ignore these notifies if <b>never</b> is configured. ' .
-	'The daemon also accepts the value <b>keep</b> to reject ' .
-	'new IKE_SA setups and keep the duplicate established earlier. Defaults to Yes.'
+	'The difference between %1$sno%2$s and %1$snever%2$s is that the old IKE_SAs will be replaced when receiving an ' .
+	'INITIAL_CONTACT notify if the option is no but will ignore these notifies if %1$snever%2$s is configured. ' .
+	'The daemon also accepts the value %1$skeep%2$s to reject ' .
+	'new IKE_SA setups and keep the duplicate established earlier. Defaults to Yes.',
+	'<b>', '</b>'
 );
 
 $section->addInput(new Form_Checkbox(

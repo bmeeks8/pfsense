@@ -28,11 +28,12 @@ require_once('notices.inc');
 header('Content-Type: text/html; charset=utf-8');
 
 $pagetitle = gentitle($pgtitle);
+$system_url = $config['system']['hostname'] . "." . $config['system']['domain'];
 
 if ($user_settings['webgui']['pagenamefirst']) {
-	$tabtitle = $pagetitle . " - " . htmlspecialchars($config['system']['hostname'] . "." . $config['system']['domain']);
+	$tabtitle = $pagetitle . " - " . htmlspecialchars($system_url);
 } else {
-	$tabtitle = htmlspecialchars($config['system']['hostname'] . "." . $config['system']['domain']) . " - " . $pagetitle;
+	$tabtitle = htmlspecialchars($system_url) . " - " . $pagetitle;
 }
 
 $cssfile = "/css/pfSense.css";
@@ -53,9 +54,10 @@ if (!isset($config['system']['webgui']['dashboardcolumns'])) {
 <html lang="en">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="/vendor/font-awesome/css/font-awesome.min.css">
-	<link rel="stylesheet" href="/vendor/sortable/sortable-theme-bootstrap.css">
-	<link rel="stylesheet" href="<?=$cssfile?>" />
+	<link rel="stylesheet" href="/vendor/font-awesome/css/font-awesome.min.css?v=<?=filemtime('/usr/local/www/vendor/font-awesome/css/font-awesome.min.css')?>">
+	<link rel="stylesheet" href="/vendor/sortable/sortable-theme-bootstrap.css?v=<?=filemtime('/usr/local/www/vendor/sortable/sortable-theme-bootstrap.css')?>">
+	<link rel="stylesheet" href="<?=$cssfile?>?v=<?=filemtime('/usr/local/www/' . $cssfile)?>" />
+
 	<title><?=$tabtitle?></title>
 	<script type="text/javascript">
 	//<![CDATA[
@@ -183,40 +185,49 @@ function return_ext_menu($section) {
 }
 
 function output_menu($arrayitem, $target = null, $section = "") {
+	$output = "";
+
 	foreach ($arrayitem as $item) {
+
 		/* If the user has access to help pages, also show the full help menu. See #5909 */
-		if (isAllowedPage($item[1]) || $item[1] == "/index.php?logout" || (($section == "Help") && isAllowedPage("help.php"))) {
+		if (isAllowedPage($item[1]) || $item[1] == "/index.php?logout" ||
+		    (($section == "Help") && isAllowedPage("help.php")) ||
+		    (substr($item[1], 0, 8) == "https://")) {
 			$attr = sprintf("href=\"%s\"", htmlentities($item[1]));
+
 			if ($target) {
 				$attr .= sprintf(" target=\"%s\"", htmlentities($target));
 			}
+
 			$class = "navlnk";
+
 			if ($item['class']) {
 				$class .= " {$item['class']}";
 			}
+
 			$attr .= sprintf(" class=\"%s\"", htmlentities($class));
+
 			if ($item['style']) {
 				$attr .= sprintf(" style=\"%s\"", htmlentities($item['style']));
 			}
 
+
 			if ($item[0] == '-DIVIDER-') {
-				print(' <li class="divider"></li>');
+				$output .= ' <li class="divider"></li>';
 			} else {
-				echo "<li>". sprintf("<a %s>%s</a>", $attr, $item[0]). "</li>\n";
+				$output .= "<li>". sprintf("<a %s %s>%s</a>", $attr, ($item[1] == "/index.php?logout") ? "usepost":"",$item[0]) . "</li>\n";
 			}
 		}
 	}
+
+	return $output;
 }
 
 $ext_menu_path_data = read_ext_menu_path_data();
 
-
-// NOTE:
-// $your_menu[] = array(gettext("-DIVIDER-"), ""); adds a horizontal divider to the menu. See $interfaces_menu[] for example
-
 // System
 $system_menu = array();
-$system_menu[] = array(gettext("Logout"), "/index.php?logout");
+$system_menu[] = array(gettext("Logout") . " (" . $_SESSION['Username'] . ")", "/index.php?logout");
 $system_menu[] = array(gettext("Advanced"), "/system_advanced_admin.php");
 $system_menu[] = array(gettext("Update"), "/pkg_mgr_install.php?id=firmware");
 $system_menu[] = array(gettext("General Setup"), "/system.php");
@@ -237,36 +248,35 @@ if ($user_settings['customsettings'] && isAllowedPage("system_user_settings.php*
 
 $system_menu = msort(array_merge($system_menu, return_ext_menu("System")), 0);
 
-$div = false;
-
 // Interfaces
+// NOTE:
+// Now that menus are sorted, adding a DIVIDER must be done after the sorting so an array is formed of the
+// items above the divider and another for below it. These are then sorted and combined with the divider
 $interfaces_menu = array();
+$interfaces_top = array();
+$interfaces_bottom = array();
+
 if (!isset($config['system']['webgui']['noassigninterfaces'])) {
-	$interfaces_menu[] = array(gettext("Assignments"), "/interfaces_assign.php");
+	$interfaces_top[] = array(gettext("Assignments"), "/interfaces_assign.php");
 	$div = true;
 }
 
 $platform = system_identify_specific_platform();
 
 if ($platform['name'] == "uFW") {
-	$interfaces_menu[] = array(gettext("Switches"), "/switch_system.php");
-	$div = true;
-}
-
-if ($div) {
-	$interfaces_menu[] = array(gettext("-DIVIDER-"), "");
+	$interfaces_top[] = array(gettext("Switches"), "/switch_system.php");
 }
 
 $opts = get_configured_interface_with_descr(false, true);
+
 foreach ($opts as $oif => $odescr) {
 	if (!isset($config['interfaces'][$oif]['ovpn'])) {
-		$interfaces_menu[] = array(htmlspecialchars($odescr), "/interfaces.php?if={$oif}");
+		$interfaces_bottom[] = array(htmlspecialchars($odescr), "/interfaces.php?if={$oif}");
 	}
 }
 
-// Interface list no longer sorted per Redmine #6753
-// $interfaces_menu = msort(array_merge($interfaces_menu, return_ext_menu("Interfaces")), 0);
-$interfaces_menu = array_merge($interfaces_menu, return_ext_menu("Interfaces"));
+// Combine the top section, the divider and the bottom section of this menu
+$interfaces_menu = array_merge($interfaces_top, [array(0 => "-DIVIDER-")], msort(array_merge($interfaces_bottom, return_ext_menu("Interfaces")), 0));
 
 // Firewall
 $firewall_menu = array();
@@ -443,7 +453,7 @@ if (are_notices_pending()) {
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</button>
-			<a class="navbar-brand" href="/"><img src="/logo.png" alt="pfSense" title="<?=$config['system']['hostname'] . '.' . $config['system']['domain']?>"/></a>
+			<a class="navbar-brand" href="/"><img src="/logo.png" alt="pfSense" title="<?=$system_url?>"/></a>
 		</div>
 		<div class="collapse navbar-collapse" id="pf-navbar">
 			<ul class="nav navbar-nav">
@@ -452,7 +462,7 @@ if (are_notices_pending()) {
                     $help_menu_title = htmlspecialchars($config['system']['hostname']);
                 }
                 elseif ($user_settings['webgui']['webguihostnamemenu'] == 'fqdn') {
-                    $help_menu_title = htmlspecialchars($config['system']['hostname'] . "." . $config['system']['domain']);
+                    $help_menu_title = htmlspecialchars($system_url);
                 }
                 else {
                     $help_menu_title = 'Help';
@@ -471,16 +481,21 @@ if (are_notices_pending()) {
 					if ($item['name'] == 'Help' && $g['disablehelpmenu']) {
 						continue;
 					}
+
+					$menu_output = output_menu($item['menu'], $item['href'], $item['name']);
+
+					if (strlen($menu_output) > 0):
 ?>
 				<li class="dropdown">
 					<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
 						<?=gettext($item['name'])?>
 						<span class="caret"></span>
 					</a>
-					<ul class="dropdown-menu" role="menu"><?=output_menu($item['menu'], $item['href'], $item['name'])?></ul>
+					<ul class="dropdown-menu" role="menu"><?=$menu_output?></ul>
 				</li>
 
 <?php
+					endif;
 			 	endforeach?>
 			</ul>
 			<ul class="nav navbar-nav navbar-right">
@@ -496,8 +511,8 @@ if (are_notices_pending()) {
 					endif;
 				?>
 					<li class="dropdown">
-						<a href="/index.php?logout">
-							<i class="fa fa-sign-out" title="<?=gettext("Log out")?>"></i>
+						<a href="/index.php?logout" usepost>
+							<i class="fa fa-sign-out" title="<?=gettext("Logout") . " (" . $_SESSION['Username'] . "@" . htmlspecialchars($system_url) . ")"?>"></i>
 						</a>
 					</li>
 			</ul>
@@ -514,7 +529,11 @@ if (are_notices_pending()) {
 		print('<br />');
 		unset($notitle);
 	} else {
-		print(genhtmltitle($pgtitle));
+		if (isset($pglinks)) {
+			print(genhtmltitle($pgtitle, $pglinks));
+		} else {
+			print(genhtmltitle($pgtitle));
+		}
 	}
 ?>
 		<ul class="context-links">
@@ -609,7 +628,7 @@ if (('' != ($link = get_shortcut_log_link($shortcut_section, false))) && (isAllo
 }
 
 ?>
-	<?php if (!$g['disablehelpicon']): ?>
+	<?php if (!$g['disablehelpicon'] && isAllowedPage("help.php")): ?>
 		<li>
 			<a href="<?=$helpurl?>" target="_blank" title="<?=gettext("Help for items on this page")?>">
 				<i class="fa fa-question-circle"></i>
@@ -622,11 +641,11 @@ if (('' != ($link = get_shortcut_log_link($shortcut_section, false))) && (isAllo
 /* if upgrade in progress, alert user */
 if (is_subsystem_dirty('packagelock') || (file_exists('/conf/needs_package_sync') && platform_booting())) {
 	if (file_exists('/conf/needs_package_sync') && platform_booting()) {
-		$warning_text = sprintf(gettext("<p>%s is booting, then packages will be reinstalled in the background.</p><p>Do not make changes in the GUI until this is complete.</p>"), $g['product_name']);
+		$warning_text = sprintf(gettext('%1$s%3$s is booting, then packages will be reinstalled in the background.%2$s%1$sDo not make changes in the GUI until this is complete.%2$s'), '<p>', '</p>', $g['product_name']);
 	} else {
 		$pgtitle = array(gettext("System"), gettext("Package Manager"));
-		$warning_text = gettext("<p>Packages are currently being reinstalled in the background.</p><p>Do not make changes in the GUI until this is complete.</p>");
-		$warning_text .= sprintf(gettext('<p>If the above message is still displayed after a couple of hours, use the \'Clear Package Lock\' button on the <a href="diag_backup.php" title="%1$s &gt; %2$s">%1$s &gt; %2$s</a> page and reinstall packages manually.</p>'), gettext('Diagnostics'), htmlspecialchars(gettext('Backup & Restore')));
+		$warning_text = sprintf(gettext('%1$sPackages are currently being reinstalled in the background.%2$s%1$sDo not make changes in the GUI until this is complete.%2$s'), '<p>', '</p>');
+		$warning_text .= sprintf(gettext('%1$sIf the above message is still displayed after a couple of hours, use the \'Clear Package Lock\' button on the %3$s page and reinstall packages manually.%2$s'), '<p>', '</p>', sprintf('<a href="diag_backup.php" title="%1$s &gt; %2$s">%1$s &gt; %2$s</a>', gettext('Diagnostics'), htmlspecialchars(gettext('Backup & Restore'))));
 	}
 
 	print_info_box($warning_text);

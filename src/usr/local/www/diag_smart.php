@@ -31,15 +31,17 @@ require_once("guiconfig.inc");
 
 // What page, aka. action is being wanted
 // If they "get" a page but don't pass all arguments, smartctl will throw an error
-$action = (isset($_POST['action']) ? $_POST['action'] : $_GET['action']);
+$action = $_POST['action'];
 
 $pgtitle = array(gettext("Diagnostics"), gettext("S.M.A.R.T. Status"));
+$pglinks = array("", "@self", "@self");
 
 if ($action != 'config') {
 	$pgtitle[] = htmlspecialchars(gettext('Information & Tests'));
 } else {
 	$pgtitle[] = gettext('Config');
 }
+
 $smartctl = "/usr/local/sbin/smartctl";
 
 $valid_test_types = array("offline", "short", "long", "conveyance");

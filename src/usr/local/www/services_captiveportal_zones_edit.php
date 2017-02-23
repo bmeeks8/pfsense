@@ -33,14 +33,16 @@ require_once("shaper.inc");
 require_once("captiveportal.inc");
 
 $pgtitle = array(gettext("Services"), gettext("Captive Portal"), gettext("Add Zone"));
+$pglinks = array("", "services_captiveportal_zones.php", "@self");
 $shortcut_section = "captiveportal";
 
 if (!is_array($config['captiveportal'])) {
 	$config['captiveportal'] = array();
 }
+
 $a_cp =& $config['captiveportal'];
 
-if ($_POST) {
+if ($_POST['Submit']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -86,7 +88,7 @@ $section = new Form_Section('Add Captive Portal Zone');
 
 $section->addInput(new Form_Input(
 	'zone',
-	'Zone name'
+	'*Zone name'
 ))->setPattern('^[A-Za-z_][0-9A-Za-z_]+')->setHelp('Zone name. Can only contain letters, digits, and underscores (_) and may not start with a digit.');
 
 $section->addInput(new Form_Input(

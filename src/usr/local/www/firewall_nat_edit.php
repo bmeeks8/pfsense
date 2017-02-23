@@ -52,23 +52,17 @@ if (!is_array($config['nat']['rule'])) {
 
 $a_nat = &$config['nat']['rule'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-if (is_numericint($_GET['after']) || $_GET['after'] == "-1") {
-	$after = $_GET['after'];
-}
-if (isset($_POST['after']) && (is_numericint($_POST['after']) || $_POST['after'] == "-1")) {
-	$after = $_POST['after'];
+if (isset($_REQUEST['after']) && (is_numericint($_REQUEST['after']) || $_REQUEST['after'] == "-1")) {
+	$after = $_REQUEST['after'];
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
-	$id = $_GET['dup'];
-	$after = $_GET['dup'];
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
+	$after = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_nat[$id]) {
@@ -110,7 +104,7 @@ if (isset($id) && $a_nat[$id]) {
 	$pconfig['srcendport'] = "any";
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
 	unset($id);
 }
 
@@ -119,15 +113,16 @@ if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
  */
 unset($input_errors);
 
-foreach ($_POST as $key => $value) {
+foreach ($_REQUEST as $key => $value) {
 	$temp = $value;
 	$newpost = htmlentities($temp);
+
 	if ($newpost != $temp) {
 		$input_errors[] = sprintf(gettext("Invalid characters detected %s. Please remove invalid characters and save again."), $temp);
 	}
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	if (strtoupper($_POST['proto']) == "TCP" || strtoupper($_POST['proto']) == "UDP" || strtoupper($_POST['proto']) == "TCP/UDP") {
 		if ($_POST['srcbeginport_cust'] && !$_POST['srcbeginport']) {
@@ -274,7 +269,7 @@ if ($_POST) {
 	}
 
 	if ((strtoupper($_POST['proto']) == "TCP" || strtoupper($_POST['proto']) == "UDP" || strtoupper($_POST['proto']) == "TCP/UDP") && (!isset($_POST['nordr']) && !is_portoralias($_POST['localbeginport']))) {
-		$input_errors[] = sprintf(gettext("A valid redirect target port must be specified. It must be a port alias or integer between 1 and 65535."), $_POST['localbeginport']);
+		$input_errors[] = sprintf(gettext("%s is not a valid redirect target port. It must be a port alias or integer between 1 and 65535."), $_POST['localbeginport']);
 	}
 
 	/* if user enters an alias and selects "network" then disallow. */
@@ -636,6 +631,7 @@ function dsttype_selected() {
 }
 
 $pgtitle = array(gettext("Firewall"), gettext("NAT"), gettext("Port Forward"), gettext("Edit"));
+$pglinks = array("", "firewall_nat.php", "firewall_nat.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -690,7 +686,7 @@ if ($config['openvpn']["openvpn-server"] || $config['openvpn']["openvpn-client"]
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	$interfaces
 ))->setHelp('Choose which interface this rule applies to. In most cases "WAN" is specified.');
@@ -699,7 +695,7 @@ $protocols = "TCP UDP TCP/UDP ICMP ESP AH GRE IPV6 IGMP PIM OSPF";
 
 $section->addInput(new Form_Select(
 	'proto',
-	'Protocol',
+	'*Protocol',
 	$pconfig['proto'],
 	array_combine(explode(" ", strtolower($protocols)), explode(" ", $protocols))
 ))->setHelp('Choose which protocol this rule should match. In most cases "TCP" is specified.');
@@ -787,7 +783,7 @@ $group->setHelp('Specify the source port or port range for this rule. This is us
 
 $section->add($group);
 
-$group = new Form_Group('Destination');
+$group = new Form_Group('*Destination');
 
 $group->add(new Form_Checkbox(
 	'dstnot',
@@ -812,7 +808,7 @@ $group->add(new Form_IpAddress(
 
 $section->add($group);
 
-$group = new Form_Group('Destination port range');
+$group = new Form_Group('*Destination port range');
 $group->addClass('dstportrange');
 
 $group->add(new Form_Select(
@@ -850,13 +846,12 @@ $section->add($group);
 
 $section->addInput(new Form_IpAddress(
 	'localip',
-	'Redirect target IP',
+	'*Redirect target IP',
 	$pconfig['localip'],
 	'ALIASV4V6'
-))->setHelp('Enter the internal IP address of the server on which to map the ports.' . '<br />' .
-			'e.g.: 192.168.1.12');
+))->setHelp('Enter the internal IP address of the server on which to map the ports.%s e.g.: 192.168.1.12', '<br />');
 
-$group = new Form_Group('Redirect target port');
+$group = new Form_Group('*Redirect target port');
 $group->addClass('lclportrange');
 
 $group->add(new Form_Select(
@@ -867,8 +862,8 @@ $group->add(new Form_Select(
 ))->setHelp('Port');
 
 $group->setHelp('Specify the port on the machine with the IP address entered above. In case of a port range, specify the ' .
-				'beginning port of the range (the end port will be calculated automatically).' . '<br />' .
-				'This is usually identical to the "From port" above.');
+				'beginning port of the range (the end port will be calculated automatically).%s' .
+				'This is usually identical to the "From port" above.', '<br />');
 
 $group->add(new Form_Input(
 	'localbeginport_cust',
@@ -907,7 +902,7 @@ $section->addInput(new Form_Select(
 	)
 ));
 
-if (isset($id) && $a_nat[$id] && (!isset($_GET['dup']) || !is_numericint($_GET['dup']))) {
+if (isset($id) && $a_nat[$id] && (!isset($_POST['dup']) || !is_numericint($_POST['dup']))) {
 
 	$hlpstr = '';
 	$rulelist = array('' => gettext('None'), 'pass' => gettext('Pass'));
@@ -961,14 +956,20 @@ if ($has_created_time || $has_updated_time) {
 	if ($has_created_time) {
 		$section->addInput(new Form_StaticText(
 			'Created',
-			date(gettext("n/j/y H:i:s"), $a_nat[$id]['created']['time']) . gettext(" by ") . $a_nat[$id]['created']['username']
+			sprintf(
+				gettext('%1$s by %2$s'),
+				date(gettext("n/j/y H:i:s"), $a_nat[$id]['created']['time']),
+				$a_nat[$id]['created']['username'])
 		));
 	}
 
 	if ($has_updated_time) {
 		$section->addInput(new Form_StaticText(
 			'Updated',
-			date(gettext("n/j/y H:i:s"), $a_nat[$id]['updated']['time']) . gettext(" by ") . $a_nat[$id]['updated']['username']
+			sprintf(
+				gettext('%1$s by %2$s'),
+				date(gettext("n/j/y H:i:s"), $a_nat[$id]['updated']['time']),
+				$a_nat[$id]['updated']['username'])
 		));
 	}
 
@@ -1071,49 +1072,14 @@ events.push(function() {
 	function check_for_aliases() {
 		//	if External port range is an alias, then disallow
 		//	entry of Local port
-		//
 		for (i = 0; i < customarray.length; i++) {
-			if ($('#dstbeginport_cust').val() == customarray[i]) {
+			if (($('#dstbeginport_cust').val() == customarray[i]) || ($('#dstendport_cust').val() == customarray[i])) {
 				$('#dstendport_cust').val(customarray[i]);
 				$('#localbeginport_cust').val(customarray[i]);
-				disableInput('dstendport_cust', true);
-				disableInput('localbeginport', true);
-				disableInput('localbeginport_cust', true);
 				disableInput('dstendport_cust', false);
 				disableInput('localbeginport', false);
 				disableInput('localbeginport_cust', false);
 			}
-			if ($('#dstbeginport').val() == customarray[i]) {
-				$('#dstendport_cust').val(customarray[i]);
-				$('#localbeginport_cust').val(customarray[i]);
-				disableInput('dstendport_cust', true);
-				disableInput('localbeginport', true);
-				disableInput('localbeginport_cust', true);
-				disableInput('dstendport_cust', false);
-				disableInput('localbeginport', false);
-				disableInput('localbeginport_cust', false);
-			}
-			if ($('#dstendport_cust').val() == customarray[i]) {
-				$('#dstendport_cust').val(customarray[i]);
-				$('#localbeginport_cust').val(customarray[i]);
-				disableInput('dstendport_cust', true);
-				disableInput('localbeginport', true);
-				disableInput('localbeginport_cust', true);
-				disableInput('dstendport_cust', false);
-				disableInput('localbeginport', false);
-				disableInput('localbeginport_cust', false);
-			}
-			if ($('#dstendport').val() == customarray[i]) {
-				$('#dstendport_cust').val(customarray[i]);
-				$('#localbeginport_cust').val(customarray[i]);
-				disableInput('dstendport_cust', true);
-				disableInput('localbeginport', true);
-				disableInput('localbeginport_cust', true);
-				disableInput('dstendport_cust', false);
-				ddisableInput('localbeginport', false);
-				disableInput('localbeginport_cust', false);
-			}
-
 		}
 	}
 

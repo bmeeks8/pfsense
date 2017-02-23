@@ -48,8 +48,8 @@ if (isset($_POST['closenotice'])) {
 	exit;
 }
 
-if (isset($_GET['closenotice'])) {
-	close_notice($_GET['closenotice']);
+if (isset($_REQUEST['closenotice'])) {
+	close_notice($_REQUEST['closenotice']);
 	sleep(1);
 }
 
@@ -76,7 +76,7 @@ if ($g['disablecrashreporter'] != true) {
 		if ($x > 0) {
 			$savemsg = sprintf(gettext("%s has detected a crash report or programming bug."), $g['product_name']) . " ";
 			if (isAllowedPage("/crash_reporter.php")) {
-				$savemsg .= sprintf(gettext("Click <a href='crash_reporter.php'>here</a> for more information."));
+				$savemsg .= sprintf(gettext('Click %1$shere%2$s for more information.'), '<a href="crash_reporter.php">', '</a>');
 			} else {
 				$savemsg .= sprintf(gettext("Contact a firewall administrator for more information."));
 			}
@@ -188,7 +188,7 @@ if (file_exists('/conf/trigger_initial_wizard')) {
 		<div class="container">
 			<div class="col-sm-offset-3 col-sm-6 col-xs-12">
 				<font color="white">
-				<p><h3><?=sprintf(gettext("Welcome to %s!\n"), $g['product_name'])?></h3></p>
+				<p><h3><?=sprintf(gettext("Welcome to %s!") . "\n", $g['product_name'])?></h3></p>
 				<p><?=gettext("One moment while the initial setup wizard starts.")?></p>
 				<p><?=gettext("Embedded platform users: Please be patient, the wizard takes a little longer to run than the normal GUI.")?></p>
 				<p><?=sprintf(gettext("To bypass the wizard, click on the %s logo on the initial page."), $g['product_name'])?></p>
@@ -359,7 +359,7 @@ foreach ($widgets as $widgetname => $widgetconfig) {
 
 <div class="row">
 <?php
-	$columnWidth = 12 / $numColumns;
+	$columnWidth = (int) (12 / $numColumns);
 
 	for ($currentColumnNumber = 1; $currentColumnNumber <= $numColumns; $currentColumnNumber++) {
 
@@ -423,8 +423,13 @@ function updateWidgets(newWidget) {
 	$('.container .col-md-<?=$columnWidth?>').each(function(idx, col) {
 		$('.panel', col).each(function(idx, widget) {
 			var isOpen = $('.panel-body', widget).hasClass('in');
+			var widget_basename = widget.id.split('-')[1];
 
-			sequence += widget.id.split('-')[1] + ':' + col.id.split('-')[1] + ':' + (isOpen ? 'open' : 'close') + ',';
+			// Only save details for panels that have id's like'widget-*'
+			// Some widgets create other panels, so ignore any of those.
+			if ((widget.id.split('-')[0] == 'widget') && (typeof widget_basename !== 'undefined')) {
+				sequence += widget_basename + ':' + col.id.split('-')[1] + ':' + (isOpen ? 'open' : 'close') + ',';
+			}
 		});
 	});
 

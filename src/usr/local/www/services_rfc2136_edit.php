@@ -34,11 +34,8 @@ if (!is_array($config['dnsupdates']['dnsupdate'])) {
 
 $a_rfc2136 = &$config['dnsupdates']['dnsupdate'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && isset($a_rfc2136[$id])) {
@@ -66,7 +63,7 @@ if (isset($id) && isset($a_rfc2136[$id])) {
 
 }
 
-if ($_POST) {
+if ($_POST['save'] || $_POST['force']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -146,6 +143,7 @@ function build_if_list() {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Dynamic DNS"), gettext("RFC 2136 Clients"), gettext("Edit"));
+$pglinks = array("", "services_dyndns.php", "services_rfc2136.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
@@ -169,33 +167,33 @@ $iflist = build_if_list();
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	$iflist
 ));
 
 $section->addInput(new Form_Input(
 	'host',
-	'Hostname',
+	'*Hostname',
 	'text',
 	$pconfig['host']
 ))->setHelp('Fully qualified hostname of the host to be updated.');
 
 $section->addInput(new Form_Input(
 	'ttl',
-	'TTL (seconds)',
+	'*TTL (seconds)',
 	'number',
 	$pconfig['ttl']
 ));
 
 $section->addInput(new Form_Input(
 	'keyname',
-	'Key name',
+	'*Key name',
 	'text',
 	$pconfig['keyname']
 ))->setHelp('This must match the setting on the DNS server.');
 
-$group = new Form_Group('Key Type');
+$group = new Form_Group('*Key Type');
 
 $group->add(new Form_Checkbox(
 	'keytype',
@@ -225,7 +223,7 @@ $section->add($group);
 
 $section->addInput(new Form_Input(
 	'keydata',
-	'Key',
+	'*Key',
 	'text',
 	$pconfig['keydata']
 ))->setHelp('Paste an HMAC-MD5 key here.');
@@ -251,7 +249,7 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['usepublicip']
 ));
 
-$group = new Form_Group('Record Type');
+$group = new Form_Group('*Record Type');
 
 $group->add(new Form_Checkbox(
 	'recordtype',

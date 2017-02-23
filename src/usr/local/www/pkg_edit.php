@@ -39,15 +39,13 @@ function pfSenseHeader($location) {
 	header("Location: " . $location);
 }
 
-$xml = htmlspecialchars($_GET['xml']);
-if ($_POST['xml']) {
-	$xml = htmlspecialchars($_POST['xml']);
-}
+$xml = htmlspecialchars($_REQUEST['xml']);
 
 $xml_fullpath = realpath('/usr/local/pkg/' . $xml);
 
 if ($xml == "" || $xml_fullpath === false || substr($xml_fullpath, 0, strlen('/usr/local/pkg/')) != '/usr/local/pkg/') {
 	$pgtitle = array(gettext("Package"), gettext("Editor"));
+	$pglinks = array("", "@self");
 	include("head.inc");
 	print_info_box(gettext("No valid package defined."), 'danger', false);
 	include("foot.inc");
@@ -66,7 +64,7 @@ if (!isset($pkg['adddeleteeditpagefields'])) {
 	$only_edit = false;
 }
 
-$id = $_GET['id'];
+$id = $_REQUEST['id'];
 if (isset($_POST['id'])) {
 	$id = htmlspecialchars($_POST['id']);
 }
@@ -100,8 +98,8 @@ if ($config['installedpackages'] &&
 
 $a_pkg = &$config['installedpackages'][xml_safe_fieldname($pkg['name'])]['config'];
 
-if ($_GET['savemsg'] != "") {
-	$savemsg = htmlspecialchars($_GET['savemsg']);
+if ($_REQUEST['savemsg'] != "") {
+	$savemsg = htmlspecialchars($_REQUEST['savemsg']);
 }
 
 if ($pkg['custom_php_command_before_form'] != "") {
@@ -505,12 +503,15 @@ if ($pkg['title'] != "") {
 
 		foreach ($title as $subtitle) {
 			$pgtitle[] = gettext($subtitle);
+			$pglinks[] = ((($subtitle == "Edit") || (strlen($pkg['menu'][0]['url']) == 0)) ? "@self" : $pkg['menu'][0]['url']);
 		}
 	} else {
 		$pgtitle = array(gettext("Package"), gettext($pkg['title']));
+		$pglinks = array("", ((($subtitle == "Edit") || (strlen($pkg['menu'][0]['url']) == 0)) ? "@self" : $pkg['menu'][0]['url']));
 	}
 } else {
 	$pgtitle = array(gettext("Package"), gettext("Editor"));
+	$pglinks = array("", "@self");
 }
 
 // Create any required tabs
@@ -526,6 +527,7 @@ if ($pkg['tabs'] != "") {
 		if (isset($tab['active'])) {
 			$active = true;
 			$pgtitle[] = $tab['text'] ;
+			$pglinks[] = ((strlen($tab['url']) > 0) ? $tab['url'] : "@self");
 		} else {
 			$active = false;
 		}
@@ -719,6 +721,12 @@ foreach ($pkg['fields']['field'] as $pkga) {
 	// We can create a section with a generic name to fix that
 	if (!$section) {
 		$section = new Form_Section('General Options');
+	}
+
+	// If this is a required field, pre-pend a "*" to the field description
+	// This tells the system to add "element-required" class text decoration to the field label
+	if (isset($pkga['required'])) {
+		$pkga['fielddescr'] = "*" . $pkga['fielddescr'];
 	}
 
 	switch ($pkga['type']) {
@@ -1500,6 +1508,10 @@ if ($pkg['custom_php_after_form_command']) {
 	eval($pkg['custom_php_after_form_command']);
 }
 
+
+$hidemsg = gettext("Show Advanced Options");
+$showmsg = gettext("Hide Advanced Options");
+
 if ($pkg['fields']['field'] != "") { ?>
 <script type="text/javascript">
 //<![CDATA[
@@ -1520,10 +1532,10 @@ if ($pkg['fields']['field'] != "") { ?>
 
 		if (advanced_visible) {
 			$('.advancedoptions').show();
-			$("#showadv").prop('value', 'Hide advanced Options');
+			$("#showadv").html('<i class="fa fa-cog icon-embed-btn"></i>' + "<?=$showmsg?>");
 		} else {
 			$('.advancedoptions').hide();
-			$("#showadv").prop('value', 'Show advanced Options');
+			$("#showadv").html('<i class="fa fa-cog icon-embed-btn"></i>' + "<?=$hidemsg?>");
 		}
 	});
 

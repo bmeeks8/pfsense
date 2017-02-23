@@ -32,20 +32,25 @@ HOME=/
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 export HOME PATH
 
-# Set our current version
-version=`/bin/cat /etc/version`
+get_version ()
+{
+	# Set our current version
+	version=`/bin/cat /etc/version`
 
-# Version patch
-version_patch="0"
-if [ -f /etc/version.patch ]; then
-	version_patch=`/bin/cat /etc/version.patch`
-fi
+	# Version patch
+	version_patch="0"
+	if [ -f /etc/version.patch ]; then
+		version_patch=`/bin/cat /etc/version.patch`
+	fi
 
-if [ "${version_patch}" = "0" ]; then
-	version_patch=""
-else
-	version_patch=" (Patch ${version_patch})"
-fi
+	if [ "${version_patch}" = "0" ]; then
+		version_patch=""
+	else
+		version_patch=" (Patch ${version_patch})"
+	fi
+}
+
+get_version
 
 # Read product_name from $g, defaults to pfSense
 # Use php -n here because we are not ready to load extensions yet
@@ -64,7 +69,7 @@ fsck_forced_iterations=`/bin/kenv -q pfsense.fsck.force`
 if [ ! -z "${fsck_forced_iterations}" ]; then
 	echo "Forcing filesystem check (${fsck_forced_iterations} times)..."
 	while [ ${fsck_forced_iterations} -gt 0 ]; do
-		/sbin/fsck -y -F -t ufs
+		/sbin/fsck -y -t ufs
 		fsck_forced_iterations=$((fsck_forced_iterations - 1))
 	done
 fi
@@ -74,7 +79,7 @@ if [ -e /root/force_growfs ]; then
 fi
 
 FSCK_ACTION_NEEDED=0
-/sbin/fsck -p -F
+/sbin/fsck -p
 case $? in
 0)
 	echo "Filesystems are clean, continuing..."
@@ -92,30 +97,38 @@ esac
 
 if [ ${FSCK_ACTION_NEEDED} = 1 ]; then
 	echo "WARNING: Trying to recover filesystem from inconsistency..."
-	/sbin/fsck -yF
+	/sbin/fsck -y -t ufs
 fi
 
 /sbin/mount -a 2>/dev/null
 mount_rc=$?
 attempts=0
-while [ ${mount_rc} -ne 0 -a ${attempts} -lt 3 ]; do
-	/sbin/fsck -yF
+while [ ${mount_rc} -ne 0 -a ${attempts} -lt 10 ]; do
+	/sbin/fsck -y -t ufs
 	/sbin/mount -a 2>/dev/null
 	mount_rc=$?
 	attempts=$((attempts+1))
 done
 
+if [ ${mount_rc} -ne 0 ]; then
+	echo "ERROR: Impossible to mount filesystem, use interactive shell to attempt to recover it"
+	/bin/sh
+	/sbin/reboot
+fi
+
 # Handle ZFS read-only case
-/sbin/kldstat -qm zfs
-if [ $? -eq 0 ]; then
+unset USE_ZFS
+if /sbin/kldstat -qm zfs; then
 	ZFSFSAVAILABLE=$(/sbin/zfs mount 2>/dev/null | wc -l)
 	if [ $ZFSFSAVAILABLE -eq 0 ]; then
 		/sbin/kldunload zfs
-	elif [ -f /usr/bin/grep ]; then
-		ZFSROOT=`/sbin/zfs mount | /usr/bin/grep ' /$' | /usr/bin/cut -d ' ' -f 1`
-		if [ "$ZFSROOT" != "" ]; then
+	else
+		USE_ZFS=1
+		ZFSROOT=$(/sbin/zfs mount | /usr/bin/awk '$2 == "/" {print $1}')
+		if [ -n "$ZFSROOT" ]; then
 			/sbin/zfs set readonly=off $ZFSROOT
 		fi
+		/sbin/zfs mount -a
 	fi
 fi
 
@@ -130,6 +143,7 @@ if [ -d "/conf" ]; then
 fi
 
 USE_MFS_TMPVAR=$(/usr/local/sbin/read_xml_tag.sh boolean system/use_mfs_tmpvar)
+
 unset MOVE_PKG_DATA
 # If use MFS var is disabled, move files back to place
 if [ "${USE_MFS_TMPVAR}" != "true" -a -f /root/var/db/pkg/local.sqlite ]; then
@@ -148,6 +162,17 @@ elif [ "${USE_MFS_TMPVAR}" = "true" -a -f /var/db/pkg/local.sqlite ]; then
 	mv -f /var/cache/pkg /root/var/cache
 fi
 
+# Mount /var and /tmp on ZFS filesystems when it's necessary
+if [ -n "${USE_ZFS}" -a "${USE_MFS_TMPVAR}" = "true" ]; then
+	zfs list -H -o name,mountpoint |
+	    while read volume mountpoint; do
+		[ "${mountpoint}" != "/var" -a "${mountpoint}" != "/tmp" ] \
+			&& continue
+
+		/sbin/zfs umount ${volume}
+	done
+fi
+
 if [ "${USE_MFS_TMPVAR}" = "true" ]; then
 	/etc/rc.embedded
 fi
@@ -157,6 +182,9 @@ if [ -n "${MOVE_PKG_DATA}" -o "${USE_MFS_TMPVAR}" = "true" ]; then
 	ln -sf ../../root/var/db/pkg /var/db/pkg
 	ln -sf ../../root/var/cache/pkg /var/cache/pkg
 fi
+
+# Restore contents of the RAM disk store
+/etc/rc.restore_ramdisk_store
 
 # Make sure /home exists
 [ -d /home ] \
@@ -242,6 +270,8 @@ fi
 if [ ! -d /var/tmp ]; then
 	/bin/mkdir -p /var/tmp
 fi
+# Make sure our /var/tmp is 777 + Sticky
+/bin/chmod 1777 /var/tmp
 
 set -T
 trap "echo 'Reboot interrupted'; exit 1" 3
@@ -378,6 +408,7 @@ fi
 /usr/local/sbin/${product}-upgrade -y -b 3
 
 # Log product version to syslog
+get_version
 BUILDTIME=`cat /etc/version.buildtime`
 ARCH=`uname -m`
 echo "$product ${version}${version_patch} $ARCH $BUILDTIME"

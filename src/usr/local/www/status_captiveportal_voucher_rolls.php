@@ -34,16 +34,14 @@ require_once("shaper.inc");
 require_once("captiveportal.inc");
 require_once("voucher.inc");
 
-$cpzone = $_GET['zone'];
-if (isset($_POST['zone'])) {
-	$cpzone = $_POST['zone'];
-}
-$cpzone = strtolower($cpzone);
+$cpzone = strtolower($_REQUEST['zone']);
 
 if (!is_array($config['captiveportal'])) {
 	$config['captiveportal'] = array();
 }
+
 $a_cp =& $config['captiveportal'];
+
 /* If the zone does not exist, do not display the invalid zone */
 if (!array_key_exists($cpzone, $a_cp)) {
 	$cpzone = "";
@@ -55,6 +53,7 @@ if (empty($cpzone)) {
 }
 
 $pgtitle = array(gettext("Status"), gettext("Captive Portal"), htmlspecialchars($a_cp[$cpzone]['zone']), gettext("Voucher Rolls"));
+$pglinks = array("", "status_captiveportal.php", "status_captiveportal.php?zone=" . $cpzone, "@self");
 $shortcut_section = "captiveportal-vouchers";
 
 if (!is_array($config['voucher'][$cpzone]['roll'])) {

@@ -20,6 +20,14 @@
 
 // These helper functions are used on many/most UI pages to hide/show/disable/enable form elements where required
 
+// Cause the input to be displayed as a required field by adding the element-required class to the label
+function setRequired(id, req) {
+	if (req)
+		$('#' + id).parent().parent('div').find('span:first').addClass('element-required');
+	else
+		$('#' + id).parent().parent('div').find('span:first').removeClass('element-required');
+}
+
 // Hides the <div> in which the specified input element lives so that the input, its label and help text are hidden
 function hideInput(id, hide) {
 	if (hide)
@@ -110,6 +118,11 @@ function hideMask(name, hide) {
 		$('[id^=' + name + ']').prev('span').show();
 		$('[id^=' + name + ']').parent('div').addClass('input-group');
 	}
+}
+
+// Set the help text for a given input
+function setHelpText(id, text) {
+	$('#' + id).parent().parent('div').find('span:nth-child(2)').html(text);
 }
 
 // Toggle table row checkboxes and background colors on the pages that use sortable tables:
@@ -283,6 +296,15 @@ function checkLastRow() {
 function add_row() {
 	// Find the last repeatable group
 	var lastRepeatableGroup = $('.repeatable:last');
+
+	// If the number of repeats exceeds the maximum, do not add another clone
+	if ($('.repeatable').length >= lastRepeatableGroup.attr('max_repeats')) {
+		// Alert user if alert message is specified
+		if (typeof lastRepeatableGroup.attr('max_repeats_alert') !== 'undefined') {
+			alert(lastRepeatableGroup.attr('max_repeats_alert'));
+		}
+		return;
+	}
 
 	// Clone it
 	var newGroup = lastRepeatableGroup.clone();
@@ -631,7 +653,6 @@ function moveOptions(From, To)	{
 	}
 }
 
-
 // ------------- Service start/stop/restart functions.
 // If a start/stop/restart button is clicked, parse the button name and make a POST via AJAX
 $('[id*=restartservice-], [id*=stopservice-], [id*=startservice-]').click(function(event) {
@@ -676,3 +697,80 @@ $('[id*=restartservice-], [id*=stopservice-], [id*=startservice-]').click(functi
 		location.reload(true);
 	});
 });
+
+// The scripts that follow are an EXPERIMENT in using jQuery/Javascript to automatically convert
+// GET calls to POST calls
+// Any anchor with the attribute "usepost" usses these functions.
+
+// Any time an anchor is clicked and the "usepost" attibute is present, convert the href attribute
+// to POST format, make a POST form and submit it
+
+interceptGET();
+
+function interceptGET() {
+	$('a').click(function(e) {
+		// Does the clicked anchor have the "usepost" attribute?
+		var attr = $(this).attr('usepost');
+
+		if (typeof attr !== typeof undefined && attr !== false) {
+			// Automatically apply a confirmation dialog to "Delete" icons
+			if (!($(this).hasClass('no-confirm')) && !($(this).hasClass('icon-embed-btn')) &&
+			   ($(this).hasClass('fa-trash'))) {
+				var msg = $.trim(this.textContent).toLowerCase();
+
+				if (!msg)
+					var msg = $.trim(this.value).toLowerCase();
+
+				var q = 'Are you sure you wish to '+ msg +'?';
+
+				if ($(this).attr('title') != undefined)
+					q = 'Are you sure you wish to '+ $(this).attr('title').toLowerCase() + '?';
+
+				if (!confirm(q)) {
+					return false;
+				}
+			}
+
+			var target = $(this).attr("href").split("?");
+
+			postSubmit(get2post(target[1]),target[0]);
+			return false;
+		}
+	});
+}
+
+// Convert a GET argument list such as ?name=fred&action=delete into an array of POST
+// parameters such as [[name, fred],[action, delete]]
+function get2post(getargs) {
+	var arglist = new Array();
+	var argarray = getargs.split('&');
+
+	for (var i=0;i<argarray.length;i++) {
+		var thisarg = argarray[i].split('=');
+		var arg = new Array(thisarg[0], thisarg[1]);
+		arglist[i] = arg;
+	}
+
+	return arglist;
+}
+
+// Create a form, add, the POST data and submit it
+function postSubmit(data, target) {
+
+    var form = $(document.createElement('form'));
+
+    $(form).attr("method", "POST");
+    $(form).attr("action", target);
+
+    for (var i=0;i<data.length;i++) {
+		var input = $("<input>").attr("type", "hidden").attr("name", data[i][0]).val(data[i][1]);
+		$(form).append($(input));
+    }
+
+	// The CSRF magic is required because we will be viewing the results of the POST
+	var input = $("<input>").attr("type", "hidden").attr("name", "__csrf_magic").val(csrfMagicToken);
+	$(form).append($(input));
+
+    $(form).appendTo('body').submit();
+}
+

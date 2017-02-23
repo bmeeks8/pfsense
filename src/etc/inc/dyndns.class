@@ -96,7 +96,7 @@
 	 *  HE.net IPv6     - Last Tested: 7 July 2013
 	 *  HE.net Tunnel   - Last Tested: 28 June 2011
 	 *  SelfHost        - Last Tested: 26 December 2011
-	 *  Amazon Route 53 - Last Tested: 30 August 2016 
+	 *  Amazon Route 53 - Last Tested: 04 February 2017
 	 *  DNS-O-Matic     - Last Tested: 9 September 2010
 	 *  CloudFlare      - Last Tested: 05 September 2016
 	 *  CloudFlare IPv6 - Last Tested: 17 July 2016
@@ -650,9 +650,10 @@
 				case 'route53':		
 					require_once("r53.class");
 					$r53 = new Route53($this->_dnsUser, $this->_dnsPass);
-					$apiurl = $r53->getApiUrl($this->_dnsZoneID);
+					list($r53_regionId, $r53_zoneId) = split('/', $this->_dnsZoneID);
+					$apiurl = $r53->getApiUrl($r53_zoneId);
 					$xmlreq = $r53->getRequestBody($this->_dnsHost, $this->_dnsIP, $this->_dnsTTL);
-					$httphead = $r53->getHttpPostHeaders(strlen($xmlreq));
+					$httphead = $r53->getHttpPostHeaders($r53_zoneId, $r53_regionId, hash("sha256",$xmlreq));
 					curl_setopt($ch, CURLOPT_HTTPHEADER, $httphead);
 					if($this->_dnsVerboseLog){
 						log_error(sprintf("Sending reuquest to: %s", $apiurl));
@@ -1070,7 +1071,7 @@
 					} else if (preg_match('/403/i', $data)) {
 						$status = $status_intro . $error_str . gettext("Database Error - There was a server-sided database error.");
 					} else if (preg_match('/405/i', $data)) {
-						$status = $status_intro . $error_str . sprintf(gettext("Hostname Error - The hostname (%s) doesn't belong to user (%s)."), $this->_dnsHost, $this->_dnsUser);
+						$status = $status_intro . $error_str . sprintf(gettext('Hostname Error - The hostname (%1$s) doesn\'t belong to user (%2$s).'), $this->_dnsHost, $this->_dnsUser);
 					} else if (preg_match('/200/i', $data)) {
 						$status = $status_intro . $success_str . gettext("IP Address Updated Successfully!");
 						$successful_update = true;
@@ -1497,7 +1498,7 @@
 				}
 				if ($this->_useIPv6 == true && $wan_ip > 0) {
 					$currentTime = time();
-					notify_all_remote(sprintf(gettext("DynDNS updated IPv6 Address on %s (%s) to %s"), convert_real_interface_to_friendly_descr($this->_if), $this->_if, $wan_ip));
+					notify_all_remote(sprintf(gettext('DynDNS updated IPv6 Address on %1$s (%2$s) to %3$s'), convert_real_interface_to_friendly_descr($this->_if), $this->_if, $wan_ip));
 					log_error(sprintf(gettext('phpDynDNS: updating cache file %1$s: %2$s'), $this->_cacheFile_v6, $wan_ip));
 					@file_put_contents($this->_cacheFile_v6, "{$wan_ip}|{$currentTime}");
 				} else {

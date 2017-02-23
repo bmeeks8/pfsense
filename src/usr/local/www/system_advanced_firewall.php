@@ -335,15 +335,15 @@ if ($_POST) {
 		if ($_POST['bogonsinterval'] != $config['system']['bogons']['interval']) {
 			switch ($_POST['bogonsinterval']) {
 				case 'daily':
-					install_cron_job("/usr/bin/nice -n20 /etc/rc.update_bogons.sh", true, "1", "3", "*", "*", "*");
+					install_cron_job("/usr/bin/nice -n20 /etc/rc.update_bogons.sh", true, "1", "3", "*", "*", "*", "root", false);
 					break;
 				case 'weekly':
-					install_cron_job("/usr/bin/nice -n20 /etc/rc.update_bogons.sh", true, "1", "3", "*", "*", "0");
+					install_cron_job("/usr/bin/nice -n20 /etc/rc.update_bogons.sh", true, "1", "3", "*", "*", "0", "root", false);
 					break;
 				case 'monthly':
 					// fall through
 				default:
-					install_cron_job("/usr/bin/nice -n20 /etc/rc.update_bogons.sh", true, "1", "3", "1", "*", "*");
+					install_cron_job("/usr/bin/nice -n20 /etc/rc.update_bogons.sh", true, "1", "3", "1", "*", "*", "root", false);
 			}
 			$config['system']['bogons']['interval'] = $_POST['bogonsinterval'];
 		}
@@ -356,26 +356,22 @@ if ($_POST) {
 			killbypid("{$g['varrun_path']}/filterdns.pid");
 		}
 
+		$changes_applied = true;
 		$retval = 0;
-		$retval = filter_configure();
-		if (stristr($retval, "error") <> true) {
-			$savemsg = get_std_save_message($retval);
-			$class = 'success';
-		} else {
-			$savemsg = $retval;
-			$class = 'warning';
-		}
+		$retval |= filter_configure();
 	}
 }
 
 $pgtitle = array(gettext("System"), gettext("Advanced"), htmlspecialchars(gettext("Firewall & NAT")));
+$pglinks = array("", "system_advanced_admin.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
 	print_input_errors($input_errors);
 }
-if ($savemsg) {
-	print_info_box($savemsg, $class);
+
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 $tab_array = array();
@@ -429,10 +425,9 @@ $section->addInput(new Form_Checkbox(
 	'Disable Firewall',
 	'Disable all packet filtering.',
 	isset($config['system']['disablefilter'])
-))->setHelp('Note: This converts %s into a routing only platform!<br/>'.
+))->setHelp('Note: This converts %1$s into a routing only platform!%2$s'.
 	'Note: This will also turn off NAT! To only disable NAT, '.
-	'and not firewall rules, visit the <a href="firewall_nat_out.php">Outbound '.
-	'NAT</a> page.', [$g["product_name"]]);
+	'and not firewall rules, visit the %3$sOutbound NAT%4$s page.', $g["product_name"], '<br/>', '<a href="firewall_nat_out.php">', '</a>');
 
 $section->addInput(new Form_Checkbox(
 	'disablescrub',
@@ -468,7 +463,7 @@ $group->add(new Form_Input(
 
 $group->setHelp('Timeouts for states can be scaled adaptively as the number of '.
 	'state table entries grows. Leave blank to use default values, set to '.
-	'0 to disable Adaptive Timeouts');
+	'0 to disable Adaptive Timeouts.');
 
 $section->add($group);
 
@@ -478,9 +473,9 @@ $section->addInput(new Form_Input(
 	'number',
 	$pconfig['maximumstates'],
 	['min' => 1, 'placeholder' => pfsense_default_state_size()]
-))->setHelp('Maximum number of connections to hold in the firewall state table. '.
-	'<br/>Note: Leave this blank for the default. On this system the default '.
-	'size is: %d', [pfsense_default_state_size()]);
+))->setHelp('Maximum number of connections to hold in the firewall state table. %1$s'.
+	'Note: Leave this blank for the default. On this system the default '.
+	'size is: %2$d', '<br/>', pfsense_default_state_size());
 
 $section->addInput(new Form_Input(
 	'maximumtableentries',
@@ -489,9 +484,10 @@ $section->addInput(new Form_Input(
 	$pconfig['maximumtableentries'],
 	['placeholder' => pfsense_default_table_entries_size()]
 ))->setHelp('Maximum number of table entries for systems such as aliases, '.
-	'sshlockout, snort, etc, combined.<br/>Note: Leave this blank for the '.
-	'default. On this system the default size is: %d',
-	[pfsense_default_table_entries_size()]);
+	'sshlockout, snort, etc, combined.%1$sNote: Leave this blank for the '.
+	'default. On this system the default size is: %2$d',
+	'<br/>',
+	pfsense_default_table_entries_size());
 
 $section->addInput(new Form_Input(
 	'maximumfrags',
@@ -543,8 +539,8 @@ $section->addInput(new Form_Input(
 	$pconfig['aliasesresolveinterval'],
 	['placeholder' => '300']
 ))->setHelp('Interval, in seconds, that will be used to resolve hostnames '.
-	'configured on aliases. <br/>Note:	 Leave this blank for the default '.
-	'(300s).');
+	'configured on aliases. %1$sNote:	 Leave this blank for the default '.
+	'(300s).', '<br/>');
 
 $section->addInput(new Form_Checkbox(
 	'checkaliasesurlcert',
@@ -591,21 +587,22 @@ if (count($config['interfaces']) > 1) {
 			'proxy' => gettext('NAT + proxy'),
 			'purenat' => gettext('Pure NAT'),
 		)
-	))->setHelp('</span><ul class="help-block"><li>The pure NAT mode uses a set of NAT rules to direct '.
+	))->setHelp('%1$sThe pure NAT mode uses a set of NAT rules to direct '.
 		'packets to the target of the port forward. It has better scalability, '.
 		'but it must be possible to accurately determine the interface and '.
 		'gateway IP used for communication with the target at the time the '.
 		'rules are loaded. There are no inherent limits to the number of ports '.
 		'other than the limits of the protocols.  All protocols available for '.
-		'port forwards are supported.</li><li>The NAT + proxy mode uses a '.
+		'port forwards are supported.%2$sThe NAT + proxy mode uses a '.
 		'helper program to send packets to the target of the port forward. '.
 		'It is useful in setups where the interface and/or gateway IP used '.
 		'for communication with the target cannot be accurately determined at '.
 		'the time the rules are loaded. Reflection rules are not created for '.
 		'ranges larger than 500 ports and will not be used for more than 1000 '.
 		'ports total between all port forwards. Only TCP and UDP protocols are '.
-		'supported.</li></ul><span class="help-block">Individual rules may be configured to override '.
-		'this system setting on a per-rule basis.');
+		'supported.%3$sIndividual rules may be configured to override '.
+		'this system setting on a per-rule basis.',
+		'</span><ul class="help-block"><li>', '</li><li>', '</li></ul><span class="help-block">');
 
 	$section->addInput(new Form_Input(
 		'reflectiontimeout',
@@ -613,8 +610,8 @@ if (count($config['interfaces']) > 1) {
 		'number',
 		$config['system']['reflectiontimeout'],
 		['min' => 1]
-	))->setHelp('Enter value for Reflection timeout in seconds.<br/>Note: Only '.
-		'applies to Reflection on port forwards in NAT + proxy mode.');
+	))->setHelp('Enter value for Reflection timeout in seconds.%1$sNote: Only '.
+		'applies to Reflection on port forwards in NAT + proxy mode.', '<br/>');
 
 	$section->addInput(new Form_Checkbox(
 		'enablebinatreflection',
@@ -703,10 +700,6 @@ print $form;
 //<![CDATA[
 events.push(function() {
 	// Change help text based on the selector value
-	function setHelpText(id, text) {
-		$('#' + id).parent().parent('div').find('span').html(text);
-	}
-
 	function setOptText(val) {
 		var htext = '<span class="text-success">';
 

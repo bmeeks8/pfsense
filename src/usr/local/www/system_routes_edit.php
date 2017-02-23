@@ -44,15 +44,10 @@ if (!is_array($config['staticroutes']['route'])) {
 $a_routes = &$config['staticroutes']['route'];
 $a_gateways = return_gateways_array(true, true);
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
-	$id = $_GET['dup'];
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_routes[$id]) {
@@ -63,11 +58,11 @@ if (isset($id) && $a_routes[$id]) {
 	$pconfig['disabled'] = isset($a_routes[$id]['disabled']);
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
 	unset($id);
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	global $aliastable;
 
@@ -222,6 +217,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("System"), gettext("Routing"), gettext("Static Routes"), gettext("Edit"));
+$pglinks = array("", "system_gateways.php", "system_routes.php", "@self");
 $shortcut_section = "routing";
 include("head.inc");
 
@@ -244,7 +240,7 @@ $section = new Form_Section('Edit Route Entry');
 
 $section->addInput(new Form_IpAddress(
 	'network',
-	'Destination network',
+	'*Destination network',
 	$pconfig['network'],
 	'ALIASV4V6'
 ))->addMask('network_subnet', $pconfig['network_subnet'])->setHelp('Destination network for this static route');
@@ -255,11 +251,11 @@ $allGateways = array_combine(
 );
 $section->addInput(new Form_Select(
 	'gateway',
-	'Gateway',
+	'*Gateway',
 	$pconfig['gateway'],
 	$allGateways
-))->setHelp('Choose which gateway this route applies to or <a href="'.
-	'/system_gateways_edit.php">add a new one first</a>');
+))->setHelp('Choose which gateway this route applies to or %1$sadd a new one first%2$s',
+	'<a href="/system_gateways_edit.php">', '</a>');
 
 $section->addInput(new Form_Checkbox(
 	'disabled',

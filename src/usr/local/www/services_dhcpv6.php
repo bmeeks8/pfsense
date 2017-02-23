@@ -44,30 +44,30 @@ function dhcpv6_apply_changes($dhcpdv6_enable_changed) {
 	/* dnsmasq_configure calls dhcpd_configure */
 	/* no need to restart dhcpd twice */
 	if (isset($config['dnsmasq']['enable']) && isset($config['dnsmasq']['regdhcpstatic']))	{
-		$retvaldns = services_dnsmasq_configure();
+		$retvaldns |= services_dnsmasq_configure();
 		if ($retvaldns == 0) {
 			clear_subsystem_dirty('hosts');
 			clear_subsystem_dirty('staticmaps');
 		}
 	} else if (isset($config['unbound']['enable']) && isset($config['unbound']['regdhcpstatic'])) {
-		$retvaldns = services_unbound_configure();
+		$retvaldns |= services_unbound_configure();
 		if ($retvaldns == 0) {
 			clear_subsystem_dirty('unbound');
 			clear_subsystem_dirty('staticmaps');
 		}
 	} else {
-		$retvaldhcp = services_dhcpd_configure();
+		$retvaldhcp |= services_dhcpd_configure();
 		if ($retvaldhcp == 0) {
 			clear_subsystem_dirty('staticmaps');
 		}
 	}
 	if ($dhcpdv6_enable_changed) {
-		$retvalfc = filter_configure();
+		$retvalfc |= filter_configure();
 	}
 	if ($retvaldhcp == 1 || $retvaldns == 1 || $retvalfc == 1) {
 		$retval = 1;
 	}
-	return get_std_save_message($retval);
+	return $retval;
 }
 
 if (!$g['services_dhcp_server_enable']) {
@@ -75,10 +75,7 @@ if (!$g['services_dhcp_server_enable']) {
 	exit;
 }
 
-$if = $_GET['if'];
-if ($_POST['if']) {
-	$if = $_POST['if'];
-}
+$if = $_REQUEST['if'];
 
 /* if OLSRD is enabled, allow WAN to house DHCP. */
 if ($config['installedpackages']['olsrd']) {
@@ -184,7 +181,8 @@ if (is_array($dhcrelaycfg) && isset($dhcrelaycfg['enable']) && isset($dhcrelaycf
 }
 
 if (isset($_POST['apply'])) {
-	$savemsg = dhcpv6_apply_changes(false);
+	$changes_applied = true;
+	$retval = dhcpv6_apply_changes(false);
 } elseif (isset($_POST['save'])) {
 	unset($input_errors);
 
@@ -227,9 +225,9 @@ if (isset($_POST['apply'])) {
 		$_POST['prefixrange_length']) {
 		$netmask = Net_IPv6::getNetmask($_POST['prefixrange_from'],
 			$_POST['prefixrange_length']);
-		$netmask = Net_IPv6::compress($netmask);
+		$netmask = text_to_compressed_ip6($netmask);
 
-		if ($netmask != Net_IPv6::compress(strtolower(
+		if ($netmask != text_to_compressed_ip6(strtolower(
 			$_POST['prefixrange_from']))) {
 			$input_errors[] = sprintf(gettext(
 				"Prefix Delegation From address is not a valid IPv6 Netmask for %s"),
@@ -238,9 +236,9 @@ if (isset($_POST['apply'])) {
 
 		$netmask = Net_IPv6::getNetmask($_POST['prefixrange_to'],
 			$_POST['prefixrange_length']);
-		$netmask = Net_IPv6::compress($netmask);
+		$netmask = text_to_compressed_ip6($netmask);
 
-		if ($netmask != Net_IPv6::compress(strtolower(
+		if ($netmask != text_to_compressed_ip6(strtolower(
 			$_POST['prefixrange_to']))) {
 			$input_errors[] = sprintf(gettext(
 				"Prefix Delegation To address is not a valid IPv6 Netmask for %s"),
@@ -257,7 +255,7 @@ if (isset($_POST['apply'])) {
 		} elseif ($config['interfaces'][$if]['ipaddrv6'] == 'track6' &&
 			!Net_IPv6::isInNetmask($_POST['range_from'], '::', $ifcfgsn)) {
 			$input_errors[] = sprintf(gettext(
-				"The prefix (upper %s bits) must be zero.  Use the form %s"),
+				'The prefix (upper %1$s bits) must be zero.  Use the form %2$s'),
 				$ifcfgsn, $str_help_mask);
 			$range_from_to_ok = false;
 		}
@@ -269,7 +267,7 @@ if (isset($_POST['apply'])) {
 		} elseif ($config['interfaces'][$if]['ipaddrv6'] == 'track6' &&
 			!Net_IPv6::isInNetmask($_POST['range_to'], '::', $ifcfgsn)) {
 			$input_errors[] = sprintf(gettext(
-				"The prefix (upper %s bits) must be zero.  Use the form %s"),
+				'The prefix (upper %1$s bits) must be zero.  Use the form %2$s'),
 				$ifcfgsn, $str_help_mask);
 			$range_from_to_ok = false;
 		}
@@ -459,13 +457,14 @@ if (isset($_POST['apply'])) {
 
 		write_config();
 
-		$savemsg = dhcpv6_apply_changes($dhcpdv6_enable_changed);
+		$changes_applied = true;
+		$retval = dhcpv6_apply_changes($dhcpdv6_enable_changed);
 	}
 }
 
-if ($_GET['act'] == "del") {
-	if ($a_maps[$_GET['id']]) {
-		unset($a_maps[$_GET['id']]);
+if ($_POST['act'] == "del") {
+	if ($a_maps[$_POST['id']]) {
+		unset($a_maps[$_POST['id']]);
 		write_config();
 		if (isset($config['dhcpdv6'][$if]['enable'])) {
 			mark_subsystem_dirty('staticmapsv6');
@@ -479,10 +478,13 @@ if ($_GET['act'] == "del") {
 }
 
 $pgtitle = array(gettext("Services"), htmlspecialchars(gettext("DHCPv6 Server & RA")));
+$pglinks = array("", "services_dhcpv6.php");
 
 if (!empty($if) && isset($iflist[$if])) {
 	$pgtitle[] = $iflist[$if];
+	$pglinks[] = "@self";
 	$pgtitle[] = gettext("DHCPv6 Server");
+	$pglinks[] = "@self";
 }
 $shortcut_section = "dhcp6";
 
@@ -492,8 +494,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('staticmaps')) {
@@ -630,7 +632,7 @@ $f2 = new Form_Input(
 
 $f2->setHelp('To');
 
-$group = new Form_Group('Range');
+$group = new Form_Group('*Range');
 
 $group->add($f1);
 $group->add($f2);
@@ -713,16 +715,16 @@ $section->addInput(new Form_Input(
 	'Default lease time',
 	'text',
 	$pconfig['deftime']
-))->setHelp('Lease time in seconds. Used for clients that do not ask for a specific expiration time. ' . ' <br />' .
-			'The default is 7200 seconds.');
+))->setHelp('Lease time in seconds. Used for clients that do not ask for a specific expiration time. %1$s' .
+			'The default is 7200 seconds.', '<br />');
 
 $section->addInput(new Form_Input(
 	'maxtime',
 	'Max lease time',
 	'text',
 	$pconfig['maxtime']
-))->setHelp('Maximum lease time for clients that ask for a specific expiration time.' . ' <br />' .
-			'The default is 86400 seconds.');
+))->setHelp('Maximum lease time for clients that ask for a specific expiration time. %1$s' .
+			'The default is 86400 seconds.', '<br />');
 
 $section->addInput(new Form_Checkbox(
 	'dhcpv6leaseinlocaltime',
@@ -1028,7 +1030,7 @@ if (is_array($a_maps)):
 					</td>
 					<td>
 						<a class="fa fa-pencil"	title="<?=gettext('Edit static mapping')?>" href="services_dhcpv6_edit.php?if=<?=$if?>&amp;id=<?=$i?>"></a>
-						<a class="fa fa-trash"	title="<?=gettext('Delete static mapping')?>" href="services_dhcpv6.php?if=<?=$if?>&amp;act=del&amp;id=<?=$i?>"></a>
+						<a class="fa fa-trash"	title="<?=gettext('Delete static mapping')?>" href="services_dhcpv6.php?if=<?=$if?>&amp;act=del&amp;id=<?=$i?>" usepost></a>
 					</td>
 				</tr>
 <?php

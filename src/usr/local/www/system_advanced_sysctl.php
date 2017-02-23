@@ -43,17 +43,11 @@ if (!is_array($config['sysctl']['item'])) {
 $a_tunable = &$config['sysctl']['item'];
 $tunables = system_get_sysctls();
 
-if (isset($_GET['id'])) {
-	$id = htmlspecialchars_decode($_GET['id']);
-}
-if (isset($_POST['id'])) {
-	$id = htmlspecialchars_decode($_POST['id']);
+if (isset($_REQUEST['id'])) {
+	$id = htmlspecialchars_decode($_REQUEST['id']);
 }
 
-$act = $_GET['act'];
-if (isset($_POST['act'])) {
-	$act = $_POST['act'];
-}
+$act = $_REQUEST['act'];
 
 if ($act == "edit") {
 	if (isset($a_tunable[$id])) {
@@ -68,7 +62,7 @@ if ($act == "edit") {
 	}
 }
 
-if ($act == "del") {
+if ($_POST['act'] == "del") {
 	if ($a_tunable[$id]) {
 		if (!$input_errors) {
 			unset($a_tunable[$id]);
@@ -80,14 +74,13 @@ if ($act == "del") {
 	}
 }
 
-if ($_POST) {
+if ($_POST['save'] || $_POST['apply']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
 	if ($_POST['apply']) {
 		$retval = 0;
 		system_setup_sysctl();
-		$savemsg = get_std_save_message($retval);
 		clear_subsystem_dirty('sysctl');
 	}
 
@@ -119,18 +112,21 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("System"), gettext("Advanced"), gettext("System Tunables"));
+$pglinks = array("", "system_advanced_admin.php", "system_advanced_sysctl.php");
 
 if ($act == "edit") {
 	$pgtitle[] = gettext('Edit');
+	$pglinks[] = "@self";
 }
+
 include("head.inc");
 
 if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('sysctl') && ($act != "edit" )) {
@@ -182,7 +178,7 @@ if ($act != "edit"): ?>
 					<td>
 					<a class="fa fa-pencil" title="<?=gettext("Edit tunable"); ?>" href="system_advanced_sysctl.php?act=edit&amp;id=<?=$i;?>"></a>
 						<?php if (isset($tunable['modified'])): ?>
-						<a class="fa fa-trash" title="<?=gettext("Delete/Reset tunable")?>" href="system_advanced_sysctl.php?act=del&amp;id=<?=$i;?>"></a>
+						<a class="fa fa-trash" title="<?=gettext("Delete/Reset tunable")?>" href="system_advanced_sysctl.php?act=del&amp;id=<?=$i;?>" usepost></a>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -201,14 +197,14 @@ if ($act != "edit"): ?>
 
 	$section->addInput(new Form_Input(
 		'tunable',
-		'Tunable',
+		'*Tunable',
 		'text',
 		$pconfig['tunable']
 	))->setWidth(4);
 
 	$section->addInput(new Form_Input(
 		'value',
-		'Value',
+		'*Value',
 		'text',
 		$pconfig['value']
 	))->setWidth(4);

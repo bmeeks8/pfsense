@@ -34,11 +34,7 @@ require_once("shaper.inc");
 require_once("captiveportal.inc");
 require_once("voucher.inc");
 
-$cpzone = $_GET['zone'];
-if (isset($_POST['zone'])) {
-	$cpzone = $_POST['zone'];
-}
-$cpzone = strtolower(htmlspecialchars($cpzone));
+$cpzone = strtolower(htmlspecialchars($_REQUEST['zone']));
 
 if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
 	header("Location: services_captiveportal_zones.php");
@@ -48,9 +44,11 @@ if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
 if (!is_array($config['captiveportal'])) {
 	$config['captiveportal'] = array();
 }
+
 $a_cp =& $config['captiveportal'];
 
 $pgtitle = array(gettext("Services"), gettext("Captive Portal"), $a_cp[$cpzone]['zone'], gettext("Vouchers"), gettext("Edit"));
+$pglinks = array("", "services_captiveportal_zones.php", "services_captiveportal.php?zone=" . $cpzone, "services_captiveportal_vouchers.php?zone=" . $cpzone, "@self");
 $shortcut_section = "captiveportal-vouchers";
 
 if (!is_array($config['voucher'])) {
@@ -62,13 +60,8 @@ if (!is_array($config['voucher'][$cpzone]['roll'])) {
 }
 
 $a_roll = &$config['voucher'][$cpzone]['roll'];
+$id = $_REQUEST['id'];
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
 
 if (isset($id) && $a_roll[$id]) {
 	$pconfig['zone'] = $a_roll[$id]['zone'];
@@ -81,14 +74,14 @@ if (isset($id) && $a_roll[$id]) {
 $maxnumber = (1<<$config['voucher'][$cpzone]['rollbits']) -1;	// Highest Roll#
 $maxcount = (1<<$config['voucher'][$cpzone]['ticketbits']) -1;	 // Highest Ticket#
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
 
 	/* input validation */
 	$reqdfields = explode(" ", "number count minutes");
-	$reqdfieldsn = array(gettext("Number"), gettext("Count"), gettext("minutes"));
+	$reqdfieldsn = array(gettext("Roll #"), gettext("Count"), gettext("Minutes per ticket"));
 
 	do_input_validation($_POST, $reqdfields, $reqdfieldsn, $input_errors);
 
@@ -181,24 +174,24 @@ $section = new Form_Section('Voucher Rolls');
 
 $section->addInput(new Form_Input(
 	'number',
-	'Roll #',
+	'*Roll #',
 	'text',
 	$pconfig['number']
-))->setHelp('Enter the Roll# (0..%d) found on top of the generated/printed vouchers', [$maxnumber]);
+))->setHelp('Enter the Roll# (0..%d) found on top of the generated/printed vouchers', $maxnumber);
 
 $section->addInput(new Form_Input(
 	'minutes',
-	'Minutes per ticket',
+	'*Minutes per ticket',
 	'text',
 	$pconfig['minutes']
 ))->setHelp('Defines the time in minutes that a user is allowed access. The clock starts ticking the first time a voucher is used for authentication.');
 
 $section->addInput(new Form_Input(
 	'count',
-	'Count',
+	'*Count',
 	'text',
 	$pconfig['count']
-))->setHelp('Enter the number of vouchers (1..%d) found on top of the generated/printed vouchers. WARNING: Changing this number for an existing Roll will mark all vouchers as unused again', [$maxcount]);
+))->setHelp('Enter the number of vouchers (1..%d) found on top of the generated/printed vouchers. WARNING: Changing this number for an existing Roll will mark all vouchers as unused again', $maxcount);
 
 $section->addInput(new Form_Input(
 	'descr',

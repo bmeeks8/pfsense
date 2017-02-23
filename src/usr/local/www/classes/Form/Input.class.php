@@ -60,8 +60,8 @@ class Form_Input extends Form_Element
 		if (isset($value))
 			$this->_attributes['value'] = $value;
 
-		foreach ($attributes as $name => $value)
-			$this->_attributes[$name] = $value;
+		foreach ($attributes as $attr_name => $attr_value)
+			$this->_attributes[$attr_name] = $attr_value;
 	}
 
 	public function getTitle()
@@ -110,10 +110,22 @@ class Form_Input extends Form_Element
 		return $this->_tagName;
 	}
 
-	public function setHelp($help, array $params = array())
+	public function setHelp()
 	{
-		$this->_help = $help;
-		$this->_helpParams = $params;
+		$args = func_get_args();
+		$arg0_len = strlen($args[0]);
+
+		if (($arg0_len > 0) && ($arg0_len < 4096)) {
+			$args[0] = gettext($args[0]);
+		}
+
+		if (func_num_args() == 1) {
+			$this->_help = $args[0];
+		} else {
+			$this->_help = call_user_func_array('sprintf', $args);
+		}
+
+		$this->_helpParams = "";
 
 		return $this;
 	}
@@ -239,17 +251,7 @@ class Form_Input extends Form_Element
 
 		if (!empty($this->_help))
 		{
-			/* Strings longer than this will break gettext. */
-			if (strlen($this->_help) < 4096) {
-				$help = gettext($this->_help);
-			} else {
-				$help = $this->_help;
-			}
-
-			if (!empty($this->_helpParams))
-				$help = call_user_func_array('sprintf', array_merge([$help], $this->_helpParams));
-
-			$help = '<span class="help-block">'. $help .'</span>';
+			$help = '<span class="help-block">'. $this->_help .'</span>';
 		}
 
 		return <<<EOT

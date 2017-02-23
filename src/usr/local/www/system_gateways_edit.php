@@ -49,15 +49,12 @@ if (!is_array($config['gateways']['gateway_item'])) {
 $a_gateway_item = &$config['gateways']['gateway_item'];
 $dpinger_default = return_dpinger_defaults();
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
-	$id = $_GET['dup'];
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
+	$id = $_REQUEST['dup'];
 }
 
 if (isset($id) && $a_gateways[$id]) {
@@ -91,7 +88,7 @@ if (isset($id) && $a_gateways[$id]) {
 	$pconfig['disabled'] = isset($a_gateways[$id]['disabled']);
 }
 
-if (isset($_GET['dup']) && is_numericint($_GET['dup'])) {
+if (isset($_REQUEST['dup']) && is_numericint($_REQUEST['dup'])) {
 	unset($id);
 	unset($pconfig['attribute']);
 }
@@ -100,7 +97,7 @@ if (isset($id) && $a_gateways[$id]) {
 	$realid = $a_gateways[$id]['attribute'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 
@@ -173,7 +170,7 @@ if ($_POST) {
 				}
 
 				if ($found === false) {
-					$input_errors[] = sprintf(gettext("The gateway address %1\$s does not lie within one of the chosen interface's subnets."), $_POST['gateway']);
+					$input_errors[] = sprintf(gettext("The gateway address %s does not lie within one of the chosen interface's subnets."), $_POST['gateway']);
 				}
 			}
 		} else if (is_ipaddrv6($_POST['gateway'])) {
@@ -204,7 +201,7 @@ if ($_POST) {
 					}
 
 					if ($found === false) {
-						$input_errors[] = sprintf(gettext("The gateway address %1\$s does not lie within one of the chosen interface's subnets."), $_POST['gateway']);
+						$input_errors[] = sprintf(gettext("The gateway address %s does not lie within one of the chosen interface's subnets."), $_POST['gateway']);
 					}
 				}
 			}
@@ -549,6 +546,7 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("System"), gettext("Routing"), gettext("Gateways"), gettext("Edit"));
+$pglinks = array("", "system_gateways.php", "system_gateways.php", "@self");
 $shortcut_section = "gateways";
 
 include("head.inc");
@@ -592,19 +590,18 @@ $section->addInput(new Form_Checkbox(
 	'Disabled',
 	'Disable this gateway',
 	$pconfig['disabled']
-))->setHelp('Set this option to disable this gateway without removing it from the '.
-	'list.');
+))->setHelp('Set this option to disable this gateway without removing it from the list.');
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['friendlyiface'],
 	get_configured_interface_with_descr(false, true)
 ))->setHelp('Choose which interface this gateway applies to.');
 
 $section->addInput(new Form_Select(
 	'ipprotocol',
-	'Address Family',
+	'*Address Family',
 	$pconfig['ipprotocol'],
 	array(
 		"inet" => "IPv4",
@@ -614,7 +611,7 @@ $section->addInput(new Form_Select(
 
 $section->addInput(new Form_Input(
 	'name',
-	'Name',
+	'*Name',
 	'text',
 	$pconfig['name']
 ))->setHelp('Gateway name');
@@ -736,8 +733,8 @@ $group->add(new Form_Input(
 	$pconfig['latencyhigh'],
 	['placeholder' => $dpinger_default['latencyhigh']]
 ));
-$group->setHelp('Low and high thresholds for latency in milliseconds.
-	Default is %d/%d.', [$dpinger_default['latencylow'], $dpinger_default['latencyhigh']]);
+$group->setHelp('Low and high thresholds for latency in milliseconds. ' .
+	'Default is %1$d/%2$d.', $dpinger_default['latencylow'], $dpinger_default['latencyhigh']);
 
 $section->add($group);
 
@@ -756,8 +753,8 @@ $group->add(new Form_Input(
 	$pconfig['losshigh'],
 	['placeholder' => $dpinger_default['losshigh']]
 ));
-$group->setHelp('Low and high thresholds for packet loss in %%.
-	Default is %d/%d.', [$dpinger_default['losslow'], $dpinger_default['losshigh']]);
+$group->setHelp('Low and high thresholds for packet loss in %%. ' .
+	'Default is %1$d/%2$d.', $dpinger_default['losslow'], $dpinger_default['losshigh']);
 $section->add($group);
 
 $section->addInput(new Form_Input(
@@ -769,7 +766,7 @@ $section->addInput(new Form_Input(
 		'placeholder' => $dpinger_default['interval'],
 		'max' => 86400
 	]
-))->setHelp('How often an ICMP probe will be sent in milliseconds. Default is %d.', [$dpinger_default['interval']]);
+))->setHelp('How often an ICMP probe will be sent in milliseconds. Default is %d.', $dpinger_default['interval']);
 
 $section->addInput(new Form_Input(
 	'loss_interval',
@@ -778,7 +775,7 @@ $section->addInput(new Form_Input(
 	$pconfig['loss_interval'],
 	['placeholder' => $dpinger_default['loss_interval']]
 ))->setHelp('Time interval in milliseconds before packets are treated as lost. '.
-	'Default is %d.', [$dpinger_default['loss_interval']]);
+	'Default is %d.', $dpinger_default['loss_interval']);
 
 $group = new Form_Group('Time Period');
 $group->add(new Form_Input(
@@ -791,7 +788,7 @@ $group->add(new Form_Input(
 	]
 ));
 $group->setHelp('Time period in milliseconds over which results are averaged. Default is %d.',
-	[$dpinger_default['time_period']]);
+	$dpinger_default['time_period']);
 $section->add($group);
 
 $group = new Form_Group('Alert interval');
@@ -805,7 +802,7 @@ $group->add(new Form_Input(
 	]
 ));
 $group->setHelp('Time interval in milliseconds between checking for an alert condition. Default is %d.',
-	[$dpinger_default['alert_interval']]);
+	$dpinger_default['alert_interval']);
 $section->add($group);
 
 $section->addInput(new Form_StaticText(

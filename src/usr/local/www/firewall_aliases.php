@@ -42,33 +42,24 @@ $a_aliases = &$config['aliases']['alias'];
 
 $tab = ($_REQUEST['tab'] == "" ? "ip" : preg_replace("/\W/", "", $_REQUEST['tab']));
 
-if ($_POST) {
+if ($_POST['apply']) {
+	$retval = 0;
 
-	if ($_POST['apply']) {
-		$retval = 0;
+	/* reload all components that use aliases */
+	$retval |= filter_configure();
 
-		/* reload all components that use aliases */
-		$retval = filter_configure();
-
-		if (stristr($retval, "error") <> true) {
-			$savemsg = get_std_save_message($retval);
-			$class = "success";
-		} else {
-			$savemsg = $retval;
-			$class = "danger";
-		}
-		if ($retval == 0) {
-			clear_subsystem_dirty('aliases');
-		}
+	if ($retval == 0) {
+		clear_subsystem_dirty('aliases');
 	}
 }
 
-if ($_GET['act'] == "del") {
-	if ($a_aliases[$_GET['id']]) {
+
+if ($_POST['act'] == "del") {
+	if ($a_aliases[$_POST['id']]) {
 		/* make sure rule is not being referenced by any nat or filter rules */
 		$is_alias_referenced = false;
 		$referenced_by = false;
-		$alias_name = $a_aliases[$_GET['id']]['name'];
+		$alias_name = $a_aliases[$_POST['id']]['name'];
 		// Firewall rules
 		find_alias_reference(array('filter', 'rule'), array('source', 'address'), $alias_name, $is_alias_referenced, $referenced_by);
 		find_alias_reference(array('filter', 'rule'), array('destination', 'address'), $alias_name, $is_alias_referenced, $referenced_by);
@@ -99,14 +90,13 @@ if ($_GET['act'] == "del") {
 		// Static routes
 		find_alias_reference(array('staticroutes', 'route'), array('network'), $alias_name, $is_alias_referenced, $referenced_by);
 		if ($is_alias_referenced == true) {
-			$savemsg = sprintf(gettext("Cannot delete alias. Currently in use by %s."), htmlspecialchars($referenced_by));
-			$class = "danger";
+			$delete_error = sprintf(gettext("Cannot delete alias. Currently in use by %s."), htmlspecialchars($referenced_by));
 		} else {
-			if (preg_match("/urltable/i", $a_aliases[$_GET['id']]['type'])) {
+			if (preg_match("/urltable/i", $a_aliases[$_POST['id']]['type'])) {
 				// this is a URL table type alias, delete its file as well
-				unlink_if_exists("/var/db/aliastables/" . $a_aliases[$_GET['id']]['name'] . ".txt");
+				unlink_if_exists("/var/db/aliastables/" . $a_aliases[$_POST['id']]['name'] . ".txt");
 			}
-			unset($a_aliases[$_GET['id']]);
+			unset($a_aliases[$_POST['id']]);
 			if (write_config()) {
 				filter_configure();
 				mark_subsystem_dirty('aliases');
@@ -169,12 +159,16 @@ foreach ($tab_array as $dtab) {
 }
 
 $pgtitle = array(gettext("Firewall"), gettext("Aliases"), $bctab);
+$pglinks = array("", "firewall_aliases.php", "@self");
 $shortcut_section = "aliases";
 
 include("head.inc");
 
-if ($savemsg) {
-	print_info_box($savemsg, $class);
+if ($delete_error) {
+	print_info_box($delete_error, 'danger');
+}
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('aliases')) {
@@ -259,7 +253,7 @@ display_top_tabs($tab_array);
 			</td>
 			<td>
 				<a class="fa fa-pencil" title="<?=gettext("Edit alias"); ?>" href="firewall_aliases_edit.php?id=<?=$i?>"></a>
-				<a class="fa fa-trash"	title="<?=gettext("Delete alias")?>" href="?act=del&amp;tab=<?=$tab?>&amp;id=<?=$i?>"></a>
+				<a class="fa fa-trash"	title="<?=gettext("Delete alias")?>" href="?act=del&amp;tab=<?=$tab?>&amp;id=<?=$i?>" usepost></a>
 			</td>
 		</tr>
 <?php endif?>
@@ -293,9 +287,9 @@ endif
 <div>
 	<div class="infoblock">
 		<?php print_info_box(gettext('Aliases act as placeholders for real hosts, networks or ports. They can be used to minimize the number ' .
-			'of changes that have to be made if a host, network or port changes. <br />' .
-			'The name of an alias can be entered instead of the host, network or port where indicated. The alias will be resolved according to the list above.' . '<br />' .
-			'If an alias cannot be resolved (e.g. because it was deleted), the corresponding element (e.g. filter/NAT/shaper rule) will be considered invalid and skipped.'), 'info', false); ?>
+			'of changes that have to be made if a host, network or port changes.') . '<br />' .
+			gettext('The name of an alias can be entered instead of the host, network or port where indicated. The alias will be resolved according to the list above.') . '<br />' .
+			gettext('If an alias cannot be resolved (e.g. because it was deleted), the corresponding element (e.g. filter/NAT/shaper rule) will be considered invalid and skipped.'), 'info', false); ?>
 	</div>
 </div>
 

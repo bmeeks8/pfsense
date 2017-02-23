@@ -31,6 +31,7 @@
 ##|*IDENT=page-diagnostics-command
 ##|*NAME=Diagnostics: Command
 ##|*DESCR=Allow access to the 'Diagnostics: Command' page.
+##|*WARN=standard-warning-root
 ##|*MATCH=diag_command.php*
 ##|-PRIV
 
@@ -56,11 +57,8 @@ if ($_POST['submit'] == "DOWNLOAD" && file_exists($_POST['dlPath'])) {
 	fpassthru($fd);
 	exit;
 } else if ($_POST['submit'] == "UPLOAD" && is_uploaded_file($_FILES['ulfile']['tmp_name'])) {
-	move_uploaded_file($_FILES['ulfile']['tmp_name'], "/tmp/" . $_FILES['ulfile']['name']);
-	$ulmsg = sprintf(gettext('Uploaded file to /tmp/%s.'), htmlentities($_FILES['ulfile']['name']));
-}
-
-if ($_POST) {
+	move_uploaded_file($_FILES['ulfile']['tmp_name'], $g["tmp_path"] . "/" . $_FILES['ulfile']['name']);
+	$ulmsg = sprintf(gettext('Uploaded file to %s.'), $g["tmp_path"] . "/" . htmlentities($_FILES['ulfile']['name']));
 }
 
 // Function: is Blank
@@ -76,16 +74,6 @@ function isBlank($arg) {
 function puts($arg) {
 	echo "$arg\n";
 }
-
-// "Constants".
-
-$Version = '';
-$ScriptName = $REQUEST['SCRIPT_NAME'];
-
-// Get year.
-
-$arrDT = localtime();
-$intYear = $arrDT[5] + 1900;
 
 $pgtitle = array(gettext("Diagnostics"), gettext("Command Prompt"));
 include("head.inc");
@@ -238,7 +226,7 @@ if ($_POST['submit'] == "EXEC" && !isBlank($_POST['txtCommand'])):?>
 		<div class="panel-heading"><h2 class="panel-title"><?=gettext('Download File')?></h2></div>
 		<div class="panel-body">
 			<div class="content">
-				<input name="dlPath" type="text" id="dlPath" placeholder="File to download" class="col-sm-4" value="<?=htmlspecialchars($_GET['dlPath']);?>"/>
+				<input name="dlPath" type="text" id="dlPath" placeholder="File to download" class="col-sm-4" value="<?=htmlspecialchars($_REQUEST['dlPath']);?>"/>
 				<br /><br />
 				<button name="submit" type="submit" class="btn btn-primary btn-sm" id="download" value="DOWNLOAD">
 					<i class="fa fa-download icon-embed-btn"></i>

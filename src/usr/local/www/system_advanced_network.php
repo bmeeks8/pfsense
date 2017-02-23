@@ -56,6 +56,14 @@ if ($_POST) {
 		$input_errors[] = gettext("An IP address to NAT IPv6 packets must be specified.");
 	}
 
+	if (!empty($_POST['global-v6duid'])) {
+		$_POST['global-v6duid'] = format_duid($_POST['global-v6duid']);
+		$pconfig['global-v6duid'] = $_POST['global-v6duid'];
+		if (!is_duid($_POST['global-v6duid'])) {
+			$input_errors[] = gettext("A valid DUID must be specified");
+		}
+	}
+
 	ob_flush();
 	flush();
 	if (!$input_errors) {
@@ -85,12 +93,7 @@ if ($_POST) {
 		}
 
 		if (!empty($_POST['global-v6duid'])) {
-			$_POST['global-v6duid'] = strtolower(str_replace("-", ":", $_POST['global-v6duid']));
-			if (!is_duid($_POST['global-v6duid'])) {
-				$input_errors[] = gettext("A valid DUID must be specified");
-			} else {
-				$config['system']['global-v6duid'] = $_POST['global-v6duid'];
-			}
+			$config['system']['global-v6duid'] = $_POST['global-v6duid'];
 		} else {
 			unset($config['system']['global-v6duid']);
 		}
@@ -129,25 +132,22 @@ if ($_POST) {
 		// Set preferred protocol
 		prefer_ipv4_or_ipv6();
 
-		$retval = filter_configure();
-		if (stristr($retval, "error") <> true) {
-			$savemsg = get_std_save_message(gettext($retval));
-			$class = 'success';
-		} else {
-			$savemsg = gettext($retval);
-			$class = 'warning';
-		}
+		$changes_applied = true;
+		$retval = 0;
+		$retval |= filter_configure();
 	}
 }
 
 $pgtitle = array(gettext("System"), gettext("Advanced"), gettext("Networking"));
+$pglinks = array("", "system_advanced_admin.php", "@self");
 include("head.inc");
 
 if ($input_errors) {
 	print_input_errors($input_errors);
 }
-if ($savemsg) {
-	print_info_box($savemsg, $class);
+
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 $tab_array = array();
@@ -171,23 +171,27 @@ $section->addInput(new Form_Checkbox(
 ))->setHelp('NOTE: This does not disable any IPv6 features on the firewall, it only '.
 	'blocks traffic.');
 
-$group = new Form_Group('IPv6 over IPv4 Tunneling');
+
+$group = new Form_Group('IPv6 over IPv4');
+
 $group->add(new Form_Checkbox(
 	'ipv6nat_enable',
 	'IPv6 over IPv4 Tunneling',
-	'Enable IPv4 NAT encapsulation of IPv6 packets',
+	'Enable IPv6 over IPv4 tunneling',
 	$pconfig['ipv6nat_enable']
 ));
 
 $group->add(new Form_Input(
 	'ipv6nat_ipaddr',
-	'IP address',
+	'IPv4 address of Tunnel Peer',
 	'text',
 	$pconfig['ipv6nat_ipaddr']
-))->setHelp('Enable IPv4 NAT encapsulation of IPv6 packets. <br/>This provides an '.
-	'RFC 2893 compatibility mechanism that can be used to tunneling IPv6 packets over '.
-	'IPv4 routing infrastructures. If enabled, don\'t forget to add a firewall rule to '.
-	'permit IPv6 packets.');
+));
+
+$group->setHelp('These options create an RFC 2893 compatible mechanism for IPv4 NAT encapsulation of IPv6 packets, ' .
+	'that can be used to tunnel IPv6 packets over IPv4 routing infrastructures. ' .
+	'IPv6 firewall rules are %1$salso required%2$s, to control and pass encapsulated traffic.', '<a href="firewall_rules.php">', '</a>');
+
 
 $section->add($group);
 
@@ -199,19 +203,34 @@ $section->addInput(new Form_Checkbox(
 ))->setHelp('By default, if IPv6 is configured and a hostname resolves IPv6 and IPv4 addresses, '. 
 	'IPv6 will be used. If this option is selected, IPv4 will be preferred over IPv6.');
 
-$section->addInput(new Form_Input(
+$group = new Form_Group('DHCP6 DUID');
+
+$group->add(new Form_Input(
 	'global-v6duid',
 	'DHCP6 DUID',
 	'text',
 	$pconfig['global-v6duid'],
 	['placeholder' => $duid]
-	))->setWidth(9)->sethelp('This is the DHCPv6 Unique Identifier (DUID) used by the firewall when requesting an IPv6 address. ' .
-		'<br />' .
+	));
+
+$btncopyduid = new Form_Button(
+	'btncopyduid',
+	'Copy DUID',
+	null,
+	'fa-clone'
+	);
+
+$btncopyduid->setAttribute('type','button')->removeClass('btn-primary')->addClass('btn-success btn-sm');
+$group->add($btncopyduid);
+
+$group->setHelp('This is the DHCPv6 Unique Identifier (DUID) used by the firewall when requesting an IPv6 address. %1$s' .
 		'By default, the firewall automatically creates a dynamic DUID which is not saved in the firewall configuration. '.
 		'To ensure the same DUID is retained by the firewall at all times, enter a DUID in this field. ' .
-		'The new DUID will take effect after a reboot or when the WAN interface(s) are reconfigured by the firewall.' .
-		'<br />' .
-		'If the firewall is configured to use a RAM disk for /var, the best practice is to store a DUID here otherwise the DUID will change on each reboot. ');
+		'The new DUID will take effect after a reboot or when the WAN interface(s) are reconfigured by the firewall.%1$s' .
+		'If the firewall is configured to use a RAM disk for /var, the best practice is to store a DUID here otherwise the DUID will change on each reboot.%1$s%1$s' .
+		'You may use the Copy DUID button to copy the system detected DUID shown in the placeholder. ', '<br />');
+
+$section->add($group);
 
 $form->add($section);
 $section = new Form_Section('Network Interfaces');
@@ -221,11 +240,11 @@ $section->addInput(new Form_Checkbox(
 	'Hardware Checksum Offloading',
 	'Disable hardware checksum offload',
 	isset($config['system']['disablechecksumoffloading'])
-))->setHelp('Checking this option will disable hardware checksum offloading.<br/>'.
+))->setHelp('Checking this option will disable hardware checksum offloading.%1$s'.
 	'Checksum offloading is broken in some hardware, particularly some Realtek cards. '.
 	'Rarely, drivers may have problems with checksum offloading and some specific '.
 	'NICs. This will take effect after a machine reboot or re-configure of each '.
-	'interface.');
+	'interface.', '<br/>');
 
 $section->addInput(new Form_Checkbox(
 	'disablesegmentationoffloading',
@@ -267,5 +286,17 @@ if (get_freebsd_version() == 8) {
 
 $form->add($section);
 print $form;
+?>
 
-include("foot.inc");
+<script type="text/javascript">
+//<![CDATA[
+events.push(function() {
+	// On click, copy the placeholder DUID to the input field
+	$('#btncopyduid').click(function() {
+		$('#global-v6duid').val('<?=$duid?>');
+	});
+});
+//]]>
+</script>
+
+<?php include("foot.inc");

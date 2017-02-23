@@ -47,11 +47,7 @@ require_once("filter.inc");
 require_once("shaper.inc");
 require_once("captiveportal.inc");
 
-$cpzone = $_GET['zone'];
-if (isset($_POST['zone'])) {
-	$cpzone = $_POST['zone'];
-}
-$cpzone = strtolower(htmlspecialchars($cpzone));
+$cpzone = strtolower(htmlspecialchars($_REQUEST['zone']));
 
 if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
 	header("Location: services_captiveportal_zones.php");
@@ -61,21 +57,18 @@ if (empty($cpzone) || empty($config['captiveportal'][$cpzone])) {
 if (!is_array($config['captiveportal'])) {
 	$config['captiveportal'] = array();
 }
+
 $a_cp =& $config['captiveportal'];
 
 $pgtitle = array(gettext("Services"), gettext("Captive Portal"), $a_cp[$cpzone]['zone'], gettext("Allowed IP Addresses"), gettext("Edit"));
+$pglinks = array("", "services_captiveportal_zones.php", "services_captiveportal.php?zone=" . $cpzone, "services_captiveportal_ip.php?zone=" . $cpzone, "@self");
 $shortcut_section = "captiveportal";
-
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
-}
+$id = $_REQUEST['id'];
 
 if (!is_array($config['captiveportal'][$cpzone]['allowedip'])) {
 	$config['captiveportal'][$cpzone]['allowedip'] = array();
 }
+
 $a_allowedips =& $config['captiveportal'][$cpzone]['allowedip'];
 
 if (isset($id) && $a_allowedips[$id]) {
@@ -87,7 +80,7 @@ if (isset($id) && $a_allowedips[$id]) {
 	$pconfig['descr'] = $a_allowedips[$id]['descr'];
 }
 
-if ($_POST) {
+if ($_POST['save']) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
@@ -127,7 +120,7 @@ if ($_POST) {
 		}
 
 		if ($ipent['ip'] == $_POST['ip']) {
-			$input_errors[] = sprintf("[%s] %s.", $_POST['ip'], gettext("already allowed")) ;
+			$input_errors[] = sprintf(gettext('[%s] already allowed.'), $_POST['ip']);
 			break ;
 		}
 	}
@@ -220,7 +213,7 @@ $section = new Form_Section('Edit Captive Portal IP Rule');
 
 $section->addInput(new Form_IpAddress(
 	'ip',
-	'IP Address',
+	'*IP Address',
 	$pconfig['ip']
 ))->addMask(sn, $pconfig['sn'], 32);
 
@@ -233,7 +226,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Select(
 	'dir',
-	'Direction',
+	'*Direction',
 	strtolower($pconfig['dir']),
 	build_dir_list()
 ))->setHelp('Use "From" to always allow access to an address through the captive portal (without authentication). ' .

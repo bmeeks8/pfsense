@@ -263,11 +263,12 @@ if ($_POST) {
 
 		write_config();
 
-		$retval = filter_configure();
-		$savemsg = get_std_save_message($retval);
+		$changes_applied = true;
+		$retval = 0;
+		$retval |= filter_configure();
 
 		if ($restart_webgui) {
-			$savemsg .= sprintf("<br />" . gettext("One moment...redirecting to %s in 20 seconds."), $url);
+			$extra_save_msg = sprintf("<br />" . gettext("One moment...redirecting to %s in 20 seconds."), $url);
 		}
 
 		setup_serial_port();
@@ -281,14 +282,15 @@ if ($_POST) {
 }
 
 $pgtitle = array(gettext("System"), gettext("Advanced"), gettext("Admin Access"));
+$pglinks = array("", "@self", "@self");
 include("head.inc");
 
 if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval, $extra_save_msg);
 }
 
 $tab_array = array();
@@ -322,8 +324,10 @@ $group->add(new Form_Checkbox(
 	'https'
 ))->displayAsRadio();
 
-$group->setHelp($certs_available ? '':'No Certificates have been defined. A certificate is required before SSL can be enabled. '.
-	'<a href="system_certmanager.php">'. gettext("Create or Import").'</a> '.' a Certificate.');
+if (!$certs_available) {
+	$group->setHelp('No Certificates have been defined. A certificate is required before SSL can be enabled. %1$s Create or Import %2$s a Certificate.',
+		'<a href="system_certmanager.php">', '</a>');
+}
 
 $section->add($group);
 
@@ -398,23 +402,23 @@ $section->addInput(new Form_Checkbox(
 	'Disable webConfigurator anti-lockout rule',
 	$pconfig['noantilockout']
 ))->setHelp('When this is '.
-	'unchecked, access to the webConfigurator on the %s interface is always '.
+	'unchecked, access to the webConfigurator on the %1$s interface is always '.
 	'permitted, regardless of the user-defined firewall rule set. Check this box to '.
 	'disable this automatically added rule, so access to the webConfigurator is '.
 	'controlled by the user-defined firewall rules (ensure a firewall rule is '.
-	'in place that allows access, to avoid being locked out!) <em>Hint: the &quot;Set interface(s) IP address&quot; '.
-	'option in the console menu resets this setting as well.</em>', [$lockout_interface]);
+	'in place that allows access, to avoid being locked out!) %2$sHint: the &quot;Set interface(s) IP address&quot; '.
+	'option in the console menu resets this setting as well.%3$s', $lockout_interface, '<em>', '</em>');
 
 $section->addInput(new Form_Checkbox(
 	'nodnsrebindcheck',
 	'DNS Rebind Check',
 	'Disable DNS Rebinding Checks',
 	$pconfig['nodnsrebindcheck']
-))->setHelp('When this is unchecked, the system is protected against <a '.
-	'href="http://en.wikipedia.org/wiki/DNS_rebinding">DNS Rebinding attacks</a>. '.
+))->setHelp('When this is unchecked, the system is protected against %1$sDNS Rebinding attacks%2$s. '.
 	'This blocks private IP responses from the configured DNS servers. Check this '.
 	'box to disable this protection if it interferes with webConfigurator access or '.
-	'name resolution in the environment.');
+	'name resolution in the environment.',
+	'<a href="http://en.wikipedia.org/wiki/DNS_rebinding">', '</a>');
 
 $section->addInput(new Form_Input(
 	'althostnames',
@@ -434,8 +438,8 @@ $section->addInput(new Form_Checkbox(
 	'against HTTP_REFERER redirection attempts. Check this box to disable this '.
 	'protection if it interferes with webConfigurator access in certain '.
 	'corner cases such as using external scripts to interact with this system. More '.
-	'information on HTTP_REFERER is available from <a target="_blank" '.
-	'href="http://en.wikipedia.org/wiki/HTTP_referrer">Wikipedia</a>.');
+	'information on HTTP_REFERER is available from %1$sWikipedia%2$s',
+	'<a target="_blank" href="http://en.wikipedia.org/wiki/HTTP_referrer">', '</a>.');
 
 gen_pagenamefirst_field($section, $pconfig['pagenamefirst']);
 
@@ -454,9 +458,9 @@ $section->addInput(new Form_Checkbox(
 	'Authentication Method',
 	'Disable password login for Secure Shell (RSA/DSA key only)',
 	$pconfig['sshdkeyonly']
-))->setHelp('When enabled, authorized keys need to be configured for each <a '.
-	'href="system_usermanager.php">user</a> that has been granted secure shell '.
-	'access.');
+))->setHelp('When enabled, authorized keys need to be configured for each '.
+	'%1$suser%2$s that has been granted secure shell '.
+	'access.', '<a href="system_usermanager.php">', '</a>');
 
 $section->addInput(new Form_Input(
 	'sshport',
@@ -478,8 +482,8 @@ if (!$g['enableserial_force']) {
 		isset($pconfig['enableserial'])
 	))->setHelp('Note:	This will redirect the console output and messages to '.
 		'the serial port. The console menu can still be accessed from the internal video '.
-		'card/keyboard. A <b>null modem</b> serial cable or adapter is required to use the '.
-		'serial console.');
+		'card/keyboard. A %1$snull modem%2$s serial cable or adapter is required to use the '.
+		'serial console.', '<b>', '</b>');
 }
 
 $section->addInput(new Form_Select(

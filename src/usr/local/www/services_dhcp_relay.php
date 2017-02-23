@@ -74,32 +74,32 @@ if ($_POST) {
 
 	/* input validation */
 	if ($_POST['enable']) {
-		$reqdfields = explode(" ", "server interface");
-		$reqdfieldsn = array(gettext("Destination Server"), gettext("Interface"));
+		$reqdfields = explode(" ", "interface");
+		$reqdfieldsn = array(gettext("Interface"));
 
 		do_input_validation($_POST, $reqdfields, $reqdfieldsn, $input_errors);
 
 		$svrlist = '';
 
-		if ($_POST['server']) {
-			foreach ($_POST['server'] as $checksrv => $srv) {
-				if (!empty($srv[0])) { // Filter out any empties
-					if (!is_ipaddrv4($srv[0])) {
-						$input_errors[] = sprintf(gettext("Destination Server IP address %s is not a valid IPv4 address."), $srv[0]);
+		for ($idx=0; $idx<count($_POST); $idx++) {
+			if ($_POST['server' . $idx]) {
+				if (!empty($_POST['server' . $idx])) { // Filter out any empties
+					if (!is_ipaddrv4($_POST['server' . $idx])) {
+						$input_errors[] = sprintf(gettext("Destination Server IP address %s is not a valid IPv4 address."), $_POST['server' . $idx]);
 					}
 
 					if (!empty($svrlist)) {
 						$svrlist .= ',';
 					}
 
-					$svrlist .= $srv[0];
+					$svrlist .= $_POST['server' . $idx];
 				}
 			}
+		}
 
-			// Check that the user input something in one of the Destination Server fields
-			if (empty($svrlist)) {
-				$input_errors[] = gettext("At least one Destination Server IP address must be specified.");
-			}
+		// Check that the user input something in one of the Destination Server fields
+		if (empty($svrlist)) {
+			$input_errors[] = gettext("At least one Destination Server IP address must be specified.");
 		}
 	}
 
@@ -114,10 +114,10 @@ if ($_POST) {
 
 		write_config();
 
+		$changes_applied = true;
 		$retval = 0;
-		$retval = services_dhcrelay_configure();
-		$savemsg = get_std_save_message($retval);
-		filter_configure();
+		$retval |= services_dhcrelay_configure();
+		$retval |= filter_configure();
 	}
 }
 
@@ -135,8 +135,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 $form = new Form;
@@ -148,11 +148,11 @@ $section->addInput(new Form_Checkbox(
 	'Enable',
 	'Enable DHCP relay on interface',
 	$pconfig['enable']
-))->toggles('.form-group:not(:first-child)');
+));
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface(s)',
+	'*Interface(s)',
 	$pconfig['interface'],
 	$iflist,
 	true
@@ -165,35 +165,70 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['agentoption']
 ))->setHelp(
 	'If this is checked, the DHCP relay will append the circuit ID (%s interface number) and the agent ID to the DHCP request.',
-	[$g['product_name']]
-);
+	$g['product_name']
+	);
 
-//Small function to prevent duplicate code
-function createDestinationServerInputGroup($value = null) {
-	$group = new Form_Group('Destination server');
+$counter = 0;
+foreach (explode(',', $pconfig['server']) as $server) {
+	$group = new Form_Group($counter == 0 ? gettext("*Destination server"):'');
+	$group->addClass('repeatable');
 
 	$group->add(new Form_IpAddress(
-		'server',
+		'server' . $counter,
 		'Destination server',
-		$value,
+		$server,
 		'V4'
 	))->setWidth(4)
-	  ->setHelp('This is the IPv4 address of the server to which DHCP requests are relayed.')
-	  ->setIsRepeated();
+	  ->setHelp('This is the IPv4 address of the server to which DHCP requests are relayed.');
 
-	$group->enableDuplication(null, true); // Buttons are in-line with the input
-	return $group;
-}
+	$group->add(new Form_Button(
+		'deleterow' . $counter,
+		'Delete',
+		null,
+		'fa-trash'
+	))->addClass('btn-warning');
 
-if (!isset($pconfig['server'])) {
-	$section->add(createDestinationServerInputGroup());
-} else {
-	foreach (explode(',', $pconfig['server']) as $server) {
-			$section->add(createDestinationServerInputGroup($server));
-	}
+	$section->add($group);
+	$counter++;
 }
 
 $form->add($section);
-print $form;
 
+$form->addGlobal(new Form_Button(
+	'addrow',
+	"Add server",
+	null,
+	'fa-plus'
+))->addClass('btn-success addbtn');
+
+print $form;
+?>
+<script type="text/javascript">
+//<![CDATA[
+	events.push(function() {
+
+		function updateSection(hide) {
+			if (hide) {
+				$('[name="interface[]"]').parent().parent('div').addClass('hidden');
+			} else {
+				$('[name="interface[]"]').parent().parent('div').removeClass('hidden');
+			}
+
+			hideCheckbox('agentoption', hide);
+			hideClass('repeatable', hide);
+		}
+
+		$('#enable').click(function () {
+			updateSection(!this.checked);
+    	});
+
+    	updateSection(!$('#enable').prop('checked'));
+
+		// Suppress "Delete row" button if there are fewer than two rows
+		checkLastRow();
+	});
+//]]>
+</script>
+
+<?php
 include("foot.inc");

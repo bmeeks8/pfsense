@@ -36,28 +36,26 @@ require_once("vslb.inc");
 if (!is_array($config['load_balancer']['virtual_server'])) {
 	$config['load_balancer']['virtual_server'] = array();
 }
+
 $a_vs = &$config['load_balancer']['virtual_server'];
 
-if ($_POST) {
-	$pconfig = $_POST;
+$pconfig = $_POST;
 
-	if ($_POST['apply']) {
-		$retval = 0;
-		$retval |= filter_configure();
-		$retval |= relayd_configure();
-		$savemsg = get_std_save_message($retval);
-		/* Wipe out old relayd anchors no longer in use. */
-		cleanup_lb_marked();
-		clear_subsystem_dirty('loadbalancer');
-	}
+if ($_POST['apply']) {
+	$retval = 0;
+	$retval |= filter_configure();
+	$retval |= relayd_configure();
+	/* Wipe out old relayd anchors no longer in use. */
+	cleanup_lb_marked();
+	clear_subsystem_dirty('loadbalancer');
 }
 
-if ($_GET['act'] == "del") {
-	if (array_key_exists($_GET['id'], $a_vs)) {
+if ($_POST['act'] == "del") {
+	if (array_key_exists($_POST['id'], $a_vs)) {
 
 		if (!$input_errors) {
-			cleanup_lb_mark_anchor($a_vs[$_GET['id']]['name']);
-			unset($a_vs[$_GET['id']]);
+			cleanup_lb_mark_anchor($a_vs[$_POST['id']]['name']);
+			unset($a_vs[$_POST['id']]);
 			write_config();
 			mark_subsystem_dirty('loadbalancer');
 			header("Location: load_balancer_virtual_server.php");
@@ -105,6 +103,7 @@ function alias_idx($name, $type) {
 }
 
 $pgtitle = array(gettext("Services"), gettext("Load Balancer"), gettext("Virtual Servers"));
+$pglinks = array("", "load_balancer_pool.php", "@self");
 $shortcut_section = "relayd-virtualservers";
 
 include("head.inc");
@@ -113,8 +112,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('loadbalancer')) {
@@ -177,7 +176,7 @@ if (!empty($a_vs)) {
 						<td>
 							<a class="fa fa-pencil"	title="<?=gettext('Edit virtual server')?>"	href="load_balancer_virtual_server_edit.php?id=<?=$i?>"></a>
 							<a class="fa fa-clone"	title="<?=gettext('Copy virtual server')?>"	href="load_balancer_virtual_server_edit.php?act=dup&amp;id=<?=$i?>"></a>
-							<a class="fa fa-trash"	title="<?=gettext('Delete virtual server')?>"	href="load_balancer_virtual_server.php?act=del&amp;id=<?=$i?>"></a>
+							<a class="fa fa-trash"	title="<?=gettext('Delete virtual server')?>"	href="load_balancer_virtual_server.php?act=del&amp;id=<?=$i?>" usepost></a>
 						</td>
 					</tr>
 <?php

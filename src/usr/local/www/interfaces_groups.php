@@ -35,16 +35,16 @@ if (!is_array($config['ifgroups']['ifgroupentry'])) {
 
 $a_ifgroups = &$config['ifgroups']['ifgroupentry'];
 
-if ($_GET['act'] == "del") {
-	if ($a_ifgroups[$_GET['id']]) {
-		$members = explode(" ", $a_ifgroups[$_GET['id']]['members']);
+if ($_POST['act'] == "del") {
+	if ($a_ifgroups[$_POST['id']]) {
+		$members = explode(" ", $a_ifgroups[$_POST['id']]['members']);
 		foreach ($members as $ifs) {
 			$realif = get_real_interface($ifs);
 			if ($realif) {
-				mwexec("/sbin/ifconfig {$realif} -group " . $a_ifgroups[$_GET['id']]['ifname']);
+				mwexec("/sbin/ifconfig {$realif} -group " . $a_ifgroups[$_POST['id']]['ifname']);
 			}
 		}
-		unset($a_ifgroups[$_GET['id']]);
+		unset($a_ifgroups[$_POST['id']]);
 		write_config();
 		header("Location: interfaces_groups.php");
 		exit;
@@ -110,7 +110,7 @@ display_top_tabs($tab_array);
 						</td>
 						<td>
 							<a class="fa fa-pencil"	title="<?=gettext('Edit group')?>"	href="interfaces_groups_edit.php?id=<?=$i; ?>"></a>
-							<a class="fa fa-trash"	title="<?=gettext('Delete group')?>"	href="interfaces_groups.php?act=del&amp;id=<?=$i; ?>"></a>
+							<a class="fa fa-trash"	title="<?=gettext('Delete group')?>"	href="interfaces_groups.php?act=del&amp;id=<?=$i; ?>" usepost></a>
 						</td>
 					</tr>
 <?php endforeach; ?>
@@ -128,8 +128,8 @@ display_top_tabs($tab_array);
 </nav>
 
 <div class="infoblock">
-	<?php print_info_box(gettext('Interface Groups allow setting up rules for multiple interfaces without duplicating the rules.<br />' .
-					   'If members are removed from an interface group, the group rules are no longer applicable to that interface.'), 'info', false); ?>
+	<?php print_info_box(sprintf(gettext('Interface Groups allow setting up rules for multiple interfaces without duplicating the rules.%s' .
+					   'If members are removed from an interface group, the group rules are no longer applicable to that interface.'), '<br />'), 'info', false); ?>
 
 </div>
 <?php

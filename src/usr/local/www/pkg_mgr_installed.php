@@ -32,6 +32,7 @@ require_once("pkg-utils.inc");
 /* if upgrade in progress, alert user */
 if (is_subsystem_dirty('packagelock')) {
 	$pgtitle = array(gettext("System"), gettext("Package Manager"));
+	$pglinks = array("", "@self");
 	include("head.inc");
 	print_info_box("Please wait while packages are reinstalled in the background.");
 	include("foot.inc");
@@ -183,24 +184,12 @@ function get_pkg_table() {
 	$pkgtbl .='		</table>';
 	$pkgtbl .='		</div>';
 	$pkgtbl .='	</div>';
-	$pkgtbl .='	<br />';
-	$pkgtbl .='	<div class="text-center">';
-	$pkgtbl .='		<p>';
-	$pkgtbl .='			<i class="fa fa-refresh"></i> = ' . gettext('Update') . ' &nbsp;';
-	$pkgtbl .='			<i class="fa fa-check"></i> = ' . gettext('Current') . ' &nbsp;';
-	$pkgtbl .='		</p>';
-	$pkgtbl .='		<p>';
-	$pkgtbl .='			<i class="fa fa-trash"></i> = ' . gettext('Remove') . ' &nbsp;';
-	$pkgtbl .='			<i class="fa fa-info"></i> = ' . gettext('Information') . ' &nbsp;';
-	$pkgtbl .='			<i class="fa fa-retweet"></i> = ' . gettext('Reinstall');
-	$pkgtbl .='		</p>';
-	$pkgtbl .='		<p><span class="text-warning">' . gettext("Newer version available") . '</span></p>';
-	$pkgtbl .='		<p><span class="text-danger">' . gettext("Package is configured but not (fully) installed") . '</span></p>';
 
 	return $pkgtbl;
 }
 
 $pgtitle = array(gettext("System"), gettext("Package Manager"), gettext("Installed Packages"));
+$pglinks = array("", "@self", "@self");
 include("head.inc");
 
 $tab_array = array();
@@ -225,7 +214,24 @@ display_top_tabs($tab_array);
 			<?php print_info_box(gettext("There are no packages currently installed."), 'warning', false); ?>
 		</div>
 	</div>
+
+	<div id="legend" class="alert-info text-center">
+		<p>
+		<i class="fa fa-refresh"></i> = <?=gettext('Update')?>  &nbsp;
+		<i class="fa fa-check"></i> = <?=gettext('Current')?> &nbsp;
+		</p>
+		<p>
+		<i class="fa fa-trash"></i> = <?=gettext('Remove')?> &nbsp;
+		<i class="fa fa-info"></i> = <?=gettext('Information')?> &nbsp;
+		<i class="fa fa-retweet"></i> = <?=gettext('Reinstall')?>
+		</p>
+		<p>
+		<span class="text-warning"><?=gettext("Newer version available")?></span>
+		</p>
+		<span class="text-danger"><?=gettext("Package is configured but not (fully) installed")?></span>
+	</div>
 </div>
+
 <script type="text/javascript">
 //<![CDATA[
 
@@ -235,6 +241,9 @@ events.push(function() {
 	// (Or display an appropriate error message)
 	var ajaxRequest;
 
+	$('#legend').hide();
+	$('#nopkg').hide();
+
 	$.ajax({
 		url: "/pkg_mgr_installed.php",
 		type: "post",
@@ -242,7 +251,6 @@ events.push(function() {
 		success: function(data) {
 			if (data == "error") {
 				$('#waitmsg').hide();
-				$('#nopkg').hide();
 				$('#errmsg').show();
 			} else if (data == "nopkg") {
 				$('#waitmsg').hide();
@@ -250,11 +258,11 @@ events.push(function() {
 				$('#errmsg').hide();
 			} else {
 				$('#pkgtbl').html(data);
+				$('#legend').show();
 			}
 		},
 		error: function() {
 			$('#waitmsg').hide();
-			$('#nopkg').hide();
 			$('#errmsg').show();
 		}
 	});

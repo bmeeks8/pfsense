@@ -281,6 +281,24 @@ caption {
     background-color: #303030;
 }
 
+.table-striped>tbody>tr.disabled:nth-of-type(odd) {
+    background-color: rgba(48, 48, 48, .5);
+    color: rgba(255,255,255,.5);
+}
+
+.table-striped>tbody>tr.disabled:nth-of-type(even) {
+    background-color: rgba(66, 66, 66, .5);
+    color: rgba(255,255,255,.5);
+}
+
+.table-hover>tbody>tr.disabled:hover, .table-striped>tbody>tr.disabled:nth-of-type(odd):hover, .table-striped>tbody>tr.disabled:nth-of-type(even):hover {
+    background-color: rgba(117, 117, 117, .5);
+}
+
+tr.disabled a {
+    color: rgba(0, 150, 136,.5);
+}
+
 .table-bordered {
     border: 1px solid #303030;
 }
@@ -516,4 +534,16 @@ g.nv-axis text, g.nv-legend text {
 .d3-chart .nvtooltip {
     background: rgba(97,97,97, 0.9);
     color: #e0e0e0;
+}
+
+.colspanth {
+    background-color: #000000;
+}
+
+/* Required input elements have a title that begins with "*". This causes
+Group.class.php to add <span class="element-required" to the title, which
+can then be used to style required input here. Example below uses a custom
+text underline, but text-color, background, font etc. could also be used */
+.element-required {
+    box-shadow: inset 0 0px 0 white, inset 0 -1px 0 white
 }

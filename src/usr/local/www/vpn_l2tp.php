@@ -50,7 +50,7 @@ $pconfig['n_l2tp_units'] = $l2tpcfg['n_l2tp_units'];
 $pconfig['paporchap'] = $l2tpcfg['paporchap'];
 $pconfig['secret'] = $l2tpcfg['secret'];
 
-if ($_POST) {
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$pconfig = $_POST;
@@ -159,18 +159,14 @@ if ($_POST) {
 
 		write_config();
 
+		$changes_applied = true;
 		$retval = 0;
-		$retval = vpn_l2tp_configure();
-		$savemsg = get_std_save_message($retval);
-
-		/* if ajax is calling, give them an update message */
-		if (isAjax()) {
-			print_info_box($savemsg, 'success');
-		}
+		$retval |= vpn_l2tp_configure();
 	}
 }
 
 $pgtitle = array(gettext("VPN"), gettext("L2TP"), gettext("Configuration"));
+$pglinks = array("", "@self", "@self");
 $shortcut_section = "l2tps";
 include("head.inc");
 
@@ -178,8 +174,8 @@ if ($input_errors) {
 	print_input_errors($input_errors);
 }
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($changes_applied) {
+	print_apply_result_box($retval);
 }
 
 $tab_array = array();
@@ -212,30 +208,30 @@ $section->addClass('toggle-l2tp-enable');
 
 $section->addInput(new Form_Select(
 	'interface',
-	'Interface',
+	'*Interface',
 	$pconfig['interface'],
 	$iflist
 ));
 
 $section->addInput(new Form_Input(
 	'localip',
-	'Server address',
+	'*Server address',
 	'text',
 	$pconfig['localip']
-))->setHelp('Enter the IP address the L2TP server should give to clients for use as their "gateway". ' . '<br />' .
-			'Typically this is set to an unused IP just outside of the client range.' . '<br /><br />' .
-			'NOTE: This should NOT be set to any IP address currently in use on this firewall.');
+))->setHelp('Enter the IP address the L2TP server should give to clients for use as their "gateway". %1$s' .
+			'Typically this is set to an unused IP just outside of the client range.%1$s%1$s' .
+			'NOTE: This should NOT be set to any IP address currently in use on this firewall.', '<br />');
 
 $section->addInput(new Form_IpAddress(
 	'remoteip',
-	'Remote address range',
+	'*Remote address range',
 	$pconfig['remoteip']
 ))->addMask(l2tp_subnet, $pconfig['l2tp_subnet'])
   ->setHelp('Specify the starting address for the client IP address subnet.');
 
 $section->addInput(new Form_Select(
 	'n_l2tp_units',
-	'Number of L2TP users',
+	'*Number of L2TP users',
 	$pconfig['n_l2tp_units'],
 	array_combine(range(1, 255, 1), range(1, 255, 1))
 ));
@@ -249,7 +245,7 @@ $section->addPassword(new Form_Input(
 
 $section->addInput(new Form_Select(
 	'paporchap',
-	'Authentication type',
+	'*Authentication type',
 	$pconfig['paporchap'],
 	array(
 		'chap' => 'CHAP',
@@ -293,13 +289,13 @@ $section->addInput(new Form_Checkbox(
 
 $section->addInput(new Form_IpAddress(
 	'radiusserver',
-	'Server',
+	'*Server',
 	$pconfig['radiusserver']
 ))->setHelp('Enter the IP address of the RADIUS server.');
 
 $section->addPassword(new Form_Input(
 	'radiussecret',
-	'Secret',
+	'*Secret',
 	'password',
 	$pconfig['radiussecret']
 ))->setHelp('Enter the shared secret that will be used to authenticate to the RADIUS server.');

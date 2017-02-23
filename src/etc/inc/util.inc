@@ -114,7 +114,7 @@ function config_unlock() {
 
 /* lock configuration file */
 function lock($lock, $op = LOCK_SH) {
-	global $g, $cfglckkeyconsumers;
+	global $g;
 	if (!$lock) {
 		die(gettext("WARNING: A name must be given as parameter to lock() function."));
 	}
@@ -122,7 +122,6 @@ function lock($lock, $op = LOCK_SH) {
 		@touch("{$g['tmp_path']}/{$lock}.lock");
 		@chmod("{$g['tmp_path']}/{$lock}.lock", 0666);
 	}
-	$cfglckkeyconsumers++;
 	if ($fp = fopen("{$g['tmp_path']}/{$lock}.lock", "w")) {
 		if (flock($fp, $op)) {
 			return $fp;
@@ -133,7 +132,7 @@ function lock($lock, $op = LOCK_SH) {
 }
 
 function try_lock($lock, $timeout = 5) {
-	global $g, $cfglckkeyconsumers;
+	global $g;
 	if (!$lock) {
 		die(gettext("WARNING: A name must be given as parameter to try_lock() function."));
 	}
@@ -141,7 +140,6 @@ function try_lock($lock, $timeout = 5) {
 		@touch("{$g['tmp_path']}/{$lock}.lock");
 		@chmod("{$g['tmp_path']}/{$lock}.lock", 0666);
 	}
-	$cfglckkeyconsumers++;
 	if ($fp = fopen("{$g['tmp_path']}/{$lock}.lock", "w")) {
 		$trycounter = 0;
 		while (!flock($fp, LOCK_EX | LOCK_NB)) {
@@ -161,7 +159,7 @@ function try_lock($lock, $timeout = 5) {
 
 /* unlock configuration file */
 function unlock($cfglckkey = 0) {
-	global $g, $cfglckkeyconsumers;
+	global $g;
 	flock($cfglckkey, LOCK_UN);
 	fclose($cfglckkey);
 	return;
@@ -268,7 +266,7 @@ function gen_subnetv4($ipaddr, $bits) {
 /* same as gen_subnet() but accepts IPv6 only */
 function gen_subnetv6($ipaddr, $bits) {
 	if (is_ipaddrv6($ipaddr) && is_numericint($bits) && $bits <= 128) {
-		return Net_IPv6::compress(Net_IPv6::getNetmask($ipaddr, $bits));
+		return text_to_compressed_ip6(Net_IPv6::getNetmask($ipaddr, $bits));
 	}
 	return "";
 }
@@ -396,7 +394,22 @@ function bin_to_ip6($bin) {
  * Convert IPv6 binary to compressed address
  */
 function bin_to_compressed_ip6($bin) {
-	return Net_IPv6::compress(bin_to_ip6($bin));
+	return text_to_compressed_ip6(bin_to_ip6($bin));
+}
+
+/*
+ * Convert textual IPv6 address string to compressed address
+ */
+function text_to_compressed_ip6($text) {
+	// Force re-compression by passing parameter 2 (force) true.
+	// This ensures that supposedly-compressed formats are uncompressed
+	// first then re-compressed into strictly correct form.
+	// e.g. 2001:0:0:4:0:0:0:1
+	// 2001::4:0:0:0:1 is a strictly-incorrect compression,
+	// but maybe the user entered it like that.
+	// The "force" parameter will ensure it is returned as:
+	// 2001:0:0:4::1
+	return Net_IPv6::compress($text, true);
 }
 
 /* Find out how many IPs are contained within a given IP range
@@ -485,32 +498,32 @@ function ip_range_to_address_array($startip, $endip, $max_size = 5000) {
 	return $rangeaddresses;
 }
 
-/* 	Convert an IPv4 or IPv6 IP range to an array of subnets which can contain the range.
-	Algorithm and embodying code PD'ed by Stilez - enjoy as you like :-)
-
-	Documented on pfsense dev list 19-20 May 2013. Summary:
-
-	The algorithm looks at patterns of 0's and 1's in the least significant bit(s), whether IPv4 or IPv6.
-	These are all that needs checking to identify a _guaranteed_ correct, minimal and optimal subnet array.
-
-	As a result, string/binary pattern matching of the binary IP is very efficient. It uses just 2 pattern-matching rules
-	to chop off increasingly larger subnets at both ends that can't be part of larger subnets, until nothing's left.
-
-	(a) If any range has EITHER low bit 1 (in startip) or 0 (in endip), that end-point is _always guaranteed_ to be optimally
-	represented by its own 'single IP' CIDR; the remaining range then shrinks by one IP up or down, causing the new end-point's
-	low bit to change from 1->0 (startip) or 0->1 (endip). Only one edge case needs checking: if a range contains exactly 2
-	adjacent IPs of this format, then the two IPs themselves are required to span it, and we're done.
-	Once this rule is applied, the remaining range is _guaranteed_ to end in 0's and 1's so rule (b) can now be used, and its
-	low bits can now be ignored.
-
-	(b) If any range has BOTH startip and endip ending in some number of 0's and 1's respectively, these low bits can
-	*always* be ignored and "bit-shifted" for subnet spanning. So provided we remember the bits we've place-shifted, we can
-	_always_ right-shift and chop off those bits, leaving a smaller range that has EITHER startip ending in 1 or endip ending
-	in 0 (ie can now apply (a) again) or the entire range has vanished and we're done.
-	We then loop to redo (a) again on the remaining (place shifted) range until after a few loops, the remaining (place shifted)
-	range 'vanishes' by meeting the exit criteria of (a) or (b), and we're done.
-*/
-
+/*
+ * Convert an IPv4 or IPv6 IP range to an array of subnets which can contain the range.
+ * Algorithm and embodying code PD'ed by Stilez - enjoy as you like :-)
+ *
+ * Documented on pfsense dev list 19-20 May 2013. Summary:
+ *
+ * The algorithm looks at patterns of 0's and 1's in the least significant bit(s), whether IPv4 or IPv6.
+ * These are all that needs checking to identify a _guaranteed_ correct, minimal and optimal subnet array.
+ *
+ * As a result, string/binary pattern matching of the binary IP is very efficient. It uses just 2 pattern-matching rules
+ * to chop off increasingly larger subnets at both ends that can't be part of larger subnets, until nothing's left.
+ *
+ * (a) If any range has EITHER low bit 1 (in startip) or 0 (in endip), that end-point is _always guaranteed_ to be optimally
+ * represented by its own 'single IP' CIDR; the remaining range then shrinks by one IP up or down, causing the new end-point's
+ * low bit to change from 1->0 (startip) or 0->1 (endip). Only one edge case needs checking: if a range contains exactly 2
+ * adjacent IPs of this format, then the two IPs themselves are required to span it, and we're done.
+ * Once this rule is applied, the remaining range is _guaranteed_ to end in 0's and 1's so rule (b) can now be used, and its
+ * low bits can now be ignored.
+ *
+ * (b) If any range has BOTH startip and endip ending in some number of 0's and 1's respectively, these low bits can
+ * *always* be ignored and "bit-shifted" for subnet spanning. So provided we remember the bits we've place-shifted, we can
+ * _always_ right-shift and chop off those bits, leaving a smaller range that has EITHER startip ending in 1 or endip ending
+ * in 0 (ie can now apply (a) again) or the entire range has vanished and we're done.
+ * We then loop to redo (a) again on the remaining (place shifted) range until after a few loops, the remaining (place shifted)
+ * range 'vanishes' by meeting the exit criteria of (a) or (b), and we're done.
+ */
 function ip_range_to_subnet_array($ip1, $ip2) {
 
 	if (is_ipaddrv4($ip1) && is_ipaddrv4($ip2)) {
@@ -1064,6 +1077,35 @@ function invalidaliasnamemsg($name, $object = "alias") {
 	return is_validaliasname($name, true, $object);
 }
 
+/*
+ * returns true if $range is a valid integer range between $min and $max
+ * range delimiter can be ':' or '-'
+ */
+function is_intrange($range, $min, $max) {
+	$values = preg_split("/[:-]/", $range);
+
+	if (!is_array($values) || count($values) != 2) {
+		return false;
+	}
+
+	if (!ctype_digit($values[0]) || !ctype_digit($values[1])) {
+		return false;
+	}
+
+	$values[0] = intval($values[0]);
+	$values[1] = intval($values[1]);
+
+	if ($values[0] >= $values[1]) {
+		return false;
+	}
+
+	if ($values[0] < $min || $values[1] > $max) {
+		return false;
+	}
+
+	return true;
+}
+
 /* returns true if $port is a valid TCP/UDP port */
 function is_port($port) {
 	if (ctype_digit($port) && ((intval($port) >= 1) && (intval($port) <= 65535))) {
@@ -1434,14 +1476,14 @@ function get_configured_ipv6_addresses($linklocal_fallback = false) {
 	$interfaces = get_configured_interface_list();
 	if (is_array($interfaces)) {
 		foreach ($interfaces as $int) {
-			$ipaddrv6 = get_interface_ipv6($int, false, $linklocal_fallback);
+			$ipaddrv6 = text_to_compressed_ip6(get_interface_ipv6($int, false, $linklocal_fallback));
 			$ipv6_array[$int] = $ipaddrv6;
 		}
 	}
 	$interfaces = get_configured_vip_list('inet6');
 	if (is_array($interfaces)) {
 		foreach ($interfaces as $int => $ipaddrv6) {
-			$ipv6_array[$int] = $ipaddrv6;
+			$ipv6_array[$int] = text_to_compressed_ip6($ipaddrv6);
 		}
 	}
 	return $ipv6_array;
@@ -1769,31 +1811,38 @@ function alias_expand_urltable($name) {
 	return null;
 }
 
-/* obtain MAC address given an IP address by looking at the ARP table */
-function arp_get_mac_by_ip($ip) {
-	mwexec("/sbin/ping -c 1 -t 1 " . escapeshellarg($ip), true);
-	$arpoutput = "";
-	exec("/usr/sbin/arp -n " . escapeshellarg($ip), $arpoutput);
-
-	if ($arpoutput[0]) {
-		$arpi = explode(" ", $arpoutput[0]);
-		$macaddr = $arpi[3];
-		if (is_macaddr($macaddr)) {
-			return $macaddr;
-		} else {
-			return false;
-		}
+/* obtain MAC address given an IP address by looking at the ARP/NDP table */
+function arp_get_mac_by_ip($ip, $do_ping = true) {
+	unset($macaddr);
+	$retval = 1;
+	switch (is_ipaddr($ip)) {
+		case 4:
+			if ($do_ping === true) {
+				mwexec("/sbin/ping -c 1 -t 1 " . escapeshellarg($ip), true);
+			}
+			$macaddr = exec("/usr/sbin/arp -n " . escapeshellarg($ip) . " | /usr/bin/awk '{print $4}'", $output, $retval);
+			break;
+		case 6:
+			if ($do_ping === true) {
+				mwexec("/sbin/ping6 -c 1 -X 1 " . escapeshellarg($ip), true);
+			}
+			$macaddr = exec("/usr/sbin/ndp -n " . escapeshellarg($ip) . " | /usr/bin/awk '{print $2}'", $output, $retval);
+			break;
 	}
-
-	return false;
+	if ($retval == 0 && is_macaddr($macaddr)) {
+		return $macaddr;
+	} else {
+		return false;
+	}
 }
 
 /* return a fieldname that is safe for xml usage */
 function xml_safe_fieldname($fieldname) {
-	$replace = array('/', '-', ' ', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
-			 '_', '+', '=', '{', '}', '[', ']', '|', '/', '<', '>', '?',
-			 ':', ',', '.', '\'', '\\'
-		);
+	$replace = array(
+	    '/', '-', ' ', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
+	    '_', '+', '=', '{', '}', '[', ']', '|', '/', '<', '>', '?',
+	    ':', ',', '.', '\'', '\\'
+	);
 	return strtolower(str_replace($replace, "", $fieldname));
 }
 
@@ -2553,7 +2602,32 @@ function validateipaddr(&$addr, $type, $label, &$err_msg, $alias=false) {
 	return false;
 }
 
-/* returns true if $dhcp6duid is a valid duid entrry */
+/* format a string to look (more) like the expected DUID format:
+ * 1) Replace any "-" with ":"
+ * 2) If the user inputs 14 components, then add the expected "0e:00:" to the front.
+ *    This is convenience, because the actual DUID (which is reported in logs) is the last 14 components.
+ * 3) If any components are input with just a single char (hex digit hopefully), put a "0" in front.
+ *
+ * The final result should be closer to:
+ *
+ * "0e:00:00:01:00:01:nn:nn:nn:nn:nn:nn:nn:nn:nn:nn"
+ *
+ * This function does not validate the input. is_duid() will do validation.
+*/
+function format_duid($dhcp6duid) {
+	$values = explode(":", strtolower(str_replace("-", ":", $dhcp6duid)));
+	if (count($values) == 14) {
+		array_unshift($values, "0e", "00");
+	}
+
+	array_walk($values, function(&$value) {
+		$value = str_pad($value, 2, '0', STR_PAD_LEFT);
+	});
+
+	return implode(":", $values);
+}
+
+/* returns true if $dhcp6duid is a valid duid entry */
 function is_duid($dhcp6duid) {
 	$values = explode(":", $dhcp6duid);
 	if (count($values) != 16 || strlen($dhcp6duid) != 47) {
@@ -2572,8 +2646,8 @@ function is_duid($dhcp6duid) {
 function write_dhcp6_duid($duidstring) {
 	// Create the hex array from the dhcp6duid config entry and write to file
 	global $g;
- 	
- 	if(!is_duid($duidstring)) {
+
+	if(!is_duid($duidstring)) {
 		log_error(gettext("Error: attempting to write DUID file - Invalid DUID detected"));
 		return false;
 	}
@@ -2589,16 +2663,16 @@ function write_dhcp6_duid($duidstring) {
 }
 
 /* returns duid string from 'vardb_path']}/dhcp6c_duid' */
-function get_duid_from_file()
-{
+function get_duid_from_file() {
 	global $g;
-	
+
 	$duid_ASCII = "";
 	$count = 0;
-	
-	if ($fd = fopen("{$g['vardb_path']}/dhcp6c_duid", "r")) {
+
+	if (file_exists("{$g['vardb_path']}/dhcp6c_duid") &&
+	    ($fd = fopen("{$g['vardb_path']}/dhcp6c_duid", "r"))) {
 		if(filesize("{$g['vardb_path']}/dhcp6c_duid")==16) {
-			$buffer = fread($fd,16);					
+			$buffer = fread($fd,16);
 			while($count < 16) {
 				$duid_ASCII .= bin2hex($buffer[$count]);
 				$count++;
@@ -2613,6 +2687,6 @@ function get_duid_from_file()
 	if(!is_duid($duid_ASCII)) {
 		return "--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--";
 	}
-	return($duid_ASCII);	
+	return($duid_ASCII);
 }
 ?>

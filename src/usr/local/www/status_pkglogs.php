@@ -47,7 +47,7 @@ if (!($nentries = $config['syslog']['nentries'])) {
 
 $i = 0;
 $pkgwithlogging = false;
-$apkg = $_GET['pkg'];
+$apkg = $_REQUEST['pkg'];
 if (!$apkg) { // If we aren't looking for a specific package, locate the first package that handles logging.
 	if (isset($config['installedpackages']['package'])) {
 		foreach ($config['installedpackages']['package'] as $package) {
@@ -69,9 +69,11 @@ if (!$apkg) { // If we aren't looking for a specific package, locate the first p
 }
 
 $pgtitle = array(gettext("Status"), gettext("Package Logs"));
+$pglinks = array("", "status_pkglogs.php");
 
 if ($pkgwithlogging && !empty($apkg)) {
 	$pgtitle[] = $apkg;
+	$pglinks[] = "@self";
 }
 include("head.inc");
 

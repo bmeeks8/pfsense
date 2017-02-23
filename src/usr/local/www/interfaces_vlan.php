@@ -129,8 +129,7 @@ display_top_tabs($tab_array);
 							<td><?=htmlspecialchars($vlan['pcp']);?></td>
 							<td><?=htmlspecialchars($vlan['descr']);?></td>
 							<td>
-								<a class="fa fa-pencil"	title="<?=gettext('Edit VLAN')?>"	role="button" href="interfaces_vlan_edit.php?id=<?=$i?>"></a>
-<!--						<a class="btn btn-danger btn-xs" role="button" href="interfaces_vlan.php?act=del&amp;id=<?=$i?>"><?=gettext('Delete')?></a></td> -->
+								<a class="fa fa-pencil"	title="<?=gettext('Edit VLAN')?>"	role="button" href="interfaces_vlan_edit.php?id=<?=$i?>" ></a>
 								<a class="fa fa-trash no-confirm"	title="<?=gettext('Delete VLAN')?>"	role="button" id="del-<?=$i?>"></a>
 							</td>
 						</tr>
@@ -155,9 +154,9 @@ display_top_tabs($tab_array);
 
 <div class="infoblock">
 	<?php print_info_box(sprintf(gettext('Not all drivers/NICs support 802.1Q '.
-		'VLAN tagging properly. <br />On cards that do not explicitly support it, VLAN '.
-		'tagging will still work, but the reduced MTU may cause problems.<br />See the '.
-		'%s handbook for information on supported cards.'), $g['product_name']), 'info', false); ?>
+		'VLAN tagging properly. %1$sOn cards that do not explicitly support it, VLAN '.
+		'tagging will still work, but the reduced MTU may cause problems.%1$sSee the '.
+		'%2$s handbook for information on supported cards.'), '<br />', $g['product_name']), 'info', false); ?>
 </div>
 
 <?php

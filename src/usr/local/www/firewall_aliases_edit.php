@@ -35,8 +35,6 @@ require_once("functions.inc");
 require_once("filter.inc");
 require_once("shaper.inc");
 
-$pgtitle = array(gettext("Firewall"), gettext("Aliases"), gettext("Edit"));
-
 if (isset($_POST['referer'])) {
 	$referer = $_POST['referer'];
 } else {
@@ -62,9 +60,7 @@ if (!is_array($config['aliases']['alias'])) {
 }
 $a_aliases = &$config['aliases']['alias'];
 
-$tab = $_REQUEST['tab'];
-
-if ($_POST) {
+if ($_POST['save']) {
 	$origname = $_POST['origname'];
 }
 
@@ -103,11 +99,8 @@ function alias_same_type($name, $type) {
 	return true;
 }
 
-if (is_numericint($_GET['id'])) {
-	$id = $_GET['id'];
-}
-if (isset($_POST['id']) && is_numericint($_POST['id'])) {
-	$id = $_POST['id'];
+if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
+	$id = $_REQUEST['id'];
 }
 
 if (isset($id) && $a_aliases[$id]) {
@@ -131,7 +124,22 @@ if (isset($id) && $a_aliases[$id]) {
 	}
 }
 
-if ($_POST) {
+$tab = $_REQUEST['tab'];
+
+if (empty($tab)) {
+	if (preg_match("/url/i", $pconfig['type'])) {
+		$tab = 'url';
+	} else if ($pconfig['type'] == 'host') {
+		$tab = 'ip';
+	} else {
+		$tab = $pconfig['type'];
+	}
+}
+
+$pgtitle = array(gettext("Firewall"), gettext("Aliases"), gettext("Edit"));
+$pglinks = array("", "firewall_aliases.php?tab=" . $tab, "@self");
+
+if ($_POST['save']) {
 
 	unset($input_errors);
 	$vertical_bar_err_text = gettext("Vertical bars (|) at start or end, or double in the middle of descriptions not allowed. Descriptions have been cleaned. Check and save again.");
@@ -162,9 +170,18 @@ if ($_POST) {
 		}
 	}
 
+	/*
+	 * Packages (e.g. tinc) create interface groups, reserve this
+	 * namespace pkg_ for them.
+	 * One namespace is shared by Interfaces, Interface Groups and Aliases.
+	 */
+	if (substr($_POST['name'], 0, 4) == 'pkg_') {
+		$input_errors[] = gettext("The alias name cannot start with pkg_");
+	}
+
 	/* check for name interface description conflicts */
 	foreach ($config['interfaces'] as $interface) {
-		if ($interface['descr'] == $_POST['name']) {
+		if (strcasecmp($interface['descr'], $_POST['name']) == 0) {
 			$input_errors[] = gettext("An interface description with this name already exists.");
 			break;
 		}
@@ -198,7 +215,7 @@ if ($_POST) {
 			if (!is_URL($alias['url']) || empty($alias['url'])) {
 				$input_errors[] = gettext("A valid URL must be provided.");
 			} elseif (!process_alias_urltable($alias['name'], $alias['type'], $alias['url'], 0, true, true)) {
-				$input_errors[] = gettext("Unable to fetch usable data from URL") . " " . htmlspecialchars($alias['url']);
+				$input_errors[] = sprintf(gettext("Unable to fetch usable data from URL %s"), htmlspecialchars($alias['url']));
 			}
 			if ($_POST["detail0"] <> "") {
 				if ((strpos($_POST["detail0"], "||") === false) && (substr($_POST["detail0"], 0, 1) != "|") && (substr($_POST["detail0"], -1, 1) != "|")) {
@@ -604,16 +621,6 @@ $types = array(
 	'urltable_ports' => gettext("URL Table (Ports)"),
 );
 
-if (empty($tab)) {
-	if (preg_match("/url/i", $pconfig['type'])) {
-		$tab = 'url';
-	} else if ($pconfig['type'] == 'host') {
-		$tab = 'ip';
-	} else {
-		$tab = $pconfig['type'];
-	}
-}
-
 if ($input_errors) {
 	print_input_errors($input_errors);
 }
@@ -645,9 +652,11 @@ if (isset($id) && $a_aliases[$id]) {
 
 $section = new Form_Section('Properties');
 
+// Experiment: Pre-pending the input title/label with '*' causes the element-required class to be added to the label
+// which adds text decoration to indicate this is a required field. See pfSense.css
 $section->addInput(new Form_Input(
 	'name',
-	'Name',
+	'*Name',
 	'text',
 	$pconfig['name']
 ))->setPattern('[a-zA-Z0-9_]+')->setHelp('The name of the alias may only consist '.
@@ -662,7 +671,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Select(
 	'type',
-	'Type',
+	'*Type',
 	isset($pconfig['type']) ? $pconfig['type'] : $tab,
 	$types
 ));

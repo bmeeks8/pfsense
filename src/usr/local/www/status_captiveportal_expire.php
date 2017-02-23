@@ -34,16 +34,14 @@ require_once("shaper.inc");
 require_once("captiveportal.inc");
 require_once("voucher.inc");
 
-$cpzone = $_GET['zone'];
-if (isset($_POST['zone'])) {
-	$cpzone = $_POST['zone'];
-}
-$cpzone = strtolower($cpzone);
+$cpzone = strtolower($_REQUEST['zone']);
 
 if (!is_array($config['captiveportal'])) {
 	$config['captiveportal'] = array();
 }
+
 $a_cp =& $config['captiveportal'];
+
 /* If the zone does not exist, do not display the invalid zone */
 if (!array_key_exists($cpzone, $a_cp)) {
 	$cpzone = "";
@@ -55,10 +53,11 @@ if (empty($cpzone)) {
 }
 
 $pgtitle = array(gettext("Status"), gettext("Captive Portal"), htmlspecialchars($a_cp[$cpzone]['zone']), gettext("Expire Vouchers"));
+$pglinks = array("", "status_captiveportal.php", "status_captiveportal.php?zone=" . $cpzone, "@self");
 
 include("head.inc");
 
-if ($_POST) {
+if ($_POST['save']) {
 	if ($_POST['vouchers']) {
 		if (voucher_expire($_POST['vouchers'])) {
 			print_info_box(gettext('Voucher(s) successfully marked.'), 'success', false);
@@ -82,7 +81,7 @@ $section = new Form_Section('Expire Vouchers');
 
 $section->addInput(new Form_Textarea(
 	'vouchers',
-	'Vouchers',
+	'*Vouchers',
 	$_POST['vouchers']
 ))->setHelp('Enter multiple vouchers separated by space or newline. All valid vouchers will be marked as expired.');
 

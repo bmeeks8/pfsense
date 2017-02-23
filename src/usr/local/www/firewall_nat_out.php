@@ -50,13 +50,13 @@ $a_out = &$config['nat']['outbound']['rule'];
 
 // update rule order, POST[rule] is an array of ordered IDs
 // All rule are 'checked' before posting
-if (isset($_POST['order-store'])) {
-	if (is_array($_POST['rule']) && !empty($_POST['rule'])) {
+if (isset($_REQUEST['order-store'])) {
+	if (is_array($_REQUEST['rule']) && !empty($_REQUEST['rule'])) {
 
 		$a_out_new = array();
 
 		// if a rule is not in POST[rule], it has been deleted by the user
-		foreach ($_POST['rule'] as $id) {
+		foreach ($_REQUEST['rule'] as $id) {
 			$a_out_new[] = $a_out[$id];
 		}
 
@@ -81,12 +81,6 @@ $mode = $config['nat']['outbound']['mode'];
 if ($_POST['apply']) {
 	$retval = 0;
 	$retval |= filter_configure();
-
-	if (stristr($retval, "error") <> true) {
-			$savemsg = get_std_save_message($retval);
-	} else {
-		$savemsg = $retval;
-	}
 
 	if ($retval == 0) {
 		clear_subsystem_dirty('natconf');
@@ -139,7 +133,7 @@ if ($_POST['save']) {
 				}
 			}
 		}
-		$savemsg = gettext("Default rules for each interface have been created.");
+		$default_rules_msg = gettext("Default rules for each interface have been created.");
 		unset($FilterIflist, $GatewaysList);
 	}
 
@@ -154,10 +148,10 @@ if ($_POST['save']) {
 }
 
 //	Delete a single rule/map
-if ($_GET['act'] == "del") {
+if ($_POST['act'] == "del") {
 
-	if ($a_out[$_GET['id']]) {
-		unset($a_out[$_GET['id']]);
+	if ($a_out[$_POST['id']]) {
+		unset($a_out[$_POST['id']]);
 		if (write_config()) {
 			mark_subsystem_dirty('natconf');
 		}
@@ -187,12 +181,12 @@ if (isset($_POST['del_x'])) {
 		exit;
 	}
 
-} else if ($_GET['act'] == "toggle") {
-	if ($a_out[$_GET['id']]) {
-		if (isset($a_out[$_GET['id']]['disabled'])) {
-			unset($a_out[$_GET['id']]['disabled']);
+} else if ($_POST['act'] == "toggle") {
+	if ($a_out[$_POST['id']]) {
+		if (isset($a_out[$_POST['id']]['disabled'])) {
+			unset($a_out[$_POST['id']]['disabled']);
 		} else {
-			$a_out[$_GET['id']]['disabled'] = true;
+			$a_out[$_POST['id']]['disabled'] = true;
 		}
 		if (write_config("Firewall: NAT: Outbound, enable/disable NAT rule")) {
 			mark_subsystem_dirty('natconf');
@@ -204,10 +198,15 @@ if (isset($_POST['del_x'])) {
 }
 
 $pgtitle = array(gettext("Firewall"), gettext("NAT"), gettext("Outbound"));
+$pglinks = array("", "firewall_nat.php", "@self");
 include("head.inc");
 
-if ($savemsg) {
-	print_info_box($savemsg, 'success');
+if ($default_rules_msg) {
+	print_info_box($default_rules_msg, 'success');
+}
+
+if ($_POST['apply']) {
+	print_apply_result_box($retval);
 }
 
 if (is_subsystem_dirty('natconf')) {
@@ -234,7 +233,7 @@ $group->add(new Form_Checkbox(
 	null,
 	$mode == 'automatic',
 	'automatic'
-))->displayAsRadio()->setHelp('Automatic outbound NAT rule generation.' . '<br />' . '(IPsec passthrough included)');
+))->displayAsRadio()->setHelp('Automatic outbound NAT rule generation.%s(IPsec passthrough included)', '<br />');
 
 $group->add(new Form_Checkbox(
 	'mode',
@@ -242,7 +241,7 @@ $group->add(new Form_Checkbox(
 	null,
 	$mode == 'hybrid',
 	'hybrid'
-))->displayAsRadio()->setHelp('Hybrid Outbound NAT rule generation.' . '<br />' . '(Automatic Outbound NAT + rules below)');
+))->displayAsRadio()->setHelp('Hybrid Outbound NAT rule generation.%s(Automatic Outbound NAT + rules below)', '<br />');
 
 $group->add(new Form_Checkbox(
 	'mode',
@@ -250,7 +249,7 @@ $group->add(new Form_Checkbox(
 	null,
 	$mode == 'advanced',
 	'advanced'
-))->displayAsRadio()->setHelp('Manual Outbound NAT rule generation.' . '<br />' . '(AON - Advanced Outbound NAT)');
+))->displayAsRadio()->setHelp('Manual Outbound NAT rule generation.%s(AON - Advanced Outbound NAT)', '<br />');
 
 $group->add(new Form_Checkbox(
 	'mode',
@@ -258,7 +257,7 @@ $group->add(new Form_Checkbox(
 	null,
 	$mode == 'disabled',
 	'disabled'
-))->displayAsRadio()->setHelp('Disable Outbound NAT rule generation.' . '<br />' . '(No Outbound NAT rules)');
+))->displayAsRadio()->setHelp('Disable Outbound NAT rule generation.%s(No Outbound NAT rules)', '<br />');
 
 $section->add($group);
 
@@ -324,7 +323,7 @@ print($form);
 <?php
 				else:
 ?>
-							<a href="?act=toggle&amp;id=<?=$i?>">
+							<a href="?act=toggle&amp;id=<?=$i?>" usepost>
 								<i class="fa <?= ($iconfn == "pass") ? "fa-check":"fa-times"?>" title="<?=gettext("Click to toggle enabled/disabled status")?>"></i>
 							</a>
 
@@ -370,7 +369,7 @@ print($form);
 
 							if (isset($alias['srcport'])):
 ?>
-							<a href="/firewall_aliases_edit.php?id=<?=$alias['srcport']?>" data-toggle="popover" data-trigger="hover focus" title="Alias details" data-content="<?=alias_info_popup($alias['srcport'])?>" data-html="true">
+							<a href="/firewall_aliases_edit.php?id=<?=$alias['srcport']?>" data-toggle="popover" data-trigger="hover focus" title="Alias details" data-content="<?=alias_info_popup($alias['srcport'])?>" data-html="true" >
 <?php
 							endif;
 ?>
@@ -397,7 +396,7 @@ print($form);
 
 							if (isset($alias['dst'])):
 ?>
-							<a href="/firewall_aliases_edit.php?id=<?=$alias['dst']?>" data-toggle="popover" data-trigger="hover focus" title="Alias details" data-content="<?=alias_info_popup($alias['dst'])?>" data-html="true">
+							<a href="/firewall_aliases_edit.php?id=<?=$alias['dst']?>" data-toggle="popover" data-trigger="hover focus" title="Alias details" data-content="<?=alias_info_popup($alias['dst'])?>" data-html="true" >
 <?php
 							endif;
 ?>
@@ -421,7 +420,7 @@ print($form);
 						} else {
 							if (isset($alias['dstport'])):
 ?>
-							<a href="/firewall_aliases_edit.php?id=<?=$alias['dstport']?>" data-toggle="popover" data-trigger="hover focus" title="Alias details" data-content="<?=alias_info_popup($alias['dstport'])?>" data-html="true">
+							<a href="/firewall_aliases_edit.php?id=<?=$alias['dstport']?>" data-toggle="popover" data-trigger="hover focus" title="Alias details" data-content="<?=alias_info_popup($alias['dstport'])?>" data-html="true" >
 <?php
 							endif;
 ?>
@@ -477,7 +476,7 @@ print($form);
 						<td>
 							<a class="fa fa-pencil"	 title="<?=gettext("Edit mapping")?>" href="firewall_nat_out_edit.php?id=<?=$i?>"></a>
 							<a class="fa fa-clone" title="<?=gettext("Add a new mapping based on this one")?>" href="firewall_nat_out_edit.php?dup=<?=$i?>"></a>
-							<a class="fa fa-trash"	 title="<?=gettext("Delete mapping")?>" href="firewall_nat_out.php?act=del&amp;id=<?=$i?>"></a>
+							<a class="fa fa-trash"	 title="<?=gettext("Delete mapping")?>" href="firewall_nat_out.php?act=del&amp;id=<?=$i?>" usepost></a>
 						</td>
 					</tr>
 <?php
@@ -633,15 +632,21 @@ endif;
 
 <div class="infoblock">
 <?php
-	print_info_box(gettext('If automatic outbound NAT is selected, a mapping is automatically generated for each interface\'s subnet (except WAN-type connections) and the rules ' .
-							'on the "Mappings" section of this page are ignored.' . '<br />' .
-							'If manual outbound NAT is selected, outbound NAT rules will not be automatically generated and only the mappings specified on this page ' .
-							'will be used.' . '<br />' .
-							'If hybrid outbound NAT is selected, mappings specified on this page will be used, followed by the automatically generated ones.' . '<br />' .
-							'If disable outbound NAT is selected, no rules will be used.' . '<br />' .
-							'If a target address other than an interface\'s IP address is used, then depending on the way the WAN connection is setup, a ') .
-							'<a href="firewall_virtual_ip.php">' . gettext("Virtual IP") . '</a>' . gettext(" may also be required."),
-				   'info', false);
+	print_info_box(
+		gettext('If automatic outbound NAT is selected, a mapping is automatically generated for each interface\'s subnet (except WAN-type connections) and the rules on the "Mappings" section of this page are ignored.') .
+			'<br />' .
+			gettext('If manual outbound NAT is selected, outbound NAT rules will not be automatically generated and only the mappings specified on this page will be used.') .
+			'<br />' .
+			gettext('If hybrid outbound NAT is selected, mappings specified on this page will be used, followed by the automatically generated ones.') .
+			'<br />' .
+			gettext('If disable outbound NAT is selected, no rules will be used.') .
+			'<br />' .
+			sprintf(
+				gettext('If a target address other than an interface\'s IP address is used, then depending on the way the WAN connection is setup, a %1$sVirtual IP%2$s may also be required.'),
+				'<a href="firewall_virtual_ip.php">',
+				'</a>'),
+		'info',
+		false);
 ?>
 </div>
 

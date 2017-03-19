@@ -85,7 +85,7 @@ if ($_REQUEST['getdyndnsstatus']) {
 		$filename_v6 = "{$g['conf_path']}/dyndns_{$dyndns['interface']}{$dyndns['type']}" . escapeshellarg($hostname) . "{$dyndns['id']}_v6.cache";
 		if (file_exists($filename)) {
 			$ipaddr = dyndnsCheckIP($dyndns['interface']);
-			$cached_ip_s = explode(":", file_get_contents($filename));
+			$cached_ip_s = explode("|", file_get_contents($filename));
 			$cached_ip = $cached_ip_s[0];
 
 			if ($ipaddr != $cached_ip) {
@@ -197,7 +197,7 @@ function get_dyndns_service_text($dyndns_type) {
 		<?=htmlspecialchars(get_dyndns_service_text($dyndns['type']));?>
 		</td>
 		<td>
-		<?=htmlspecialchars(get_dyndns_hostname_text($dyndns));?>
+		<?=insert_word_breaks_in_domain_name(htmlspecialchars(get_dyndns_hostname_text($dyndns)));?>
 		</td>
 		<td>
 		<div id="dyndnsstatus<?= $rowid;?>"><?= gettext("Checking ...");?></div>
@@ -279,7 +279,7 @@ function get_dyndns_service_text($dyndns_type) {
 	}
 	events.push(function(){
 		$("#showalldyndns").click(function() {
-			$("[id^=show]").each(function() {
+			$("#widget-<?=$widgetname?>_panel-footer [id^=show]").each(function() {
 				$(this).prop("checked", true);
 			});
 		});

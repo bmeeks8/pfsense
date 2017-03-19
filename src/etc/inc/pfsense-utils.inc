@@ -1009,9 +1009,12 @@ function setup_serial_port($when = "save", $path = "") {
 
 	$serialspeed = (is_numeric($config['system']['serialspeed'])) ? $config['system']['serialspeed'] : "115200";
 	$serial_only = false;
+	$vga_only = false;
 
 	$specific_platform = system_identify_specific_platform();
-	if ($specific_platform['name'] == 'RCC-VE' ||
+	if ($specific_platform['name'] == 'XG-1540') {
+		$vga_only = true;
+	} elseif ($specific_platform['name'] == 'RCC-VE' ||
 	    $specific_platform['name'] == 'RCC' ||
 	    $specific_platform['name'] == 'RCC-DFF' ||
 	    $specific_platform['name'] == 'apu2') {
@@ -1067,7 +1070,9 @@ function setup_serial_port($when = "save", $path = "") {
 	if ($serial_only === true) {
 		$data[] = 'boot_serial="YES"';
 		$data[] = 'console="comconsole"';
-	} else if (is_serial_enabled()) {
+	} elseif ($vga_only === true) {
+		$data[] = 'console="vidconsole"';
+	} elseif (is_serial_enabled()) {
 		$data[] = 'boot_multicons="YES"';
 		$data[] = 'boot_serial="YES"';
 		$primaryconsole = isset($g['primaryconsole_force']) ?
@@ -1084,10 +1089,9 @@ function setup_serial_port($when = "save", $path = "") {
 	}
 	$data[] = 'comconsole_speed="' . $serialspeed . '"';
 
-	$specplatform = system_identify_specific_platform();
-	if ($specplatform['name'] == 'RCC-VE' ||
-	    $specplatform['name'] == 'RCC' ||
-	    $specplatform['name'] == 'RCC-DFF') {
+	if ($specific_platform['name'] == 'RCC-VE' ||
+	    $specific_platform['name'] == 'RCC' ||
+	    $specific_platform['name'] == 'RCC-DFF') {
 		$data[] = 'comconsole_port="0x2F8"';
 		$data[] = 'hint.uart.0.flags="0x00"';
 		$data[] = 'hint.uart.1.flags="0x10"';
@@ -1751,7 +1755,7 @@ function compare_hostname_to_dnscache($hostname) {
  */
 function load_crypto() {
 	global $config, $g;
-	$crypto_modules = array('aesni');
+	$crypto_modules = array('aesni', 'cryptodev');
 
 	if (!in_array($config['system']['crypto_hardware'], $crypto_modules)) {
 		return false;
@@ -2031,14 +2035,6 @@ function update_progress_bar($percent, $first_time) {
 			echo "\x08\x08\x08\x08\x08";
 		}
 		echo sprintf("%4d%%", $percent);
-	}
-}
-
-/* Split() is being DEPRECATED as of PHP 5.3.0 and REMOVED as of PHP 6.0.0. Relying on this feature is highly discouraged. */
-if (!function_exists("split")) {
-	function split($separator, $haystack, $limit = null) {
-		log_error("deprecated split() call with separator '{$separator}'");
-		return preg_split($separator, $haystack, $limit);
 	}
 }
 

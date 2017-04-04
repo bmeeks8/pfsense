@@ -255,6 +255,25 @@ function gen_dashboardcolumns_field(&$section, $value) {
 	));
 }
 
+/****f* pfsense-utils/gen_interfacessort_field
+ * NAME
+ *   gen_interfacessort_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_interfacessort_field(&$section, $value) {
+
+	$section->addInput(new Form_Checkbox(
+		'interfacessort',
+		'Interfaces Sort',
+		'Sort Alphabetically',
+		$value
+	))->setHelp('If selected, lists of interfaces will be sorted by description, otherwise they are listed wan,lan,optn...');
+}
+
 /****f* pfsense-utils/gen_associatedpanels_fields
  * NAME
  *   gen_associatedpanels_fields
@@ -320,6 +339,25 @@ function gen_webguileftcolumnhyper_field(&$section, $value) {
 	))->setHelp('If selected, clicking a label in the left column will select/toggle the first item of the group.');
 }
 
+/****f* pfsense-utils/gen_disablealiaspopupdetail_field
+ * NAME
+ *   gen_disablealiaspopupdetail_field
+ * INPUTS
+ *   Pointer to section object
+ *   Initial value for the field
+ * RESULT
+ *   no return value, section object is updated
+ ******/
+function gen_disablealiaspopupdetail_field(&$section, $value) {
+
+	$section->addInput(new Form_Checkbox(
+		'disablealiaspopupdetail',
+		'Alias Popups',
+		'Disable details in alias popups',
+		$value
+	))->setHelp('If selected, the details in alias popups will not be shown, just the alias description (e.g. in Firewall Rules).');
+}
+
 /****f* pfsense-utils/gen_pagenamefirst_field
  * NAME
  *   gen_pagenamefirst_field
@@ -356,6 +394,7 @@ function gen_user_settings_fields(&$section, $pconfig) {
 	gen_webguifixedmenu_field($section, $pconfig['webguifixedmenu']);
 	gen_webguihostnamemenu_field($section, $pconfig['webguihostnamemenu']);
 	gen_dashboardcolumns_field($section, $pconfig['dashboardcolumns']);
+	gen_interfacessort_field($section, $pconfig['interfacessort']);
 	gen_associatedpanels_fields(
 		$section,
 		$pconfig['dashboardavailablewidgetspanel'],
@@ -363,6 +402,7 @@ function gen_user_settings_fields(&$section, $pconfig) {
 		$pconfig['systemlogsmanagelogpanel'],
 		$pconfig['statusmonitoringsettingspanel']);
 	gen_webguileftcolumnhyper_field($section, $pconfig['webguileftcolumnhyper']);
+	gen_disablealiaspopupdetail_field($section, $pconfig['disablealiaspopupdetail']);
 	gen_pagenamefirst_field($section, $pconfig['pagenamefirst']);
 }
 
@@ -2133,7 +2173,7 @@ function parse_aliases_file($filename, $type = "url", $max_items = -1, $kflc = f
 				$tmp = $tmp_str;
 			}
 			$valid = (($type == "url" || $type == "urltable") && (is_ipaddr($tmp) || is_subnet($tmp))) ||
-				(($type == "url_ports" || $type == "urltable_ports") && (is_port($tmp) || is_portrange($tmp)));
+				(($type == "url_ports" || $type == "urltable_ports") && is_port_or_range($tmp));
 			if ($valid) {
 				$items[] = $tmp;
 				if (count($items) == $max_items) {
@@ -3011,6 +3051,7 @@ function huawei_service_to_string($state) {
 	$modes[2] = gettext("Valid Service");
 	$modes[3] = gettext("Restricted Regional Service");
 	$modes[4] = gettext("Powersaving Service");
+	$modes[255] = gettext("Unknown Service");
 	$string = $modes[$state];
 	return $string;
 }

@@ -29,6 +29,7 @@
 
 require_once("guiconfig.inc");
 require_once("openvpn.inc");
+require_once("pfsense-utils.inc");
 require_once("pkg-utils.inc");
 
 global $openvpn_topologies, $openvpn_tls_modes;
@@ -1029,17 +1030,17 @@ events.push(function() {
 	});
 
 	 // Mode
-	$('#mode').click(function () {
+	$('#mode').change(function () {
 		mode_change();
 	});
 
 	 // Use proxy
-	$('#proxy_authtype').click(function () {
+	$('#proxy_authtype').change(function () {
 		useproxy_changed();
 	});
 
 	 // Tun/tap
-	$('#dev_mode').click(function () {
+	$('#dev_mode').change(function () {
 		dev_mode_change();
 	});
 

@@ -29,6 +29,7 @@
 
 require_once("guiconfig.inc");
 require_once("certs.inc");
+require_once("pfsense-utils.inc");
 
 $cert_methods = array(
 	"import" => gettext("Import an existing Certificate"),
@@ -241,7 +242,7 @@ if ($_POST['save']) {
 				$input_errors[] = gettext("This certificate does not appear to be valid.");
 			}
 
-			if (cert_get_modulus($_POST['cert'], false) != prv_get_modulus($_POST['key'], false)) {
+			if (cert_get_publickey($_POST['cert'], false) != cert_get_publickey($_POST['key'], false, 'prv')) {
 				$input_errors[] = gettext("The submitted private key does not match the submitted certificate data.");
 			}
 		}
@@ -450,12 +451,20 @@ if ($_POST['save']) {
 					if (!empty($pconfig['dn_organizationalunit'])) {
 						$dn['organizationalUnitName'] = $pconfig['dn_organizationalunit'];
 					}
+					if (is_ipaddr($pconfig['dn_commonname'])) {
+						$altnames_tmp = array("IP:{$pconfig['dn_commonname']}");
+					} else {
+						$altnames_tmp = array("DNS:{$pconfig['dn_commonname']}");
+					}
 					if (count($altnames)) {
-						$altnames_tmp = "";
 						foreach ($altnames as $altname) {
-							$altnames_tmp[] = "{$altname['type']}:{$altname['value']}";
+							// The CN is added as a SAN automatically, do not add it again.
+							if ($altname['value'] != $pconfig['dn_commonname']) {
+								$altnames_tmp[] = "{$altname['type']}:{$altname['value']}";
+							}
 						}
-
+					}
+					if (!empty($altnames_tmp)) {
 						$dn['subjectAltName'] = implode(",", $altnames_tmp);
 					}
 
@@ -549,12 +558,12 @@ if ($_POST['save']) {
 //				$subject_mismatch = true;
 //			}
 //		}
-		$mod_csr = csr_get_modulus($pconfig['csr'], false);
-		$mod_cert = cert_get_modulus($pconfig['cert'], false);
+		$mod_csr = cert_get_publickey($pconfig['csr'], false, 'csr');
+		$mod_cert = cert_get_publickey($pconfig['cert'], false);
 
 		if (strcmp($mod_csr, $mod_cert)) {
 			// simply: if the moduli don't match, then the private key and public key won't match
-			$input_errors[] = sprintf(gettext("The certificate modulus does not match the signing request modulus."), $subj_cert);
+			$input_errors[] = sprintf(gettext("The certificate public key does not match the signing request public key."), $subj_cert);
 			$subject_mismatch = true;
 		}
 
@@ -888,6 +897,8 @@ if ($act == "new" || (($_POST['save'] == gettext("Save")) && $input_errors)) {
 
 		$group->addClass('repeatable');
 
+		$group->setHelp('Enter additional identifiers for the certificate in this list. The Common Name field is automatically added to the certificate as an Alternative Name.');
+
 		$section->add($group);
 
 		$counter++;
@@ -1169,25 +1180,7 @@ foreach ($a_cert as $i => $cert):
 						<?php if (is_captiveportal_cert($cert['refid'])): ?>
 							<?=gettext("Captive Portal")?>
 						<?php endif?>
-<?php
-							$refid = $cert['refid'];
-							if (is_array($certificates_used_by_packages)) {
-								foreach ($certificates_used_by_packages as $name => $package) {
-									if (isset($package['certificatelist'][$refid])) {
-										$hint = "" ;
-										if (is_array($package['certificatelist'][$refid])) {
-											foreach ($package['certificatelist'][$refid] as $cert_used) {
-												$hint = $hint . $cert_used['usedby']."\n";
-											}
-										}
-										$count = count($package['certificatelist'][$refid]);
-										echo "<div title='".htmlspecialchars($hint)."'>";
-										echo htmlspecialchars($package['pkgname'])." ($count)<br />";
-										echo "</div>";
-									}
-								}
-							}
-?>
+						<?php echo cert_usedby_description($cert['refid'], $certificates_used_by_packages); ?>
 					</td>
 					<td>
 						<?php if (!$cert['csr']): ?>

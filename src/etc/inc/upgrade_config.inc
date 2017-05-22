@@ -653,7 +653,7 @@ function upgrade_040_to_041() {
 		$config['sysctl']['item'][1]['value'] =   "default";
 
 		$config['sysctl']['item'][2]['tunable'] = "net.inet.ip.random_id";
-		$config['sysctl']['item'][2]['descr'] =    gettext("Randomize the ID field in IP packets (default is 0: sequential IP IDs)");
+		$config['sysctl']['item'][2]['descr'] =    gettext("Randomize the ID field in IP packets (default is 1: Assign random IP IDs)");
 		$config['sysctl']['item'][2]['value'] =   "default";
 
 		$config['sysctl']['item'][3]['tunable'] = "net.inet.tcp.drop_synfin";
@@ -5293,4 +5293,15 @@ function upgrade_163_to_164() {
 		));
 	convert_widget_164('wol', 'wake_on_lan-0', array('filter' => ''));
 }
+
+/* Work around broken wizard rules. See https://redmine.pfsense.org/issues/7434 */
+function upgrade_164_to_165() {
+	global $config;
+	foreach ($config['filter']['rule'] as & $rule) {
+		if ($rule['destination']['port'] == "137-139-137-139") {
+			$rule['destination']['port'] = "137-139";
+		}
+	}
+}
+
 ?>

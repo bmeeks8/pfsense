@@ -49,21 +49,32 @@ if ($_REQUEST && $_REQUEST['ajax']) {
 	);
 
 	$skipinterfaces = explode(",", $user_settings['widgets'][$_REQUEST['widgetkey']]['iffilter']);
-	$interface_is_displayed = false;
+	$an_interface_is_selected = false; // decide if at least 1 interface is selected for display
+	$an_interface_is_displayed = false; // decide if at least 1 interface is displayed (i.e. not down)
 
 	print("<thead>");
 	print(	"<tr>");
 	print(		"<th></th>");
 
 	foreach ($ifdescrs as $ifdescr => $ifname) {
-		if (!in_array($ifdescr, $skipinterfaces)) {
-			print(		"<th>" . $ifname . "</th>");
-			$interface_is_displayed = true;
+		if (in_array($ifdescr, $skipinterfaces)) {
+			continue;
+		}
+
+		$an_interface_is_selected = true;
+		$ifinfo_arr[$ifdescr] = get_interface_info($ifdescr);
+		$ifinfo_arr[$ifdescr]['inbytes'] = format_bytes($ifinfo_arr[$ifdescr]['inbytes']);
+		$ifinfo_arr[$ifdescr]['outbytes'] = format_bytes($ifinfo_arr[$ifdescr]['outbytes']);
+		if ($ifinfo_arr[$ifdescr]['status'] != "down") {
+			$an_interface_is_displayed = true;
+			print("<th>" . $ifname . "</th>");
 		}
 	}
 
-	if (!$interface_is_displayed) {
+	if (!$an_interface_is_selected) {
 		print("<th>" . gettext('All interfaces are hidden.') . "</th>");
+	} else if (!$an_interface_is_displayed) {
+		print("<th>" . gettext('All selected interfaces are down.') . "</th>");
 	}
 
 	print(		"</tr>");
@@ -79,24 +90,18 @@ if ($_REQUEST && $_REQUEST['ajax']) {
 				continue;
 			}
 
-			$ifinfo = get_interface_info($ifdescr);
-
-			if ($ifinfo['status'] == "down") {
-				continue;
+			if ($ifinfo_arr[$ifdescr]['status'] != "down") {
+				print("<td>" . (isset($ifinfo_arr[$ifdescr][$key]) ? htmlspecialchars($ifinfo_arr[$ifdescr][$key]) : 'n/a') . "</td>");
 			}
 
-			$ifinfo['inbytes'] = format_bytes($ifinfo['inbytes']);
-			$ifinfo['outbytes'] = format_bytes($ifinfo['outbytes']);
-
-			print("<td>" . (isset($ifinfo[$key]) ? htmlspecialchars($ifinfo[$key]) : 'n/a') . "</td>");
 		}
 
-		print(		"</td>");
 		print(	"</tr>");
 	}
 	print(	"</tbody>");
 	exit;
 } else if ($_POST['widgetkey']) {
+	set_customwidgettitle($user_settings);
 
 	$validNames = array();
 
@@ -126,6 +131,7 @@ $widgetkey_nodash = str_replace("-", "", $widgetkey);
 </div><div id="<?=$widget_panel_footer_id?>" class="panel-footer collapse">
 
 <form action="/widgets/widgets/interface_statistics.widget.php" method="post" class="form-horizontal">
+	<?=gen_customwidgettitle_div($widgetconfig['title']); ?>
     <div class="panel panel-default col-sm-10">
 		<div class="panel-body">
 			<input type="hidden" name="widgetkey" value="<?=$widgetkey; ?>">

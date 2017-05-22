@@ -484,6 +484,18 @@ function openvpn_get_engines() {
 	return $openssl_engines;
 }
 
+function openvpn_get_buffer_values() {
+	$sendbuf_max = get_single_sysctl('net.inet.tcp.sendbuf_max');
+	$recvbuf_max = get_single_sysctl('net.inet.tcp.recvbuf_max');
+	/* Usually these two are equal, but if they are not, take whichever one is lower. */
+	$buffer_max = ($sendbuf_max <= $recvbuf_max) ? $sendbuf_max : $recvbuf_max;
+	$buffer_values = array('' => gettext('Default'));
+	for ($bs = 32; $bs >= 1; $bs /= 2) {
+		$buffer_values[$buffer_max/$bs] = format_bytes($buffer_max/$bs);
+	}
+	return $buffer_values;
+}
+
 function openvpn_validate_engine($engine) {
 	$engines = openvpn_get_engines();
 	return array_key_exists($engine, $engines);
@@ -497,10 +509,13 @@ function openvpn_validate_host($value, $name) {
 	return false;
 }
 
-function openvpn_validate_port($value, $name) {
+function openvpn_validate_port($value, $name, $first_port = 0) {
 	$value = trim($value);
-	if (empty($value) || !is_numeric($value) || $value < 0 || ($value > 65535)) {
-		return sprintf(gettext("The field '%s' must contain a valid port, ranging from 0 to 65535."), $name);
+	if (!is_numeric($first_port)) {
+		$first_port = 0;
+	}
+	if (empty($value) || !is_numeric($value) || $value < $first_port || ($value > 65535)) {
+		return sprintf(gettext("The field '%s' must contain a valid port, ranging from {$first_port} to 65535."), $name);
 	}
 	return false;
 }
@@ -1148,9 +1163,7 @@ function openvpn_reconfigure($mode, $settings) {
 		$conf .= "passtos\n";
 	}
 
-	if ($settings['resolve_retry']) {
-		$conf .= "resolv-retry infinite\n";
-	} else if ($mode == 'client') {
+	if ($mode == 'client') {
 		$conf .= "resolv-retry infinite\n";
 	}
 
@@ -1178,6 +1191,22 @@ function openvpn_reconfigure($mode, $settings) {
 		if ($settings['route_no_exec']) {
 			$conf .= "route-noexec\n";
 		}
+	}
+
+	/* UDP Fast I/O. Only compatible with UDP and also not compatible with OpenVPN's "shaper" directive. */
+	if ($settings['udp_fast_io']
+	    && (strtolower(substr($settings['protocol'], 0, 3)) == "udp")
+	    && (empty($settings['use_shaper']))) {
+		$conf .= "fast-io\n";
+	}
+
+	/* Send and Receive Buffer Settings */
+	if (is_numericint($settings['sndrcvbuf'])
+	    && ($settings['sndrcvbuf'] > 0)
+	    && ($settings['sndrcvbuf'] <= get_single_sysctl('net.inet.tcp.sendbuf_max'))
+	    && ($settings['sndrcvbuf'] <= get_single_sysctl('net.inet.tcp.recvbuf_max'))) {
+		$conf .= "sndbuf {$settings['sndrcvbuf']}\n";
+		$conf .= "rcvbuf {$settings['sndrcvbuf']}\n";
 	}
 
 	openvpn_add_custom($settings, $conf);
@@ -1929,7 +1958,7 @@ function openvpn_gen_route_ipv4($network, $iroute = false) {
 function openvpn_gen_route_ipv6($network, $iroute = false) {
 	$i = ($iroute) ? "i" : "";
 	list($ipv6, $prefix) = explode('/', trim($network));
-	if (empty($prefix)) {
+	if (empty($prefix) && !is_numeric($prefix)) {
 		$prefix = "128";
 	}
 	return "{$i}route-ipv6 ${ipv6}/${prefix}";

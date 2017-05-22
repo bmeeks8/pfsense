@@ -105,7 +105,6 @@ if ($act == "new") {
 	$pconfig['dev_mode'] = "tun";
 	$pconfig['interface'] = "wan";
 	$pconfig['local_port'] = openvpn_port_next('UDP');
-	$pconfig['pool_enable'] = "yes";
 	$pconfig['cert_depth'] = 1;
 	$pconfig['verbosity_level'] = 1; // Default verbosity is 1
 	// OpenVPN Defaults to SHA1
@@ -183,7 +182,6 @@ if ($act == "edit") {
 		$pconfig['client2client'] = $a_server[$id]['client2client'];
 
 		$pconfig['dynamic_ip'] = $a_server[$id]['dynamic_ip'];
-		$pconfig['pool_enable'] = $a_server[$id]['pool_enable'];
 		$pconfig['topology'] = $a_server[$id]['topology'];
 
 		$pconfig['serverbridge_dhcp'] = $a_server[$id]['serverbridge_dhcp'];
@@ -228,11 +226,6 @@ if ($act == "edit") {
 			$pconfig['wins_server_enable'] = true;
 		}
 
-		$pconfig['client_mgmt_port'] = $a_server[$id]['client_mgmt_port'];
-		if ($pconfig['client_mgmt_port']) {
-			$pconfig['client_mgmt_port_enable'] = true;
-		}
-
 		$pconfig['nbdd_server1'] = $a_server[$id]['nbdd_server1'];
 		if ($pconfig['nbdd_server1']) {
 			$pconfig['nbdd_server_enable'] = true;
@@ -251,6 +244,8 @@ if ($act == "edit") {
 		}
 
 		$pconfig['push_blockoutsidedns'] = $a_server[$id]['push_blockoutsidedns'];
+		$pconfig['udp_fast_io'] = $a_server[$id]['udp_fast_io'];
+		$pconfig['sndrcvbuf'] = $a_server[$id]['sndrcvbuf'];
 		$pconfig['push_register_dns'] = $a_server[$id]['push_register_dns'];
 	}
 }
@@ -300,7 +295,7 @@ if ($_POST['save']) {
 	}
 
 	/* input validation */
-	if ($result = openvpn_validate_port($pconfig['local_port'], 'Local port')) {
+	if ($result = openvpn_validate_port($pconfig['local_port'], 'Local port', 1)) {
 		$input_errors[] = $result;
 	}
 
@@ -400,12 +395,6 @@ if ($_POST['save']) {
 		}
 	}
 
-	if ($pconfig['client_mgmt_port_enable']) {
-		if ($result = openvpn_validate_port($pconfig['client_mgmt_port'], 'Client management port')) {
-			$input_errors[] = $result;
-		}
-	}
-
 	if ($pconfig['maxclients'] && !is_numericint($pconfig['maxclients'])) {
 		$input_errors[] = gettext("The field 'Concurrent connections' must be numeric.");
 	}
@@ -468,6 +457,18 @@ if ($_POST['save']) {
 		if (ip_greater_than($pconfig['serverbridge_dhcp_start'], $pconfig['serverbridge_dhcp_end'])) {
 			$input_errors[] = gettext("The Server Bridge DHCP range is invalid (start higher than end).");
 		}
+	}
+
+	/* UDP Fast I/O is not compatible with TCP, so toss the option out when
+	   submitted since it can't be set this way legitimately. This also avoids
+	   having to perform any more trickery on the stored option to not preserve
+	   the value when changing modes. */
+	if ($pconfig['udp_fast_io'] && (strtolower(substr($pconfig['protocol'], 0, 3)) != "udp")) {
+		unset($pconfig['udp_fast_io']);
+	}
+
+	if (!empty($pconfig['sndrcvbuf']) && !array_key_exists($pconfig['sndrcvbuf'], openvpn_get_buffer_values())) {
+		$input_errors[] = gettext("The supplied Send/Receive Buffer size is invalid.");
 	}
 
 	do_input_validation($_POST, $reqdfields, $reqdfieldsn, $input_errors);
@@ -544,7 +545,6 @@ if ($_POST['save']) {
 		$server['client2client'] = $pconfig['client2client'];
 
 		$server['dynamic_ip'] = $pconfig['dynamic_ip'];
-		$server['pool_enable'] = $pconfig['pool_enable'];
 		$server['topology'] = $pconfig['topology'];
 
 		$server['serverbridge_dhcp'] = $pconfig['serverbridge_dhcp'];
@@ -566,6 +566,10 @@ if ($_POST['save']) {
 		if ($pconfig['push_blockoutsidedns']) {
 			$server['push_blockoutsidedns'] = $pconfig['push_blockoutsidedns'];
 		}
+		if ($pconfig['udp_fast_io']) {
+			$server['udp_fast_io'] = $pconfig['udp_fast_io'];
+		}
+		$server['sndrcvbuf'] = $pconfig['sndrcvbuf'];
 		if ($pconfig['push_register_dns']) {
 			$server['push_register_dns'] = $pconfig['push_register_dns'];
 		}
@@ -591,10 +595,6 @@ if ($_POST['save']) {
 			if ($pconfig['dns_server_enable']) {
 				$server['nbdd_server1'] = $pconfig['nbdd_server1'];
 			}
-		}
-
-		if ($pconfig['client_mgmt_port_enable']) {
-			$server['client_mgmt_port'] = $pconfig['client_mgmt_port'];
 		}
 
 		if ($_POST['duplicate_cn'] == "yes") {
@@ -978,9 +978,9 @@ if ($act=="new" || $act=="edit"):
 		'text',
 		$pconfig['tunnel_network']
 	))->setHelp('This is the IPv4 virtual network used for private communications between this server and client ' .
-				'hosts expressed using CIDR (e.g. 10.0.8.0/24). The first network address will be assigned to ' .
-				'the server virtual interface. The remaining network addresses can optionally be assigned ' .
-				'to connecting clients (see Address Pool).');
+				'hosts expressed using CIDR notation (e.g. 10.0.8.0/24). The first usable address in the network will be assigned to ' .
+				'the server virtual interface. The remaining usable addresses will be assigned ' .
+				'to connecting clients.');
 
 	$section->addInput(new Form_Input(
 		'tunnel_networkv6',
@@ -988,9 +988,9 @@ if ($act=="new" || $act=="edit"):
 		'text',
 		$pconfig['tunnel_networkv6']
 	))->setHelp('This is the IPv6 virtual network used for private ' .
-				'communications between this server and client hosts expressed using CIDR (e.g. fe80::/64). ' .
-				'The first network address will be assigned to the server virtual interface. The remaining ' .
-				'network addresses can optionally be assigned to connecting clients (see Address Pool).');
+				'communications between this server and client hosts expressed using CIDR notation (e.g. fe80::/64). ' .
+				'The ::1 address in the network will be assigned to the server virtual interface. The remaining ' .
+				'addresses will be assigned to connecting clients.');
 
 	$section->addInput(new Form_Checkbox(
 		'serverbridge_dhcp',
@@ -1122,13 +1122,6 @@ if ($act=="new" || $act=="edit"):
 		'Dynamic IP',
 		'Allow connected clients to retain their connections if their IP address changes.',
 		$pconfig['dynamic_ip']
-	));
-
-	$section->addInput(new Form_Checkbox(
-		'pool_enable',
-		'Address Pool',
-		'Provide a virtual adapter IP address to clients (see Tunnel Network).',
-		$pconfig['pool_enable']
 	));
 
 	$section->addInput(new Form_Select(
@@ -1274,21 +1267,6 @@ if ($act=="new" || $act=="edit"):
 		$pconfig['wins_server2']
 	));
 
-	$section->addInput(new Form_Checkbox(
-		'client_mgmt_port_enable',
-		'Enable custom port ',
-		'Use a different management port for clients.',
-		$pconfig['client_mgmt_port_enable']
-	));
-
-	$section->addInput(new Form_Input(
-		'client_mgmt_port',
-		'Management port',
-		'number',
-		$pconfig['client_mgmt_port']
-	))->setHelp('The default port is 166. Specify a different port if the client machines need to select from multiple OpenVPN links.');
-
-
 	$form->add($section);
 
 	$section = new Form_Section('Advanced Configuration');
@@ -1299,6 +1277,24 @@ if ($act=="new" || $act=="edit"):
 		$pconfig['custom_options']
 	))->setHelp('Enter any additional options to add to the OpenVPN server configuration here, separated by semicolon.%1$s' .
 				'EXAMPLE: push "route 10.0.0.0 255.255.255.0"', '<br />');
+
+	$section->addInput(new Form_Checkbox(
+		'udp_fast_io',
+		'UDP Fast I/O',
+		'Use fast I/O operations with UDP writes to tun/tap. Experimental.',
+		$pconfig['udp_fast_io']
+	))->setHelp('Optimizes the packet write event loop, improving CPU efficiency by 5% to 10%. ' .
+		'Not compatible with all platforms, and not compatible with OpenVPN bandwidth limiting.');
+
+	$section->addInput(new Form_Select(
+		'sndrcvbuf',
+		'Send/Receive Buffer',
+		$pconfig['sndrcvbuf'],
+		openvpn_get_buffer_values()
+		))->setHelp('Configure a Send and Receive Buffer size for OpenVPN. ' .
+				'The default buffer size can be too small in many cases, depending on hardware and network uplink speeds. ' .
+				'Finding the best buffer size can take some experimentation. To test the best value for a site, start at ' .
+				'512KiB and test higher and lower values.');
 
 	$section->addInput(new Form_Select(
 		'verbosity_level',
@@ -1532,6 +1528,14 @@ events.push(function() {
 		autokey_change();
 	}
 
+	function protocol_change() {
+		if ($('#protocol').val().substring(0, 3).toLowerCase() == 'udp') {
+			hideCheckbox('udp_fast_io', false);
+		} else {
+			hideCheckbox('udp_fast_io', true);
+		}
+	}
+
 	// Process "Enable authentication of TLS packets" checkbox
 	function tlsauth_change() {
 		autotls_change();
@@ -1597,11 +1601,6 @@ events.push(function() {
 		hideInput('wins_server2', hide);
 	}
 
-	function client_mgmt_port_change() {
-		var hide  = ! $('#client_mgmt_port_enable').prop('checked')
-
-		hideInput('client_mgmt_port', hide);
-	}
 
 	function ntp_server_change() {
 		var hide  = ! $('#ntp_server_enable').prop('checked')
@@ -1617,8 +1616,6 @@ events.push(function() {
 		hideInput('netbios_scope', hide);
 		hideCheckbox('wins_server_enable', hide);
 		wins_server_change();
-//		hideCheckbox('client_mgmt_port_enable', hide);
-//		client_mgmt_port_change();
 	}
 
 	function tuntap_change() {
@@ -1708,11 +1705,6 @@ events.push(function() {
 		netbios_change();
 	});
 
-	// Client management port
-	$('#client_mgmt_port_enable').click(function () {
-		client_mgmt_port_change();
-	});
-
 	 // Wins server port
 	$('#wins_server_enable').click(function () {
 		wins_server_change();
@@ -1752,6 +1744,11 @@ events.push(function() {
 	$('#mode').change(function () {
 		mode_change();
 		tuntap_change();
+	});
+
+	// Protocol
+	$('#protocol').change(function () {
+		protocol_change();
 	});
 
 	 // Tun/tap mode
@@ -1811,13 +1808,13 @@ events.push(function() {
 
 	// ---------- Set initial page display state ----------------------------------------------------------------------
 	mode_change();
+	protocol_change();
 	autokey_change();
 	tlsauth_change();
 	gwredir_change();
 	dns_domain_change();
 	dns_server_change();
 	wins_server_change();
-	client_mgmt_port_change();
 	ntp_server_change();
 	netbios_change();
 	tuntap_change();

@@ -119,7 +119,6 @@ if ($act == "edit") {
 		$pconfig['local_port'] = $a_client[$id]['local_port'];
 		$pconfig['server_addr'] = $a_client[$id]['server_addr'];
 		$pconfig['server_port'] = $a_client[$id]['server_port'];
-		$pconfig['resolve_retry'] = $a_client[$id]['resolve_retry'];
 		$pconfig['proxy_addr'] = $a_client[$id]['proxy_addr'];
 		$pconfig['proxy_port'] = $a_client[$id]['proxy_port'];
 		$pconfig['proxy_user'] = $a_client[$id]['proxy_user'];
@@ -163,6 +162,8 @@ if ($act == "edit") {
 		$pconfig['use_shaper'] = $a_client[$id]['use_shaper'];
 		$pconfig['compression'] = $a_client[$id]['compression'];
 		$pconfig['passtos'] = $a_client[$id]['passtos'];
+		$pconfig['udp_fast_io'] = $a_client[$id]['udp_fast_io'];
+		$pconfig['sndrcvbuf'] = $a_client[$id]['sndrcvbuf'];
 		$pconfig['topology'] = $a_client[$id]['topology'];
 
 		// just in case the modes switch
@@ -342,6 +343,27 @@ if ($_POST['save']) {
 		$input_errors[] = gettext("Password and confirmation must match.");
 	}
 
+	/* UDP Fast I/O is not compatible with TCP, so toss the option out when
+	   submitted since it can't be set this way legitimately. This also avoids
+	   having to perform any more trickery on the stored option to not preserve
+	   the value when changing modes. */
+	if ($pconfig['udp_fast_io'] && (strtolower(substr($pconfig['protocol'], 0, 3)) != "udp")) {
+		unset($pconfig['udp_fast_io']);
+	}
+
+	if ($pconfig['udp_fast_io'] && (!empty($pconfig['use_shaper']))) {
+		/* Only warn if the user is set to UDP, otherwise it isn't relevant (See above) */
+		if (strtolower(substr($pconfig['protocol'], 0, 3)) == "udp") {
+			$input_errors[] = gettext("Limit Outgoing Bandwidth is not compatible with UDP Fast I/O.");
+		} else {
+			unset($pconfig['udp_fast_io']);
+		}
+	}
+
+	if (!empty($pconfig['sndrcvbuf']) && !array_key_exists($pconfig['sndrcvbuf'], openvpn_get_buffer_values())) {
+		$input_errors[] = gettext("The supplied Send/Receive Buffer size is invalid.");
+	}
+
 	if (!$input_errors) {
 
 		$client = array();
@@ -378,7 +400,6 @@ if ($_POST['save']) {
 		$client['local_port'] = $pconfig['local_port'];
 		$client['server_addr'] = $pconfig['server_addr'];
 		$client['server_port'] = $pconfig['server_port'];
-		$client['resolve_retry'] = $pconfig['resolve_retry'];
 		$client['proxy_addr'] = $pconfig['proxy_addr'];
 		$client['proxy_port'] = $pconfig['proxy_port'];
 		$client['proxy_authtype'] = $pconfig['proxy_authtype'];
@@ -415,6 +436,8 @@ if ($_POST['save']) {
 		$client['use_shaper'] = $pconfig['use_shaper'];
 		$client['compression'] = $pconfig['compression'];
 		$client['passtos'] = $pconfig['passtos'];
+		$client['udp_fast_io'] = $pconfig['udp_fast_io'];
+		$client['sndrcvbuf'] = $pconfig['sndrcvbuf'];
 
 		$client['route_no_pull'] = $pconfig['route_no_pull'];
 		$client['route_no_exec'] = $pconfig['route_no_exec'];
@@ -532,14 +555,6 @@ if ($act=="new" || $act=="edit"):
 		'text',
 		$pconfig['server_addr']
 	))->setHelp("The IP address or hostname of the OpenVPN server.");
-
-	$section->addInput(new Form_Checkbox(
-		'resolve_retry',
-		'Server hostname resolution',
-		'Infinitely resolve server ',
-		$pconfig['resolve_retry']
-	))->setHelp('Continuously attempt to resolve the server host name. ' .
-	    'Useful when communicating with a server that is not permanently connected to the Internet.');
 
 	$section->addInput(new Form_Input(
 		'server_port',
@@ -780,8 +795,8 @@ if ($act=="new" || $act=="edit"):
 		'text',
 		$pconfig['tunnel_network']
 	))->setHelp('This is the IPv4 virtual network used for private communications between this client and the server ' .
-				'expressed using CIDR (e.g. 10.0.8.0/24). The second network address will be assigned to ' .
-				'the client virtual interface.');
+				'expressed using CIDR notation (e.g. 10.0.8.0/24). The second usable address in the network will be assigned to ' .
+				'the client virtual interface. Leave blank if the server is capable of providing addresses to clients.');
 
 	$section->addInput(new Form_Input(
 		'tunnel_networkv6',
@@ -789,8 +804,9 @@ if ($act=="new" || $act=="edit"):
 		'text',
 		$pconfig['tunnel_networkv6']
 	))->setHelp('This is the IPv6 virtual network used for private ' .
-				'communications between this client and the server expressed using CIDR (e.g. fe80::/64). ' .
-				'The second network address will be assigned to the client virtual interface.');
+				'communications between this client and the server expressed using CIDR notation (e.g. fe80::/64). ' .
+				'When set static using this field, the ::2 address in the network will be assigned to the client virtual interface. ' .
+				'Leave blank if the server is capable of providing addresses to clients.');
 
 	$section->addInput(new Form_Input(
 		'remote_network',
@@ -816,7 +832,8 @@ if ($act=="new" || $act=="edit"):
 		'number',
 		$pconfig['use_shaper'],
 		['min' => 100, 'max' => 100000000, 'placeholder' => 'Between 100 and 100,000,000 bytes/sec']
-	))->setHelp('Maximum outgoing bandwidth for this tunnel. Leave empty for no limit. The input value has to be something between 100 bytes/sec and 100 Mbytes/sec (entered as bytes per second).');
+	))->setHelp('Maximum outgoing bandwidth for this tunnel. Leave empty for no limit. The input value has to be something between 100 bytes/sec and 100 Mbytes/sec (entered as bytes per second). ' .
+				'Not compatible with UDP Fast I/O.');
 
 	$section->addInput(new Form_Select(
 		'compression',
@@ -851,7 +868,7 @@ if ($act=="new" || $act=="edit"):
 		'Don\'t add/remove routes',
 		'Don\'t add or remove routes automatically',
 		$pconfig['route_no_exec']
-	))->setHelp('Pass routes to --route-upscript using environmental variables.');
+	))->setHelp('Do not execute operating system commands to install routes. Instead, pass routes to --route-up script using environmental variables.');
 
 	$form->add($section);
 
@@ -863,6 +880,24 @@ if ($act=="new" || $act=="edit"):
 		'Custom options',
 		$pconfig['custom_options']
 	))->setHelp('Enter any additional options to add to the OpenVPN client configuration here, separated by semicolon.');
+
+	$section->addInput(new Form_Checkbox(
+		'udp_fast_io',
+		'UDP Fast I/O',
+		'Use fast I/O operations with UDP writes to tun/tap. Experimental.',
+		$pconfig['udp_fast_io']
+	))->setHelp('Optimizes the packet write event loop, improving CPU efficiency by 5% to 10%. ' .
+		'Not compatible with all platforms, and not compatible with OpenVPN bandwidth limiting.');
+
+	$section->addInput(new Form_Select(
+		'sndrcvbuf',
+		'Send/Receive Buffer',
+		$pconfig['sndrcvbuf'],
+		openvpn_get_buffer_values()
+		))->setHelp('Configure a Send and Receive Buffer size for OpenVPN. ' .
+				'The default buffer size can be too small in many cases, depending on hardware and network uplink speeds. ' .
+				'Finding the best buffer size can take some experimentation. To test the best value for a site, start at ' .
+				'512KiB and test higher and lower values.');
 
 	$section->addInput(new Form_Select(
 		'verbosity_level',
@@ -995,6 +1030,14 @@ events.push(function() {
 		hideInput('topology',  ($('#dev_mode').val() == 'tap') || $('#mode').val() == "p2p_shared_key");
 	}
 
+	function protocol_change() {
+		if ($('#protocol').val().substring(0, 3).toLowerCase() == 'udp') {
+			hideCheckbox('udp_fast_io', false);
+		} else {
+			hideCheckbox('udp_fast_io', true);
+		}
+	}
+
 	// Process "Automatically generate a shared key" checkbox
 	function autokey_change() {
 		hideInput('shared_key', $('#autokey_enable').prop('checked'));
@@ -1032,6 +1075,11 @@ events.push(function() {
 	 // Mode
 	$('#mode').change(function () {
 		mode_change();
+	});
+
+	// Protocol
+	$('#protocol').change(function () {
+		protocol_change();
 	});
 
 	 // Use proxy
@@ -1090,6 +1138,7 @@ events.push(function() {
 
 	// ---------- Set initial page display state ----------------------------------------------------------------------
 	mode_change();
+	protocol_change();
 	autokey_change();
 	tlsauth_change();
 	useproxy_changed();

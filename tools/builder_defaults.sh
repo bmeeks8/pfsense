@@ -136,6 +136,13 @@ export MAKEOBJDIRPREFIX=${MAKEOBJDIRPREFIX:-"${SCRATCHDIR}/obj"}
 
 export MODULES_OVERRIDE=${MODULES_OVERRIDE:-"cryptodev i2c ipmi ndis ipfw ipdivert dummynet fdescfs opensolaris zfs if_stf coretemp amdtemp aesni sfxge hwpmc vmm nmdm ix ixv"}
 
+# gnid
+export GNID_REPO_BASE=${GNID_REPO_BASE:-"${GIT_REPO_BASE}/gnid.git"}
+export GNID_SRC_DIR=${GNID_SRC_DIR:-"${SCRATCHDIR}/gnid"}
+export GNID_BRANCH=${GNID_BRANCH:-"master"}
+export GNID_INCLUDE_DIR=${GNID_INCLUDE_DIR:-"${MAKEOBJDIRPREFIX}/${FREEBSD_SRC_DIR}/tmp/usr/include"}
+export GNID_LIBCRYPTO_DIR=${GNID_LIBCRYPTO_DIR:-"${MAKEOBJDIRPREFIX}/${FREEBSD_SRC_DIR}/secure/lib/libcrypto"}
+
 # Area that the final image will appear in
 export IMAGES_FINAL_DIR=${IMAGES_FINAL_DIR:-"${SCRATCHDIR}/${PRODUCT_NAME}/"}
 
@@ -254,8 +261,8 @@ if [ -n "${_IS_RELEASE}" ]; then
 	export PKG_FINAL_RSYNC_HOSTNAME=${PKG_FINAL_RSYNC_HOSTNAME:-"nfs1.nyi.netgate.com"}
 	export PKG_FINAL_RSYNC_DESTDIR=${PKG_FINAL_RSYNC_DESTDIR:-"/storage/files/pkg"}
 else
-	export PKG_FINAL_RSYNC_HOSTNAME=${PKG_FINAL_RSYNC_HOSTNAME:-"beta.pfsense.org"}
-	export PKG_FINAL_RSYNC_DESTDIR=${PKG_FINAL_RSYNC_DESTDIR:-"/usr/local/www/beta/packages"}
+	export PKG_FINAL_RSYNC_HOSTNAME=${PKG_FINAL_RSYNC_HOSTNAME:-"nfs1.nyi.netgate.com"}
+	export PKG_FINAL_RSYNC_DESTDIR=${PKG_FINAL_RSYNC_DESTDIR:-"/storage/files/beta/packages"}
 fi
 export PKG_FINAL_RSYNC_USERNAME=${PKG_FINAL_RSYNC_USERNAME:-"wwwsync"}
 export PKG_FINAL_RSYNC_SSH_PORT=${PKG_FINAL_RSYNC_SSH_PORT:-"22"}
@@ -319,8 +326,9 @@ export VARIANTIMAGES=""
 export VARIANTUPDATES=""
 
 # Rsync data to send snapshots
-export RSYNCUSER=${RSYNCUSER:-"snapshots"}
-export RSYNCPATH=${RSYNCPATH:-"/usr/local/www/snapshots/${TARGET}/${PRODUCT_NAME}_${GIT_REPO_BRANCH_OR_TAG}"}
+export RSYNCIP=${RSYNCIP:-"nfs1.nyi.netgate.com"}
+export RSYNCUSER=${RSYNCUSER:-"wwwsync"}
+export RSYNCPATH=${RSYNCPATH:-"/storage/files/snapshots/${TARGET}/${PRODUCT_NAME}_${GIT_REPO_BRANCH_OR_TAG}"}
 
 export SNAPSHOTSLOGFILE=${SNAPSHOTSLOGFILE:-"${SCRATCHDIR}/snapshots-build.log"}
 export SNAPSHOTSLASTUPDATE=${SNAPSHOTSLASTUPDATE:-"${SCRATCHDIR}/snapshots-lastupdate.log"}

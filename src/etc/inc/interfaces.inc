@@ -2251,7 +2251,9 @@ function interface_proxyarp_configure($interface = "") {
 			if (!is_ipaddr($paaifip)) {
 				return;
 			}
-			$args = get_real_interface($interface) . " auto";
+			$vipif = get_real_interface($interface);
+			$args  = "-p {$g['varrun_path']}/choparp_{$vipif}.pid ";
+			$args .= $vipif . " auto";
 			foreach ($paa[$interface] as $paent) {
 				if (isset($paent['subnet'])) {
 					$args .= " " . escapeshellarg("{$paent['subnet']}/{$paent['subnet_bits']}");
@@ -2267,7 +2269,9 @@ function interface_proxyarp_configure($interface = "") {
 			if (!is_ipaddr($paaifip)) {
 				continue;
 			}
-			$args = get_real_interface($paif) . " auto";
+			$vipif = get_real_interface($paif);
+			$args  = "-p {$g['varrun_path']}/choparp_{$vipif}.pid ";
+			$args .= $vipif . " auto";
 			foreach ($paents as $paent) {
 				if (isset($paent['subnet'])) {
 					$args .= " " . escapeshellarg("{$paent['subnet']}/{$paent['subnet_bits']}");
@@ -4041,7 +4045,7 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 			if (!isset($wancfg['dhcp6prefixonly'])) {
 				$dhcp6cconf .= "\tsend ia-na 0;\t# request stateful address\n";
 			}
-			if (is_numeric($wancfg['dhcp6-ia-pd-len']) && !empty($trackiflist)) {
+			if (is_numeric($wancfg['dhcp6-ia-pd-len'])) {
 				$dhcp6cconf .= "\tsend ia-pd 0;\t# request prefix delegation\n";
 			}
 
@@ -6134,16 +6138,8 @@ function get_interface_mac($interface) {
 }
 
 function get_interface_vendor_mac($interface) {
-	global $g;
-
-	$mac = "";
-	$mac_file = "{$g['vardb_path']}/vendor_mac";
-	if (file_exists($mac_file)) {
-		$vendor_mac_arr = json_decode(file_get_contents($mac_file), true);
-		$mac = (is_macaddr($vendor_mac_arr[$interface])) ? $vendor_mac_arr[$interface] : '';
-	}
-
-	return $mac;
+	$macinfo = pfSense_get_interface_addresses($interface);
+	return $macinfo["hwaddr"] ?: '';
 }
 
 /****f* pfsense-utils/generate_random_mac_address

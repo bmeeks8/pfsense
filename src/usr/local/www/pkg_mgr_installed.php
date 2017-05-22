@@ -39,35 +39,26 @@ if (is_subsystem_dirty('packagelock')) {
 	exit;
 }
 
-// We are being called only to get the pacakge data, not to display anything
+// We are being called only to get the package data, not to display anything
 if (($_REQUEST) && ($_REQUEST['ajax'])) {
 	print(get_pkg_table());
 	exit;
 }
 
 function get_pkg_table() {
-	$installed_packages = array();
-	$package_list = get_pkg_info();
+	$installed_packages = get_pkg_info('all', false, true);
 
-	if (!$package_list) {
+	if (is_array($input_errors)) {
 		print("error");
 		exit;
 	}
-
-	foreach ($package_list as $pkg) {
-		if (!isset($pkg['installed']) && !isset($pkg['broken'])) {
-			continue;
-		}
-		$installed_packages[] = $pkg;
-	}
-
-	$pkgtbl = "";
 
 	if (empty($installed_packages)) {
 		print ("nopkg");
 		exit;
 	}
 
+	$pkgtbl = "";
 	$pkgtbl .='		<div class="table-responsive">';
 	$pkgtbl .='		<table class="table table-striped table-hover table-condensed">';
 	$pkgtbl .='			<thead>';
@@ -237,7 +228,7 @@ display_top_tabs($tab_array);
 
 events.push(function() {
 
-	// Retrieve the table formatted pacakge information and display it in the "Packages" panel
+	// Retrieve the table formatted package information and display it in the "Packages" panel
 	// (Or display an appropriate error message)
 	var ajaxRequest;
 

@@ -47,6 +47,7 @@ $pconfig['sharednet'] = $config['system']['sharednet'];
 $pconfig['disablechecksumoffloading'] = isset($config['system']['disablechecksumoffloading']);
 $pconfig['disablesegmentationoffloading'] = isset($config['system']['disablesegmentationoffloading']);
 $pconfig['disablelargereceiveoffloading'] = isset($config['system']['disablelargereceiveoffloading']);
+$pconfig['ip_change_kill_states'] = isset($config['system']['ip_change_kill_states']);
 
 if ($_POST) {
 
@@ -131,6 +132,12 @@ if ($_POST) {
 			unset($config['system']['disablelargereceiveoffloading']);
 		}
 
+		if ($_POST['ip_change_kill_states'] == "yes") {
+			$config['system']['ip_change_kill_states'] = true;
+		} else {
+			unset($config['system']['ip_change_kill_states']);
+		}
+
 		setup_microcode();
 
 		// Write out configuration (config.xml)
@@ -178,36 +185,28 @@ $section->addInput(new Form_Checkbox(
 ))->setHelp('NOTE: This does not disable any IPv6 features on the firewall, it only '.
 	'blocks traffic.');
 
-
-$group = new Form_Group('IPv6 over IPv4');
-
-$group->add(new Form_Checkbox(
+$section->addInput(new Form_Checkbox(
 	'ipv6nat_enable',
 	'IPv6 over IPv4 Tunneling',
 	'Enable IPv6 over IPv4 tunneling',
 	$pconfig['ipv6nat_enable']
-));
+))->setHelp('These options create an RFC 2893 compatible mechanism for IPv4 NAT encapsulation of IPv6 packets, ' .
+	'that can be used to tunnel IPv6 packets over IPv4 routing infrastructures. ' .
+	'IPv6 firewall rules are %1$salso required%2$s, to control and pass encapsulated traffic.', '<a href="firewall_rules.php">', '</a>');
 
-$group->add(new Form_Input(
+$section->addInput(new Form_Input(
 	'ipv6nat_ipaddr',
 	'IPv4 address of Tunnel Peer',
 	'text',
 	$pconfig['ipv6nat_ipaddr']
 ));
 
-$group->setHelp('These options create an RFC 2893 compatible mechanism for IPv4 NAT encapsulation of IPv6 packets, ' .
-	'that can be used to tunnel IPv6 packets over IPv4 routing infrastructures. ' .
-	'IPv6 firewall rules are %1$salso required%2$s, to control and pass encapsulated traffic.', '<a href="firewall_rules.php">', '</a>');
-
-
-$section->add($group);
-
 $section->addInput(new Form_Checkbox(
 	'prefer_ipv4',
 	'Prefer IPv4 over IPv6',
 	'Prefer to use IPv4 even if IPv6 is available',
 	$pconfig['prefer_ipv4']
-))->setHelp('By default, if IPv6 is configured and a hostname resolves IPv6 and IPv4 addresses, '. 
+))->setHelp('By default, if IPv6 is configured and a hostname resolves IPv6 and IPv4 addresses, '.
 	'IPv6 will be used. If this option is selected, IPv4 will be preferred over IPv6.');
 
 $section->addInput(new Form_Checkbox(
@@ -291,6 +290,14 @@ $section->addInput(new Form_Checkbox(
 ))->setHelp('This option will suppress ARP log messages when multiple interfaces '.
 	'reside on the same broadcast domain.');
 
+$section->addInput(new Form_Checkbox(
+	'ip_change_kill_states',
+	'Reset All States',
+	'Reset all states if WAN IP Address changes',
+	isset($pconfig['ip_change_kill_states'])
+))->setHelp('This option resets all states when a WAN IP Address changes instead of only '.
+    'states associated with the previous IP Address.');
+
 if (get_freebsd_version() == 8) {
 	$section->addInput(new Form_Checkbox(
 		'flowtable',
@@ -308,10 +315,26 @@ print $form;
 <script type="text/javascript">
 //<![CDATA[
 events.push(function() {
+
+	// Show/hide IPv4 address of Tunnel Peer input field
+	function showHideIpv6nat() {
+		hideInput('ipv6nat_ipaddr', !$('#ipv6nat_enable').prop('checked'));
+	}
+
 	// On click, copy the placeholder DUID to the input field
 	$('#btncopyduid').click(function() {
 		$('#global-v6duid').val('<?=$duid?>');
 	});
+
+	// On clicking IPv6 over IPv4 Tunneling checkbox
+	$('#ipv6nat_enable').click(function () {
+		showHideIpv6nat();
+	});
+
+	// On page load
+	showHideIpv6nat();
+
+
 });
 //]]>
 </script>

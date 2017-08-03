@@ -180,12 +180,14 @@ function get_css_files() {
 		$usrcss = $pfscss = $betacss = array();
 
 		foreach ($cssfiles as $css) {
-			if (strpos($css, "BETA") != 0) {
-				array_push($betacss, $css);
-			} else if (strpos($css, "pfSense") != 0) {
-				array_push($pfscss, $css);
-			} else {
-				array_push($usrcss, $css);
+			if (strpos($css, "login") == 0) {	// Don't display any login page related CSS files
+				if (strpos($css, "BETA") != 0) {
+					array_push($betacss, $css);
+				} else if (strpos($css, "pfSense") != 0) {
+					array_push($pfscss, $css);
+				} else {
+					array_push($usrcss, $css);
+				}
 			}
 		}
 
@@ -723,7 +725,7 @@ function get_carp_interface_status($carpid) {
 
 	$vhid = $vip['vhid'];
 	$carp_query = '';
-	$_gb = exec("/sbin/ifconfig $interface | /usr/bin/grep carp: | /usr/bin/grep \"vhid $vhid\"", $carp_query);
+	$_gb = exec("/sbin/ifconfig {$interface} | /usr/bin/grep \"carp:.* vhid {$vhid} \"", $carp_query);
 	foreach ($carp_query as $int) {
 		if (stripos($int, "MASTER"))
 			return "MASTER";
@@ -1945,8 +1947,8 @@ function download_file($url, $destination, $verify_ssl = true, $connect_timeout 
 	curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 	curl_setopt($ch, CURLOPT_HEADER, false);
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-	if (!isset($config['system']['do_not_send_host_uuid'])) {
-		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' . $g['product_version'] . ' : ' . get_single_sysctl('kern.hostuuid'));
+	if (!isset($config['system']['do_not_send_uniqueid'])) {
+		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' . $g['product_version'] . ':' . system_get_uniqueid());
 	} else {
 		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' . $g['product_version']);
 	}
@@ -2001,8 +2003,8 @@ function download_file_with_progress_bar($url, $destination, $verify_ssl = true,
 	curl_setopt($ch, CURLOPT_NOPROGRESS, '1');
 	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connect_timeout);
 	curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-	if (!isset($config['system']['do_not_send_host_uuid'])) {
-		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' . $g['product_version'] . ' : ' . get_single_sysctl('kern.hostuuid'));
+	if (!isset($config['system']['do_not_send_uniqueid'])) {
+		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' . $g['product_version'] . ':' . system_get_uniqueid());
 	} else {
 		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' . $g['product_version']);
 	}
@@ -2939,7 +2941,9 @@ function get_locale_list() {
 		"de_DE" => gettext("German (Germany)"),
 		"en_US" => gettext("English"),
 		"es" => gettext("Spanish"),
+		"es_AR" => gettext("Spanish (Argentina)"),
 		"nb" => gettext("Norwegian Bokmål"),
+		"pt_BR" => gettext("Portuguese (Brazil)"),
 		"ru" => gettext("Russian"),
 		"zh_Hans_CN" => gettext("Chinese (Simplified, China)"),
 		"zh_TW" => gettext("Chinese (Taiwan)"),

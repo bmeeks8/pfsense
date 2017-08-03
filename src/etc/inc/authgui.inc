@@ -229,74 +229,105 @@ function display_login_form() {
 		}
 	}
 
+	$logincssfile = "#1e3f75";
+
+	if (isset($user_settings['webgui']['logincss']) && strlen($user_settings['webgui']['logincss']) == 6) {
+		$logincssfile = "#" . $user_settings['webgui']['logincss'];
+	}
+
 	if (isset($config['system']['webgui']['loginshowhost'])) {
-		$loginbannerstr = sprintf(gettext('Login to %1$s on %2$s.%3$s'), $g['product_name'], htmlspecialchars($config['system']['hostname']), htmlspecialchars($config['system']['domain']));
+		$loginbannerstr = sprintf(gettext('%1$s.%2$s'), htmlspecialchars($config['system']['hostname']), htmlspecialchars($config['system']['domain']));
 	} else {
 		$loginbannerstr = sprintf(gettext('Login to %1$s'), $g['product_name']);
 	}
 
+	$loginautocomplete = isset($config['system']['webgui']['loginautocomplete']) ? '' : 'autocomplete="off"';
+
+	if (is_ipaddr($http_host) && !$local_ip && !isset($config['system']['webgui']['nohttpreferercheck'])) {
+		$warnclass = "pagebodywarn";	// Make room for a warning display row
+	} else {
+		$warnclass = "pagebody";
+	}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="<?=$cssfile?>" />
-	<title><?=gettext("Login"); ?></title>
-	<script type="text/javascript">
-	//<![CDATA{
-	var events = events || [];
-	//]]>
-	</script>
-</head>
-<body id="login" class="no-menu">
-	<div id="jumbotron">
-		<div class="container">
-			<div class="col-sm-offset-3 col-sm-6 col-xs-12">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	    <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css" type="text/css">
+	    <link rel="stylesheet" href="/css/login.css" type="text/css">
+		<title><?=gettext("Login"); ?></title>
+		<script type="text/javascript">
+			//<![CDATA{
+			var events = events || [];
+			//]]>
+		</script>
+	</head>
+
+	<body id="login" >
+		<div id="total">
+			<header>
+				<div id="headerrow">
+					<div class="row">
+						<div class="col-sm-4">
+							<div id="logodiv" style="text-align:center" class="nowarning">
+								<img src="/pfsense-trans.png" height="100%"/>
+							</div>
+						</div>
+
+						<div class="col-sm-8 nowarning msgbox text-center">
+							<span id="hostspan">
+								<a><h4><?=$loginbannerstr?></h4></a>
+							</span>
+						</div>
+					</div>
 <?php
-	if (is_ipaddr($http_host) && !$local_ip && !isset($config['system']['webgui']['nohttpreferercheck'])) {
-		$nifty_background = "#999";
-		print_info_box(gettext("The IP address being used to access this router is not configured locally, which may be forwarded by NAT or other means. <br /><br />If this forwarding is unexpected, it should be verified that a man-in-the-middle attack is not taking place."));
-	}
-
-	$loginautocomplete = isset($config['system']['webgui']['loginautocomplete']) ? '' : 'autocomplete="off"';
+	if ($warnclass == "pagebodywarn") {
 ?>
-
-				<div class="panel panel-default">
-					<div class="panel-heading">
-						<h2 class="panel-title"><?=$loginbannerstr?></h2>
+					<div class="row">
+						<div class="col-sm-12">
+							<div class="alert alert-warning <?=$warnclass?>">
+								<?=gettext("The IP address being used to access this router is not configured locally, which may be forwarded by NAT or other means.
+								If this forwarding is unexpected, it should be verified that a man-in-the-middle attack is not taking place.")?>
+							</div>
+						</div>
 					</div>
+<?php
+	}
+?>
+	            </div>
+	        </header>
 
-					<div class="panel-body">
-<?php if (!empty($_SESSION['Login_Error'])): ?>
-						<div class="alert alert-danger" role="alert"><?=$_SESSION['Login_Error'];?></div>
-<?php endif ?>
-						<div class="alert alert-warning hidden" id="no_cookies"><?= gettext("The browser must support cookies to login."); ?></div>
+	        <div style="background: <?=$logincssfile?>;" class="<?=$warnclass?>">
+	        	<div class="col-sm-4"></div>
 
-						<form method="post" <?= $loginautocomplete ?> action="<?=$_SERVER['SCRIPT_NAME'];?>" class="form-horizontal">
-							<div class="form-group">
-								<label for="usernamefld" class="col-sm-3 control-label"><?=gettext("Username")?></label>
-								<div class="col-sm-9 col-md-7">
-									<input type="text" class="form-control" name="usernamefld" id="usernamefld" placeholder="<?=gettext("Enter your username")?>" autocorrect="off" autocapitalize="none" spellcheck="false">
-								</div>
-							</div>
-
-							<div class="form-group">
-								<label for="passwordfld" class="col-sm-3 control-label"><?=gettext("Password")?></label>
-								<div class="col-sm-9 col-md-7">
-									<input type="password" class="form-control" name="passwordfld" id="passwordfld" placeholder="<?=gettext("Enter your password")?>">
-								</div>
-							</div>
-
-							<div class="form-group">
-								<div class="col-sm-offset-3 col-sm-9 col-md-7">
-									<button type="submit" class="btn btn-primary" name="login"><?=gettext("Login")?></button>
-								</div>
-							</div>
-						</form>
+	        	<div class="col-sm-4 offset-md-4 logoCol">
+					<div class="loginCont center-block">
+		                <form method="post" <?=$loginautocomplete?> class="login">
+			                <p class="form-title">Sign In</p>
+			                <input name="usernamefld" id="usernamefld" type="text" placeholder="Username" autocorrect="off" autocapitalize="none"/>
+			                <input name="passwordfld" id="passwordfld" type="password" placeholder="Password" />
+			                <input type="submit" name="login" value="Sign In" class="btn btn-success btn-sm" />
+		                </form>
 					</div>
-				</div>
-			</div>
-		</div>
+	            </div>
+
+	        	<div class="col-sm-4"></div>
+	        </div>
+
+	        <footer id="3">
+	            <div id="footertext">
+					<p class="text-muted">
+						<a target="_blank" href="https://www.pfsense.org/?gui=bootstrap">pfSense</a> is &copy;
+						2004 - 2017 by <a href="https://pfsense.org/license" class="tblnk">Rubicon Communications, LLC (Netgate)</a>. All Rights Reserved.
+						[<a href="/license.php" class="tblnk">view license</a>]
+					</p>
+	            </div>
+	        </footer>
+	    </div>
+
+		<script src="/vendor/jquery/jquery-1.12.0.min.js?v=<?=filemtime('/usr/local/www/vendor/jquery/jquery-1.12.0.min.js')?>"></script>
+		<script src="/vendor/bootstrap/js/bootstrap.min.js?v=<?=filemtime('/usr/local/www/vendor/bootstrap/js/bootstrap.min.js')?>"></script>
+		<script src="/js/pfSense.js?v=<?=filemtime('/usr/local/www/js/pfSense.js')?>"></script>
 
 		<script type="text/javascript">
 		//!<[CDATA[
@@ -305,17 +336,19 @@ function display_login_form() {
 				"cookie_test=1" +
 				"<?php echo $config['system']['webgui']['protocol'] == 'https' ? '; secure' : '';?>";
 
-			if (document.cookie.indexOf("cookie_test") == -1)
-				document.getElementById("no_cookies").style.display="";
-			else
-				document.getElementById("no_cookies").style.display="none";
+			if (document.cookie.indexOf("cookie_test") == -1) {
+				alert("<?=gettext('The browser must support cookies to login.')?>");
+			}
 
 			// Delete it
 			document.cookie = "cookie_test=1; expires=Thu, 01-Jan-1970 00:00:01 GMT";
 		});
 		//]]>
 		</script>
-<?php
-require_once('foot.inc');
 
+	</body>
+</html>
+
+<?php
 } // end function
+

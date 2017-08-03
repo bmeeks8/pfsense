@@ -293,8 +293,8 @@ foreach ($config['interfaces'] as $ifname => $ifarr) {
 				$slease['if'] = $ifname;
 				$slease['start'] = "";
 				$slease['end'] = "";
-				$slease['hostname'] = htmlentities($static['hostname']);
-				$slease['descr'] = htmlentities($static['descr']);
+				$slease['hostname'] = $static['hostname'];
+				$slease['descr'] = $static['descr'];
 				$slease['act'] = $static_string;
 				$slease['online'] = in_array(strtolower($slease['mac']), $arpdata_mac) ? $online_string : $offline_string;
 				$slease['staticmap_array_index'] = $idx;
@@ -466,7 +466,7 @@ if ($got_cid) {
 <?php endif; ?>
 						<a class="fa fa-plus-square" title="<?=gettext("Add WOL mapping")?>" href="services_wol_edit.php?if=<?=htmlspecialchars($data['if'])?>&amp;mac=<?=htmlspecialchars($data['mac'])?>&amp;descr=<?=htmlspecialchars($data['hostname'])?>"></a>
 <?php if ($data['online'] != $online_string):?>
-						<a class="fa fa-power-off" title="<?=gettext("Send WOL packet")?>" href="services_wol.php?if=<?=htmlspecialchars($data['if'])?>&amp;mac=<?=htmlspecialchars($data['mac'])?>"></a>
+						<a class="fa fa-power-off" title="<?=gettext("Send WOL packet")?>" href="services_wol.php?if=<?=htmlspecialchars($data['if'])?>&amp;mac=<?=htmlspecialchars($data['mac'])?>" usepost></a>
 <?php endif; ?>
 
 <?php if ($data['type'] == $dynamic_string && $data['online'] != $online_string):?>

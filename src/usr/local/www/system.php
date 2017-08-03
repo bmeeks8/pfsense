@@ -65,6 +65,7 @@ $pconfig['timezone'] = $config['system']['timezone'];
 $pconfig['timeservers'] = $config['system']['timeservers'];
 $pconfig['language'] = $config['system']['language'];
 $pconfig['webguicss'] = $config['system']['webgui']['webguicss'];
+$pconfig['logincss'] = $config['system']['webgui']['logincss'];
 $pconfig['webguifixedmenu'] = $config['system']['webgui']['webguifixedmenu'];
 $pconfig['dashboardcolumns'] = $config['system']['webgui']['dashboardcolumns'];
 $pconfig['interfacessort'] = isset($config['system']['webgui']['interfacessort']);
@@ -166,6 +167,12 @@ if ($_POST) {
 		$config['system']['webgui']['webguicss'] = $_POST['webguicss'];
 	} else {
 		unset($config['system']['webgui']['webguicss']);
+	}
+
+	if ($_POST['logincss']) {
+		$config['system']['webgui']['logincss'] = $_POST['logincss'];
+	} else {
+		unset($config['system']['webgui']['logincss']);
 	}
 
 	$config['system']['webgui']['loginshowhost'] = $_POST['loginshowhost'] ? true:false;
@@ -452,9 +459,12 @@ $section->addInput(new Form_Input(
 	'text',
 	$pconfig['domain'],
 	['placeholder' => 'mycorp.com, home, office, private, etc.']
-))->setHelp('Do not use \'local\' as a domain name. It will cause local '.
-	'hosts running mDNS (avahi, bonjour, etc.) to be unable to resolve '.
-	'local hosts not running mDNS.');
+))->setHelp('Do not use \'.local\' as the final part of the domain (TLD), The \'.local\' domain is %1$swidely used%2$s by '.
+	'mDNS (including Avahi and Apple OS X\'s Bonjour/Rendezvous/Airprint/Airplay), and some Windows systems and networked devices. ' .
+	'These will not network correctly if the router uses \'.local\'. Alternatives such as \'.local.lan\' or \'.mylocal\' are safe.',
+	 '<a target="_blank" href="https://www.unbound.net/pipermail/unbound-users/2011-March/001735.html">',
+	 '</a>'
+);
 
 $form->add($section);
 
@@ -595,6 +605,15 @@ gen_associatedpanels_fields(
 gen_requirestatefilter_field($section, $pconfig['requirestatefilter']);
 gen_webguileftcolumnhyper_field($section, $pconfig['webguileftcolumnhyper']);
 gen_disablealiaspopupdetail_field($section, $pconfig['disablealiaspopupdetail']);
+
+$section->addInput(new Form_Select(
+	'logincss',
+	'Login page color',
+	$pconfig['logincss'],
+	["1e3f75;" => gettext("Blue"), "003300" => gettext("Green"), "770101" => gettext("Red"),
+	 "4b1263" => gettext("Purple"), "424142" => gettext("Gray"), "333333" => gettext("Dark gray"),
+	 "633215" => gettext("Brown" ), "bf7703" => gettext("Orange")]
+))->setHelp('Choose a color for the login page');
 
 $section->addInput(new Form_Checkbox(
 	'loginshowhost',

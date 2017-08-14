@@ -51,14 +51,21 @@ $sysinfo_items = array(
 	'disk_usage' => gettext('Disk Usage')
 	);
 
+// Declared here so that JavaScript can access it
+$updtext = sprintf(gettext("Obtaining update status %s"), "<i class='fa fa-cog fa-spin'></i>");
+
 if ($_REQUEST['getupdatestatus']) {
 	require_once("pkg-utils.inc");
+
+	$cache_file = $g['version_cache_file'];
 
 	if (isset($config['system']['firmware']['disablecheck'])) {
 		exit;
 	}
 
-	$system_version = get_system_pkg_version();
+	/* If $_REQUEST['getupdatestatus'] == 2, force update */
+	$system_version = get_system_pkg_version(false,
+	    ($_REQUEST['getupdatestatus'] == 1));
 
 	if ($system_version === false) {
 		print(gettext("<i>Unable to check for updates</i>"));
@@ -86,15 +93,29 @@ if ($_REQUEST['getupdatestatus']) {
 <?php
 		break;
 	case '=':
-		printf('<span class="text-success">%s</span>', gettext("The system is on the latest version."));
+		printf('<span class="text-success">%s</span>' . "\n",
+		    gettext("The system is on the latest version."));
 		break;
 	case '>':
-		print(gettext("The system is on a later version than<br />the official release."));
+		printf("%s\n", gettext(
+		    "The system is on a later version than official release."));
 		break;
 	default:
-		print(gettext( "<i>Error comparing installed version<br />with latest available</i>"));
+		printf("<i>%s</i>\n", gettext(
+		    "Error comparing installed with latest version available"));
 		break;
 	}
+
+	if (file_exists($cache_file)):
+?>
+	<div>
+		<?printf("%s %s", gettext("Version information updated at"),
+		    date("Y-m-d H:i", filemtime($cache_file)));?>
+		    &nbsp;
+		    <a id="updver" href="#" class="fa fa-refresh"></a>
+	</div>
+<?php
+	endif;
 
 	exit;
 } elseif ($_POST['widgetkey']) {
@@ -212,7 +233,7 @@ $rows_displayed = false;
 			<?php endif; ?>
 			<?php if (!isset($config['system']['firmware']['disablecheck'])): ?>
 				<br /><br />
-				<div id='updatestatus'><?php echo gettext("Obtaining update status "); ?><i class="fa fa-cog fa-spin"></i></div>
+				<div id='updatestatus'><?=$updtext?></div>
 			<?php endif; ?>
 			</td>
 		</tr>
@@ -492,43 +513,6 @@ $rows_displayed = false;
 <script type="text/javascript">
 //<![CDATA[
 <?php if ($widget_first_instance): ?>
-<?php if (!isset($config['system']['firmware']['disablecheck'])): ?>
-function systemStatusGetUpdateStatus() {
-	$.ajax({
-		type: 'get',
-		url: '/widgets/widgets/system_information.widget.php',
-		data: 'getupdatestatus=1',
-		dataFilter: function(raw){
-			// We reload the entire widget, strip this block of javascript from it
-			return raw.replace(/<script>([\s\S]*)<\/script>/gi, '');
-		},
-		dataType: 'html',
-		success: function(data){
-			$('[id^=widget-system_information] #updatestatus').html(data);
-		}
-	});
-}
-
-setTimeout('systemStatusGetUpdateStatus()', 4000);
-<?php endif; ?>
-var updateMeters_running = false;
-function updateMeters() {
-	if (updateMeters_running) {
-		return;
-	}
-	updateMeters_running = true;
-	url = '/getstats.php';
-
-	$.ajax(url, {
-		type: 'get',
-		success: function(data) {
-			response = data || "";
-			if (response != "")
-				stats(data);
-			updateMeters_running = false;
-		}
-	});
-}
 
 var update_interval = "<?=$widgetperiod?>";
 
@@ -654,13 +638,99 @@ function widgetActive(x) {
 	}
 }
 
-/* start updater */
-events.push(function(){
-	timeout = window.setInterval(updateMeters, update_interval);
-});
+
 <?php endif; // $widget_first_instance ?>
+
 events.push(function(){
+
+	// --------------------- EXPERIMENTAL centralized widget refresh system ------------------------------
+
+	// Callback function called by refresh system when data is retrieved
+	function meters_callback(s) {
+		stats(s);
+	}
+
+	// POST data to send via AJAX
+	var postdata = {
+		ajax: "ajax"
+	 };
+
+	// Create an object defining the widget refresh AJAX call
+	var metersObject = new Object();
+	metersObject.name = "Meters";
+	metersObject.url = "/getstats.php";
+	metersObject.callback = meters_callback;
+	metersObject.parms = postdata;
+	metersObject.freq = 1;
+
+	// Register the AJAX object
+	register_ajax(metersObject);
+
+<?php if (!isset($config['system']['firmware']['disablecheck'])): ?>
+
+	// Callback function called by refresh system when data is retrieved
+	function version_callback(s) {
+		$('[id^=widget-system_information] #updatestatus').html(s);
+
+		// The click handler has to be attached after the div is updated
+		$('#updver').click(function() {
+			updver_ajax();
+		});
+	}
+
+	// POST data to send via AJAX
+	var postdata = {
+		ajax: "ajax",
+		getupdatestatus: "1"
+	 };
+
+	// Create an object defining the widget refresh AJAX call
+	var versionObject = new Object();
+	versionObject.name = "Version";
+	versionObject.url = "/widgets/widgets/system_information.widget.php";
+	versionObject.callback = version_callback;
+	versionObject.parms = postdata;
+	versionObject.freq = 100;
+
+	// Register the AJAX object
+	register_ajax(versionObject);
+<?php endif; ?>
+	// ---------------------------------------------------------------------------------------------------
+
 	set_widget_checkbox_events("#<?=$widget_panel_footer_id?> [id^=show]", "<?=$widget_showallnone_id?>");
+
+	// AJAX function to update the version display with non-cached data
+	function updver_ajax() {
+
+		// Display the "updating" message
+		$('[id^=widget-system_information] #updatestatus').html("<?=$updtext?>"); // <?=$updtext?>");
+
+		$.ajax({
+			type: 'POST',
+			url: "/widgets/widgets/system_information.widget.php",
+			dataType: 'html',
+			data: {
+				ajax: "ajax",
+				getupdatestatus: "2"
+			},
+
+			success: function(data){
+				// Display the returned data
+				$('[id^=widget-system_information] #updatestatus').html(data);
+
+				// Re-attach the click handler (The binding was lost when the <div> content was replaced)
+				$('#updver').click(function() {
+					updver_ajax();
+				});
+			},
+
+			error: function(e){
+			}
+		});
+	}
 });
 //]]>
 </script>
+
+
+

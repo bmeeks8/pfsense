@@ -1170,14 +1170,34 @@ function get_base_pkg_name() {
 }
 
 /* Verify if system needs upgrade (meta package or base) */
-function get_system_pkg_version($baseonly = false) {
+function get_system_pkg_version($baseonly = false, $use_cache = true) {
 	global $g;
 
-	$output = exec("/usr/local/sbin/{$g['product_name']}-upgrade -c", $_gc,
-	    $rc);
+	$cache_file = $g['version_cache_file'];
+	$rc_file = $cache_file . '.rc';
+
+	$rc = "";
+	if ($use_cache && file_exists($rc_file) &&
+	    (time()-filemtime($rc_file) < $g['version_cache_refresh'])) {
+		$rc = chop(@file_get_contents($rc_file));
+	}
+
+	if ($rc == "2") {
+		$output = @file_get_contents($cache_file);
+	} else if ($rc != "0") {
+		$output = exec(
+		    "/usr/local/sbin/{$g['product_name']}-upgrade -c", $_gc,
+		    $rc);
+
+		/* Update cache if it succeeded */
+		if ($rc == 0 || $rc == 2) {
+			@file_put_contents($cache_file, $output);
+			@file_put_contents($rc_file, $rc);
+		}
+	}
 
 	/* pfSense-upgrade returns 2 when there is a new version */
-	if ($rc == 2) {
+	if ($rc == "2") {
 		$new_version = explode(' ', $output)[0];
 	}
 
@@ -1188,7 +1208,7 @@ function get_system_pkg_version($baseonly = false) {
 		return false;
 	}
 
-	$info = get_pkg_info($base_pkg, true);
+	$info = get_pkg_info($base_pkg, true, true);
 
 	$pkg_info = array();
 	foreach ($info as $item) {
@@ -1200,7 +1220,7 @@ function get_system_pkg_version($baseonly = false) {
 
 	if (empty($pkg_info) || (!$baseonly && ($pkg_info['version'] ==
 	    $pkg_info['installed_version']))) {
-		$info = get_pkg_info($meta_pkg, true);
+		$info = get_pkg_info($meta_pkg, true, true);
 
 		foreach ($info as $item) {
 			if ($item['name'] == $meta_pkg) {
@@ -1282,7 +1302,9 @@ function pkg_switch_repo($path) {
 		file_put_contents("/usr/local/etc/pkg.conf", $pkg_conf);
 	}
 
-	return pkg_update(true);
+	/* Update pfSense_version cache */
+	mwexec_bg("/etc/rc.update_pkg_metadata now");
+	return;
 }
 
 ?>

@@ -4746,7 +4746,7 @@ function upgrade_147_to_148() {
 		}
 
 		// if there was a space in a group name, there may be multiple
-		// groups with the same name in the group file. To prevent pw 
+		// groups with the same name in the group file. To prevent pw
 		// from getting into a neverending loop, delete all user-defined
 		// groups here. local_sync_accounts will run shortly after this
 		// and add them back. redmine #6012
@@ -5091,7 +5091,7 @@ function upgrade_160_to_161() {
 		} else {
 			foreach ($rrdrestore as $xml_file) {
 				$rrd_file = '/' . substr($xml_file, 0, -4) . '.rrd';
-				unlink_if_exists("{$rrd_file}"); 
+				unlink_if_exists("{$rrd_file}");
 
 				file_put_contents("{$g['tmp_path']}/rrd_restore", $xml_file);
 				$_gb = exec("LANG=C /usr/bin/tar -xf {$g['cf_conf_path']}/rrd.tgz -C / -T {$g['tmp_path']}/rrd_restore");
@@ -5321,6 +5321,67 @@ function upgrade_165_to_166() {
 			}
 		}
 	}
+}
+
+/* Force the Netgate Services and Support widget to be active on upgrade.
+   New widget is added at the top of column 2 */
+function upgrade_166_to_167() {
+	global $config;
+
+	if (strpos($config['widgets']['sequence'], 'netgate_services_and_support') === false) {
+
+		$widgets = explode(",", $config['widgets']['sequence']);
+		$cnt = count($widgets);
+		$col2 = $cnt;
+		$newsequence = array();
+
+		// Locate the firt column 2 widget
+		for ($idx=0;$idx<$cnt;$idx++) {
+		if (strpos($widgets[$idx], 'col2') !== false) {
+			$col2 = $idx;
+			break;
+			}
+		}
+
+		// Loop through the widgets inserting the new widget before the first col2 widget
+		for ($old=0,$new=0;$old<$cnt;$old++,$new++) {
+			$newsequence[$new] = $widgets[$old];
+
+			if ($old == ($col2 - 1)) {
+				$new++;
+				$newsequence[$new] = "netgate_services_and_support:col2:open:0";
+			}
+		}
+
+		$config['widgets']['sequence'] = implode(",", $newsequence);
+	}
+}
+
+function upgrade_167_to_168() {
+	upgrade_166_to_167();
+}
+
+function upgrade_168_to_169() {
+	global $config;
+
+	$command = '/usr/bin/nice -n20 /etc/rc.update_pkg_metadata';
+	if (is_array($config['cron']['item'])) {
+		foreach ($config['cron']['item'] as $entry) {
+			if ($entry['command'] == $command) {
+				return;
+			}
+		}
+	}
+
+	$config['cron']['item'][] = array(
+		'minute' => '1',
+		'hour' => '0',
+		'mday' => '*',
+		'month' => '*',
+		'wday' => '*',
+		'who' => 'root',
+		'command' => $command
+	);
 }
 
 ?>

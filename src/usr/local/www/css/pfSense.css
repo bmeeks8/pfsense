@@ -39,7 +39,6 @@ body.no-menu #jumbotron {
 }
 
 body.no-menu {
-    background: url("/logo-black.png") no-repeat center 30px;
     padding-top: 70px;
 }
 
@@ -142,7 +141,8 @@ tr.disabled a {
 }
 
 .navbar-brand {
-    padding: 7px 0 0 5px;
+    padding: 5px 10px 0 10px;
+    line-height: .3em;
 }
 
 .nav>li>a {
@@ -978,7 +978,7 @@ svg {
     border-bottom: 2px solid #ccc;
 }
 
-.d3-chart .nvtooltip > h3 {
+.nvtooltip > h3 {
     font-size: 14px;
 }
 

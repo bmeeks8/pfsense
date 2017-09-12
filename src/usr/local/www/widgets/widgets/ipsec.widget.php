@@ -121,53 +121,56 @@ if ($_REQUEST && $_REQUEST['ajax']) {
 		unset($ikenum);
 	}
 
-	// Only generate the data for the tab that is currently being viewed
-	switch ($_REQUEST['tab']) {
-		case "Overview" :
-			print("	<tr>\n");
-			print(		"<td>" . $activecounter . "</td>\n");
-			print(		"<td>" . $inactivecounter . "</td>\n");
-			print(		"<td>" . (is_array($mobile['pool']) ? htmlspecialchars($mobile['pool'][0]['usage']) : '0') . "</td>\n");
-			print(	"</tr>\n");
-		break;
+	// Generate JSON formatted data for the widget to update from
+	$jsondata = "{";
 
-		case "tunnel" :
-			foreach ($ipsec_detail_array as $ipsec) {
-				print("	<tr>\n");
-				print(		"<td>" . htmlspecialchars($ipsec['src']) . "</td>\n");
-				print(		"<td>" . $ipsec['remote-subnet'] . "<br />(" . htmlspecialchars($ipsec['dest']) . ")</td>\n");
-				print(		"<td>" . htmlspecialchars($ipsec['descr']) . "</td>\n");
+	$jsondata .= "\"overview\":\"";
+	$jsondata .= "<tr>";
+	$jsondata .= "<td>" . $activecounter . "</td>";
+	$jsondata .= "<td>" . $inactivecounter . "</td>";
+	$jsondata .= "<td>" . (is_array($mobile['pool']) ? htmlspecialchars($mobile['pool'][0]['usage']) : '0') . "</td>";
+	$jsondata .= "</tr>";
+	$jsondata .= "\",\n";
 
-				if ($ipsec['status'] == "true") {
-					print('<td><i class="fa fa-arrow-up text-success"></i></td>' . "\n");
-				} else {
-					print('<td><i class="fa fa-arrow-down text-danger"></i></td>' . "\n");
-				}
+	$jsondata .= "\"tunnel\":\"";
+	foreach ($ipsec_detail_array as $ipsec) {
+		$jsondata .= "<tr>";
+		$jsondata .= "<td>" . htmlspecialchars($ipsec['src']) . "</td>";
+		$jsondata .= "<td>" . $ipsec['remote-subnet'] . "<br />(" . htmlspecialchars($ipsec['dest']) . ")</td>";
+		$jsondata .= "<td>" . htmlspecialchars($ipsec['descr']) . "</td>";
 
-				print(	"</tr>\n");
-			}
-		break;
+		if ($ipsec['status'] == "true") {
+			$jsondata .= '<td><i class=\"fa fa-arrow-up text-success\"></i></td>';
+		} else {
+			$jsondata .= '<td><i class=\"fa fa-arrow-down text-danger\"></i></td>';
+		}
 
-		case "mobile" :
-			if (!is_array($mobile['pool'])) {
-				break;
-			}
-			foreach ($mobile['pool'] as $pool) {
-				if (!is_array($pool['lease'])) {
-					continue;
-				}
-
-				foreach ($pool['lease'] as $muser) {
-					print("	<tr>\n");
-					print(		"<td>" . htmlspecialchars($muser['id']) . "</td>\n");
-					print(		"<td>" . htmlspecialchars($muser['host']) . "</td>\n");
-					print(		"<td>" . htmlspecialchars($muser['status']) . "</td>\n");
-					print("	</tr>\n");
-				}
-			}
-		break;
+		$jsondata .= "</tr>";
 	}
 
+	$jsondata .= "\",\n";
+
+
+	$jsondata .= "\"mobile\":\"";
+
+	if (is_array($mobile['pool'])) {
+		foreach ($mobile['pool'] as $pool) {
+			if (!is_array($pool['lease'])) {
+				continue;
+			}
+
+			foreach ($pool['lease'] as $muser) {
+				$jsondata .= "<tr>";
+				$jsondata .= "<td>" . htmlspecialchars($muser['id']) . "</td>";
+				$jsondata .= "<td>" . htmlspecialchars($muser['host']) . "</td>";
+				$jsondata .= "<td>" . htmlspecialchars($muser['status']) . "</td>";
+				$jsondata .= "</tr>";
+			}
+		}
+	}
+
+	$jsondata .= "\"}";
+	print($jsondata);
 	exit;
 }
 
@@ -216,9 +219,9 @@ if (isset($config['ipsec']['phase2'])): ?>
 	</table>
 </div>
 
-	<?php if (is_array($mobile['pool'])): ?>
-<div id="<?=$widgetkey_nodash?>-mobile" style="display:none;" class="table-responsive">
+	<div id="<?=$widgetkey_nodash?>-mobile" style="display:none;" class="table-responsive">
 		<table class="table table-striped table-hover">
+<?php if (is_array($mobile['pool'])): ?>
 		<thead>
 		<tr>
 			<th><?=gettext("User")?></th>
@@ -229,9 +232,16 @@ if (isset($config['ipsec']['phase2'])): ?>
 		<tbody>
 			<tr><td colspan="3"><?=gettext("Retrieving mobile data ")?><i class="fa fa-cog fa-spin"></i></td></tr>
 		</tbody>
+<?php else:?>
+		<thead>
+			<tr>
+				<th colspan="3" class="text-danger"><?=gettext("No mobile tunnels have been configured")?></th>
+			</tr>
+		</thead>
+<?php endif;?>
 		</table>
 	</div>
-	<?php endif;?>
+
 <?php else: ?>
 	<div>
 		<h5 style="padding-left:10px;"><?=gettext("There are no configured IPsec Tunnels")?></h5>
@@ -292,17 +302,20 @@ function changeTabDIV(selectedDiv) {
 }
 
 events.push(function(){
-	// --------------------- EXPERIMENTAL centralized widget refresh system ------------------------------
+	// --------------------- Centralized widget refresh system ------------------------------
 
 	// Callback function called by refresh system when data is retrieved
 	function ipsec_callback(s) {
-		$('tbody', '#<?=$widgetkey_nodash?>-' + curtab).html(s);
+		var obj = JSON.parse(s);
+
+		$('tbody', '#<?=$widgetkey_nodash?>-Overview').html(obj.overview);
+		$('tbody', '#<?=$widgetkey_nodash?>-tunnel').html(obj.tunnel);
+		$('tbody', '#<?=$widgetkey_nodash?>-mobile').html(obj.mobile);
 	}
 
 	// POST data to send via AJAX
 	var postdata = {
-		ajax: "ajax",
-	 	tab : curtab
+		ajax: "ajax"
 	 };
 
 	// Create an object defining the widget refresh AJAX call

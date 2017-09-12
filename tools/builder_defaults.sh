@@ -105,7 +105,7 @@ GIT_REPO_BASE=$(git -C ${BUILDER_ROOT} config --get remote.origin.url | sed -e '
 
 # This is used for using svn for retrieving src
 export FREEBSD_REPO_BASE=${FREEBSD_REPO_BASE:-"${GIT_REPO_BASE}/freebsd-src.git"}
-export FREEBSD_BRANCH=${FREEBSD_BRANCH:-"RELENG_2_4"}
+export FREEBSD_BRANCH=${FREEBSD_BRANCH:-"RELENG_2_4_0"}
 export FREEBSD_SRC_DIR=${FREEBSD_SRC_DIR:-"${SCRATCHDIR}/FreeBSD-src"}
 
 export BUILD_KERNELS=${BUILD_KERNELS:-"${PRODUCT_NAME}"}
@@ -257,7 +257,7 @@ export PKG_RSYNC_SSH_PORT=${PKG_RSYNC_SSH_PORT:-"22"}
 export PKG_RSYNC_DESTDIR=${PKG_RSYNC_DESTDIR:-"/staging/ce/packages"}
 
 # Final packages server
-if [ -n "${_IS_RELEASE}" ]; then
+if [ -n "${_IS_RELEASE}" -o -n "${_IS_RC}" ]; then
 	export PKG_FINAL_RSYNC_HOSTNAME=${PKG_FINAL_RSYNC_HOSTNAME:-"nfs1.nyi.netgate.com"}
 	export PKG_FINAL_RSYNC_DESTDIR=${PKG_FINAL_RSYNC_DESTDIR:-"/storage/files/pkg"}
 else
@@ -271,20 +271,20 @@ export SKIP_FINAL_RSYNC=${SKIP_FINAL_RSYNC:-}
 # pkg repo variables
 export USE_PKG_REPO_STAGING="1"
 export PKG_REPO_SERVER_DEVEL=${PKG_REPO_SERVER_DEVEL:-"pkg+https://beta.pfsense.org/packages"}
-export PKG_REPO_SERVER_RELEASE=${PKG_REPO_SERVER_RELEASE:-"pkg+https://beta.pfsense.org/packages"}
+export PKG_REPO_SERVER_RELEASE=${PKG_REPO_SERVER_RELEASE:-"pkg+https://pkg.pfsense.org"}
 export PKG_REPO_SERVER_STAGING=${PKG_REPO_SERVER_STAGING:-"pkg+http://${STAGING_HOSTNAME}/ce/packages"}
 
 if [ -n "${_IS_RELEASE}" -o -n "${_IS_RC}" ]; then
-	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-${POUDRIERE_BRANCH}}
+	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-"v2_4_0"}
 	export PKG_REPO_BRANCH_DEVEL=${PKG_REPO_BRANCH_DEVEL:-${POUDRIERE_BRANCH}}
 	export PKG_REPO_BRANCH_STAGING=${PKG_REPO_BRANCH_STAGING:-${PKG_REPO_BRANCH_RELEASE}}
 else
-	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-${POUDRIERE_BRANCH}}
+	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-"v2_4_0"}
 	export PKG_REPO_BRANCH_DEVEL=${PKG_REPO_BRANCH_DEVEL:-${POUDRIERE_BRANCH}}
 	export PKG_REPO_BRANCH_STAGING=${PKG_REPO_BRANCH_STAGING:-${PKG_REPO_BRANCH_DEVEL}}
 fi
 
-if [ -n "${_IS_RELEASE}" ]; then
+if [ -n "${_IS_RELEASE}" -o -n "${_IS_RC}" ]; then
 	export PKG_REPO_SIGN_KEY=${PKG_REPO_SIGN_KEY:-"release${PRODUCT_NAME_SUFFIX}"}
 else
 	export PKG_REPO_SIGN_KEY=${PKG_REPO_SIGN_KEY:-"beta${PRODUCT_NAME_SUFFIX}"}
@@ -301,7 +301,7 @@ export CORE_PKG_REAL_PATH="${CORE_PKG_PATH}/.real_${DATESTRING}"
 export CORE_PKG_ALL_PATH="${CORE_PKG_PATH}/All"
 
 export PKG_REPO_BASE=${PKG_REPO_BASE:-"${BUILDER_TOOLS}/templates/pkg_repos"}
-export PKG_REPO_DEFAULT=${PKG_REPO_DEFAULT:-"${PKG_REPO_BASE}/${PRODUCT_NAME}-repo.conf"}
+export PKG_REPO_DEFAULT=${PKG_REPO_DEFAULT:-"${PKG_REPO_BASE}/${PRODUCT_NAME}-repo-devel.conf"}
 export PKG_REPO_PATH=${PKG_REPO_PATH:-"/usr/local/etc/pkg/repos/${PRODUCT_NAME}.conf"}
 
 export PRODUCT_SHARE_DIR=${PRODUCT_SHARE_DIR:-"/usr/local/share/${PRODUCT_NAME}"}

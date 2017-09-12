@@ -1523,6 +1523,10 @@ EOD;
 					$dhhostname = str_replace(" ", "_", $sm['hostname']);
 					$dhhostname = str_replace(".", "_", $dhhostname);
 					$dhcpdv6conf .= "	option host-name {$dhhostname};\n";
+					if (isset($dhcpv6ifconf['ddnsupdate']) &&
+					    isset($dhcpv6ifconf['ddnsforcehostname'])) {
+						$dhcpdv6conf .= "	ddns-hostname \"{$dhhostname}\";\n";
+					}
 				}
 				if ($sm['filename']) {
 					$dhcpdv6conf .= "	filename \"{$sm['filename']}\";\n";
@@ -1979,14 +1983,19 @@ function services_dyndns_configure($int = "") {
 			 * the active gateway for that group
 			 */
 			$group_int = '';
+			$friendly_group_int = '';
 			if (is_array($gwgroups[$dyndns['interface']])) {
 				if (!empty($gwgroups[$dyndns['interface']][0]['vip'])) {
 					$group_int = $gwgroups[$dyndns['interface']][0]['vip'];
 				} else {
 					$group_int = $gwgroups[$dyndns['interface']][0]['int'];
+					$friendly_group_int =
+					    convert_real_interface_to_friendly_name(
+						$group_int);
 				}
 			}
-			if ((empty($int)) || ($int == $dyndns['interface']) || ($int == $group_int)) {
+			if ((empty($int)) || ($int == $dyndns['interface']) ||
+			    ($int == $group_int) || ($int == $friendly_group_int)) {
 				$dyndns['verboselog'] = isset($dyndns['verboselog']);
 				$dyndns['curl_ipresolve_v4'] = isset($dyndns['curl_ipresolve_v4']);
 				$dyndns['curl_ssl_verifypeer'] = isset($dyndns['curl_ssl_verifypeer']);
@@ -2261,8 +2270,26 @@ function services_unbound_configure($restart_dhcp = true) {
 			$return = 1;
 		}
 
+		/* Check here for dhcp6 complete - wait upto 10 seconds */
+		if($config['interfaces']["wan"]['ipaddrv6'] == 'dhcp6') {
+			$wanif = get_real_interface("wan", "inet6");
+			if (platform_booting()) {
+				for ($i=1; $i <= 10; $i++) {
+					if (!file_exists("/tmp/{$wanif}_dhcp6_complete")) { 
+						log_error(gettext("Unbound start waiting on dhcp6c."));
+						sleep(1);
+					} else {
+						unlink_if_exists("/tmp/{$wanif}_dhcp6_complete");
+						log_error(gettext("dhcp6 init complete. Continuing"));
+						break;
+					}						
+				}
+			}
+		}
+		
 		sync_unbound_service();
 		if (platform_booting()) {
+			log_error(gettext("sync unbound done."));
 			echo gettext("done.") . "\n";
 		}
 
@@ -2519,14 +2546,19 @@ function services_dnsupdate_process($int = "", $updatehost = "", $forced = false
 		 * the active gateway for that group
 		 */
 		$group_int = '';
+		$friendly_group_int = '';
 		if (is_array($gwgroups[$dnsupdate['interface']])) {
 			if (!empty($gwgroups[$dnsupdate['interface']][0]['vip'])) {
 				$group_int = $gwgroups[$dnsupdate['interface']][0]['vip'];
 			} else {
 				$group_int = $gwgroups[$dnsupdate['interface']][0]['int'];
+				$friendly_group_int =
+				    convert_real_interface_to_friendly_name(
+					$group_int);
 			}
 		}
-		if (!empty($int) && ($int != $dnsupdate['interface']) && ($int != $group_int)) {
+		if (!empty($int) && ($int != $dnsupdate['interface']) &&
+		    ($int != $group_int) && ($int != $friendly_group_int)) {
 			continue;
 		}
 		if (!empty($updatehost) && ($updatehost != $dnsupdate['host'])) {

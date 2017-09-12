@@ -5328,8 +5328,8 @@ function upgrade_165_to_166() {
 function upgrade_166_to_167() {
 	global $config;
 
-	if (strpos($config['widgets']['sequence'], 'netgate_services_and_support') === false) {
-
+	if (strpos($config['widgets']['sequence'],
+	    'netgate_services_and_support') === false) {
 		$widgets = explode(",", $config['widgets']['sequence']);
 		$cnt = count($widgets);
 		$col2 = $cnt;
@@ -5337,20 +5337,25 @@ function upgrade_166_to_167() {
 
 		// Locate the firt column 2 widget
 		for ($idx=0;$idx<$cnt;$idx++) {
-		if (strpos($widgets[$idx], 'col2') !== false) {
-			$col2 = $idx;
-			break;
+			if (strpos($widgets[$idx], 'col2') !== false) {
+				$col2 = $idx;
+				break;
 			}
 		}
 
-		// Loop through the widgets inserting the new widget before the first col2 widget
+		/*
+		 * Loop through the widgets inserting the new widget before
+		 * the first col2 widget
+		 */
 		for ($old=0,$new=0;$old<$cnt;$old++,$new++) {
 			$newsequence[$new] = $widgets[$old];
 
-			if ($old == ($col2 - 1)) {
-				$new++;
-				$newsequence[$new] = "netgate_services_and_support:col2:open:0";
+			if ($old != ($col2 - 1)) {
+				continue;
 			}
+			$new++;
+			$newsequence[$new] =
+			    "netgate_services_and_support:col2:open:0";
 		}
 
 		$config['widgets']['sequence'] = implode(",", $newsequence);
@@ -5363,6 +5368,9 @@ function upgrade_167_to_168() {
 
 function upgrade_168_to_169() {
 	global $config;
+
+	/* Remove workaround added in 2.3 */
+	unset($config['cron']['rc_update_pkg_metadata']);
 
 	$command = '/usr/bin/nice -n20 /etc/rc.update_pkg_metadata';
 	if (is_array($config['cron']['item'])) {
@@ -5382,6 +5390,46 @@ function upgrade_168_to_169() {
 		'who' => 'root',
 		'command' => $command
 	);
+}
+
+/* Upgrade wireless interfaces to the format required for 2.4
+ * Each wireless interface now needs to be a cloned instance, the card itself
+ * Can no longer be assigned. https://redmine.pfsense.org/issues/6770 */
+function upgrade_169_to_170() {
+	global $config;
+	foreach ($config['interfaces'] as $friendly => & $iface) {
+		if (is_array($iface['wireless']) && !empty($iface['wireless']['mode'])) {
+			/* This test can only be true for one instance per card, so it is safe. */
+			if (stristr($iface['if'], '_wlan') === false) {
+				$wlan = array();
+				$wlan['if'] = $iface['if'];
+				$wlan['mode'] = $iface['wireless']['mode'];
+				$wlan['descr'] = "Wireless interface {$friendly}";
+				/* It was not possible to create clones of _wlan0 before, so this is safe. */
+				$wlan['cloneif'] = "{$iface['if']}_wlan0";
+				/* Make sure this entry is placed in the list of wireless interface clones. */
+				if (!is_array($config['wireless'])) {
+					$config['wireless'] = array();
+					$config['wireless']['clone'] = array();
+				}
+				$config['wireless']['clone'][] = $wlan;
+				/* The interface assignment must now be the cloned interface name. */
+				$iface['if'] = $wlan['cloneif'];
+			}
+		}
+	}
+}
+
+/*
+ * Special function that is called independent of current config version. It's
+ * a workaround to have config_upgrade running on older versions after next
+ * config version was already taken by newer pfSense.
+ *
+ * XXX Change the way we handle config version to make it based on product
+ *     version
+ */
+function additional_config_upgrade() {
+	global $config;
 }
 
 ?>

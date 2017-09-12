@@ -3,11 +3,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-08-10 10:45-0300\n"
+"POT-Creation-Date: 2017-09-11 16:44-0300\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2017-08-08 04:21-0400\n"
+"PO-Revision-Date: 2017-08-21 10:01-0400\n"
 "Last-Translator: Patrik Zakhar <123patokt@gmail.com>\n"
 "Language-Team: Slovak\n"
 "Language: sk\n"
@@ -49,23 +49,23 @@ msgstr "Presmerovanie na dashboard..."
 msgid "Running: %s"
 msgstr "Prebieha: %s"
 
-#: src/etc/inc/auth.inc:869 src/etc/inc/auth.inc:950 src/etc/inc/auth.inc:1038
-#: src/etc/inc/auth.inc:1350
+#: src/etc/inc/auth.inc:869 src/etc/inc/auth.inc:952 src/etc/inc/auth.inc:1040
+#: src/etc/inc/auth.inc:1352
 #, php-format
 msgid "ERROR!  Could not connect to server %s."
 msgstr "CHYBA! Nebolo možné pripojiť sa k serveru %s."
 
-#: src/etc/inc/auth.inc:887
+#: src/etc/inc/auth.inc:889
 #, php-format
 msgid "LDAP: Could not lookup CA by reference for host %s."
 msgstr "LDAP: Nebolo možné nájsť CA podľa referencie pre hostiteľa %s."
 
-#: src/etc/inc/auth.inc:962
+#: src/etc/inc/auth.inc:964
 #, php-format
 msgid "ERROR! ldap_test_bind() could not STARTTLS to server %s."
 msgstr "CHYBA! ldap_test_bind() nebolo možné zahájiť STARTTLS k serveru %s."
 
-#: src/etc/inc/auth.inc:1024
+#: src/etc/inc/auth.inc:1026
 msgid ""
 "ERROR!  ldap_get_user_ous() backed selected with no LDAP authentication "
 "server defined."
@@ -73,49 +73,49 @@ msgstr ""
 "CHYBA! ldap_get_user_ous() zvolený backend bez definovaného LDAP "
 "autentifikačného serveru."
 
-#: src/etc/inc/auth.inc:1052
+#: src/etc/inc/auth.inc:1054
 #, php-format
 msgid "ERROR! ldap_get_user_ous() could not STARTTLS to server %s."
 msgstr ""
 "CHYBA! ldap_get_user_ous() nebolo možné zahájiť STARTTLS k serveru %s."
 
-#: src/etc/inc/auth.inc:1062
+#: src/etc/inc/auth.inc:1064
 #, php-format
 msgid "ERROR! ldap_get_user_ous() could not bind anonymously to server %s."
 msgstr ""
 "CHYBA! ldap_get_user_ous() nebolo možné nadviazať anonymne spojenie so "
 "serverom %s."
 
-#: src/etc/inc/auth.inc:1067
+#: src/etc/inc/auth.inc:1069
 #, php-format
 msgid "ERROR! ldap_get_user_ous() could not bind to server %s."
 msgstr ""
 "CHYBA! ldap_get_user_ous() nebolo možné nadviazať spojenie so serverom %s."
 
-#: src/etc/inc/auth.inc:1183
+#: src/etc/inc/auth.inc:1185
 #, php-format
 msgid "ERROR! ldap_get_groups() Could not connect to server %s."
 msgstr "CHYBA! ldap_get_roups() nebolo možné pripojiť sa k serveru %s."
 
-#: src/etc/inc/auth.inc:1195
+#: src/etc/inc/auth.inc:1197
 #, php-format
 msgid "ERROR! ldap_get_groups() could not STARTTLS to server %s."
 msgstr "CHYBA! ldap_get_groups() nebolo možné zahájiť STARTTLS k serveru %s."
 
-#: src/etc/inc/auth.inc:1206
+#: src/etc/inc/auth.inc:1208
 #, php-format
 msgid "ERROR! ldap_get_groups() could not bind anonymously to server %s."
 msgstr ""
 "CHYBA! ldap_get_groups() nebolo možné nadviazať anonymne spojenie so "
 "serverom %s."
 
-#: src/etc/inc/auth.inc:1211
+#: src/etc/inc/auth.inc:1213
 #, php-format
 msgid "ERROR! ldap_get_groups() could not bind to server %s."
 msgstr ""
 "CHYBA! ldap_get_groups() nebolo možné nadviazať spojenie so serverom %s."
 
-#: src/etc/inc/auth.inc:1317
+#: src/etc/inc/auth.inc:1319
 msgid ""
 "ERROR! ldap_backed() called with no LDAP authentication server defined.  "
 "Defaulting to local user database. Visit System -> User Manager."
@@ -124,145 +124,151 @@ msgstr ""
 "Použije sa predvolená lokálna databáza užívateľov. Navštívte Systém -> "
 "Správca užívateľov."
 
-#: src/etc/inc/auth.inc:1320
+#: src/etc/inc/auth.inc:1322
 msgid ""
 "ERROR! ldap_backed() called with no LDAP authentication server defined."
 msgstr ""
 "CHYBA! ldap_backed() vyvolaný bez zadaného LDAP autentifikačného servera."
 
-#: src/etc/inc/auth.inc:1343
+#: src/etc/inc/auth.inc:1345
 #, php-format
 msgid "ERROR! ldap_backed() could not STARTTLS to server %s."
 msgstr "CHYBA! ldap_backed() nebolo možné zahájiť STARTTLS k serveru %s."
 
-#: src/etc/inc/auth.inc:1368
+#: src/etc/inc/auth.inc:1370
 #, php-format
 msgid "ERROR! Could not bind to server %s."
 msgstr "CHYBA! Nebolo možné nadviazať spojenie so serverom %s."
 
-#: src/etc/inc/auth.inc:1386
+#: src/etc/inc/auth.inc:1388
 #, php-format
 msgid "Now Searching for %s in directory."
 msgstr "Vyhľadáva sa %s v priečinku."
 
-#: src/etc/inc/auth.inc:1395
+#: src/etc/inc/auth.inc:1397
 #, php-format
 msgid "Now Searching in server %1$s, container %2$s with filter %3$s."
 msgstr "Prehľadáva sa server %1$s, container %2$s s filtrom %3$s."
 
-#: src/etc/inc/auth.inc:1409
+#: src/etc/inc/auth.inc:1411
 #, php-format
 msgid "Search resulted in error: %s"
 msgstr "Chyba vo vyhľadávaní: %s"
 
-#: src/etc/inc/auth.inc:1425
+#: src/etc/inc/auth.inc:1427
 msgid "ERROR! Either LDAP search failed, or multiple users were found."
 msgstr ""
 "CHYBA! Buď zlyhalo LDAP vyhľadávanie alebo boli nájdení viacerí užívatelia."
 
-#: src/etc/inc/auth.inc:1432
+#: src/etc/inc/auth.inc:1434
 #, php-format
 msgid "ERROR! Could not login to server %1$s as user %2$s: %3$s"
 msgstr ""
 "CHYBA! Nebolo možné sa prihlásiť na server %1$s ako užívateľ %2$s: %3$s"
 
-#: src/etc/inc/auth.inc:1439
+#: src/etc/inc/auth.inc:1441
 #, php-format
 msgid "Logged in successfully as %1$s via LDAP server %2$s with DN = %3$s."
 msgstr "Úspešne prihlásený ako %1$s cez LDAP server %2$s s DN = %3$s."
 
-#: src/etc/inc/auth.inc:1514
+#: src/etc/inc/auth.inc:1516
 #, php-format
 msgid "RADIUS start: %s"
 msgstr "RADIUS chyba v spúšťaní: %s"
 
-#: src/etc/inc/auth.inc:1526
+#: src/etc/inc/auth.inc:1528
 #, php-format
 msgid "RADIUS send failed: %s"
 msgstr "RADIUS chyba v odosielaní: %s"
 
-#: src/etc/inc/auth.inc:1534
+#: src/etc/inc/auth.inc:1536
 #, php-format
 msgid "RADIUS Auth succeeded"
 msgstr "RADIUS autentifikácia úspešná "
 
-#: src/etc/inc/auth.inc:1540
+#: src/etc/inc/auth.inc:1542
 #, php-format
 msgid "RADIUS Auth rejected"
 msgstr "RADIUS autentifikácia odmietnutá"
 
-#: src/etc/inc/auth.inc:1662
+#: src/etc/inc/auth.inc:1664
 msgid "Widget configuration has been changed."
 msgstr "Konfigurácia widgetov bola zmenená."
 
-#: src/etc/inc/auth.inc:1667
+#: src/etc/inc/auth.inc:1669
 #, php-format
 msgid "(User %s)"
 msgstr "(Užívateľ %s)"
 
-#: src/etc/inc/auth.inc:1685 src/etc/inc/auth.inc:1701
+#: src/etc/inc/auth.inc:1687 src/etc/inc/auth.inc:1703
 msgid "Local Database"
 msgstr "Lokálna databáza"
 
-#: src/etc/inc/auth.inc:1805
+#: src/etc/inc/auth.inc:1807
 #, php-format
 msgid "Successful login for user '%1$s' from: %2$s"
 msgstr "Úspešné prihlásenie pre užívateľa '%1$s' zo servera %2$s"
 
-#: src/etc/inc/auth.inc:1864
+#: src/etc/inc/auth.inc:1820
+msgid "Username or Password incorrect"
+msgstr ""
+
+#: src/etc/inc/auth.inc:1866
 #, php-format
 msgid "Session timed out for user '%1$s' from: %2$s"
 msgstr "Vypršal čas prihlásenia pre užívateľa '%1$s' zo servera %2$s"
 
-#: src/etc/inc/auth.inc:1866
+#: src/etc/inc/auth.inc:1868
 #, php-format
 msgid "User logged out for user '%1$s' from: %2$s"
 msgstr "Odhlásenie užívateľa '%1$s' zo servera %2$s"
 
-#: src/etc/inc/authgui.inc:74
+#: src/etc/inc/authgui.inc:76
 msgid "No page assigned to this user! Click here to logout."
 msgstr ""
 "Tento užívateľ nemá priradenú žiadnu stránku! Odhláste sa kliknutím sem."
 
-#: src/etc/inc/authgui.inc:105
+#: src/etc/inc/authgui.inc:107
 #, php-format
 msgid "Error: %1$s Description: %2$s"
 msgstr "Chyba: %1$s Popis: %2$s"
 
-#: src/etc/inc/authgui.inc:123
-msgid "Error: not allowed"
-msgstr "Chyba: nie je povolené"
+#: src/etc/inc/authgui.inc:120 src/etc/inc/dyndns.class:1069
+#: src/etc/inc/dyndns.class:1121 src/etc/inc/dyndns.class:1869
+#: src/usr/local/www/diag_smart.php:374
+msgid "Error"
+msgstr "Chyba"
 
-#: src/etc/inc/authgui.inc:150
+#: src/etc/inc/authgui.inc:196
 msgid "unknown reason"
 msgstr "neznáma príčina"
 
-#: src/etc/inc/authgui.inc:151
+#: src/etc/inc/authgui.inc:197
 #, php-format
 msgid "Invalid login (%s)."
 msgstr "Chyba v prihlasovaní (%s)."
 
-#: src/etc/inc/authgui.inc:156
+#: src/etc/inc/authgui.inc:202
 #, php-format
 msgid "This device is currently being maintained by: %s."
 msgstr "Na tomto zariadení momentálne prebieha údržba užívateľom %s."
 
-#: src/etc/inc/authgui.inc:239
+#: src/etc/inc/authgui.inc:285
 #, php-format
 msgid "%1$s.%2$s"
 msgstr "%1$s.%2$s"
 
-#: src/etc/inc/authgui.inc:241
+#: src/etc/inc/authgui.inc:287
 #, php-format
 msgid "Login to %1$s"
 msgstr "Prihlásenie do %1$s"
 
-#: src/etc/inc/authgui.inc:258
+#: src/etc/inc/authgui.inc:304
 #: src/usr/local/www/services_captiveportal.php:1019
 msgid "Login"
 msgstr "Prihlásenie"
 
-#: src/etc/inc/authgui.inc:304
+#: src/etc/inc/authgui.inc:362
 msgid ""
 "The IP address being used to access this router is not configured locally, "
 "which may be forwarded by NAT or other means.\n"
@@ -274,7 +280,7 @@ msgstr ""
 "\t\t\t\t\t\t\t\tAk je toto presmerovanie neočakávané, malo by byť overené, "
 "či sa nekoná man-in-the-middle útok."
 
-#: src/etc/inc/authgui.inc:355
+#: src/etc/inc/authgui.inc:413
 msgid "The browser must support cookies to login."
 msgstr "Prehliadač musí podporovať súbory cookies pre prihlásenie."
 
@@ -572,7 +578,7 @@ msgstr ""
 "predchádzajúcu zálohu."
 
 #: src/etc/inc/config.lib.inc:127 src/etc/inc/config.lib.inc:138
-#: src/etc/inc/config.lib.inc:506
+#: src/etc/inc/config.lib.inc:525
 msgid "Could not restore config.xml."
 msgstr "Nebolo možné obnoviť config.xml."
 
@@ -610,17 +616,17 @@ msgstr ""
 msgid "Updated bogon update frequency to 3am"
 msgstr "Aktualizovaná frekvencia aktualizácie bogon sietí na 03:00"
 
-#: src/etc/inc/config.lib.inc:371
+#: src/etc/inc/config.lib.inc:389
 #, php-format
 msgid "Ended Configuration upgrade at %s"
 msgstr "Aktualizácia konfigurácie ukončená o %s"
 
-#: src/etc/inc/config.lib.inc:374
+#: src/etc/inc/config.lib.inc:391
 #, php-format
 msgid "Upgraded config version level from %1$s to %2$s"
 msgstr "Verzia konfigurácie akt metalizovaná z %1$s na %2$s"
 
-#: src/etc/inc/config.lib.inc:450
+#: src/etc/inc/config.lib.inc:469
 #, php-format
 msgid ""
 "Save config permission denied by the 'User - Config: Deny Config Write' "
@@ -629,47 +635,47 @@ msgstr ""
 "Oprávnenie na uloženie konfigurácie zamietnuté podľa oprávnenia \"Užívateľ - "
 "Konfigurácia: Zamietnuť zapísanie konfigurácie\" pre užívateľa \"%s\"."
 
-#: src/etc/inc/config.lib.inc:483
+#: src/etc/inc/config.lib.inc:502
 msgid "WARNING: Config contents could not be saved. Could not open file!"
 msgstr ""
 "VAROVANIE: Obsah konfigurácie nebolo možné uložiť. Nebolo možné otvoriť "
 "súbor!"
 
-#: src/etc/inc/config.lib.inc:485
+#: src/etc/inc/config.lib.inc:504
 #, php-format
 msgid "Unable to open %1$s/config.xml for writing in write_config()%2$s"
 msgstr ""
 "Nebolo možné otvoriť súbor %1$s/config.xml pre zápis vo funkcii "
 "write_config()%2$s"
 
-#: src/etc/inc/config.lib.inc:616
+#: src/etc/inc/config.lib.inc:635
 #, php-format
 msgid "Reverted to %s."
 msgstr "Vrátené na %s."
 
-#: src/etc/inc/config.lib.inc:633
+#: src/etc/inc/config.lib.inc:652
 msgid "Installing configuration..."
 msgstr "Inštalácia konfigurácie..."
 
-#: src/etc/inc/config.lib.inc:635
+#: src/etc/inc/config.lib.inc:654
 msgid "Installing configuration ...."
 msgstr "Inštalácia konfigurácie ...."
 
-#: src/etc/inc/config.lib.inc:686
+#: src/etc/inc/config.lib.inc:705
 msgid "XML error: unable to open file"
 msgstr "XML chyba: nebolo možné otvoriť súbor"
 
-#: src/etc/inc/config.lib.inc:692
+#: src/etc/inc/config.lib.inc:711
 #, php-format
 msgid "%1$s at line %2$d"
 msgstr "%1$s v riadku %2$d"
 
-#: src/etc/inc/config.lib.inc:745 src/etc/inc/config.lib.inc:747
+#: src/etc/inc/config.lib.inc:764 src/etc/inc/config.lib.inc:766
 #, php-format
 msgid "The backup cache file %s is corrupted.  Unlinking."
 msgstr "Záložný vyrovnávací súbor %s je poškodený. Rušenie prepojenia."
 
-#: src/etc/inc/config.lib.inc:898
+#: src/etc/inc/config.lib.inc:917
 #, php-format
 msgid "%s made unknown change"
 msgstr "%s vykonal neznámu zmenu"
@@ -737,11 +743,6 @@ msgstr "Dynamické DNS %1$s (%2$s): _checkLookupStatus() spustený."
 #: src/usr/local/www/pkg_mgr_install.php:119
 msgid "Success"
 msgstr "Úspech"
-
-#: src/etc/inc/dyndns.class:1069 src/etc/inc/dyndns.class:1121
-#: src/etc/inc/dyndns.class:1869 src/usr/local/www/diag_smart.php:374
-msgid "Error"
-msgstr "Chyba"
 
 #: src/etc/inc/dyndns.class:1073 src/etc/inc/dyndns.class:1125
 msgid "Curl error occurred:"
@@ -1261,7 +1262,7 @@ msgid "DynDNS updated IP Address on %1$s (%2$s) to %3$s"
 msgstr "DynDNS aktualizoval IP adresu na rozhraní %1$s (%2$s) na %3$s"
 
 #: src/etc/inc/dyndns.class:1845 src/etc/inc/dyndns.class:1853
-#: src/etc/inc/services.inc:2694 src/etc/inc/services.inc:2706
+#: src/etc/inc/services.inc:2716 src/etc/inc/services.inc:2728
 #, php-format
 msgid "phpDynDNS: updating cache file %1$s: %2$s"
 msgstr "phpDynDNS: aktualizácia vyrovnávacieho súboru %1$s: %2$s"
@@ -1346,7 +1347,7 @@ msgstr "IPv6 v medzipamäti: %s"
 
 #: src/etc/inc/dyndns.class:1944
 msgid "No Cached IPv6 found."
-msgstr "Žiadna IPv6 nebola v medzipamäti nájdená."
+msgstr "Nebola nájdená žiadna IPv6 adresa vo vyrovnávacej pamäti."
 
 #: src/etc/inc/dyndns.class:1952
 #, php-format
@@ -1743,11 +1744,11 @@ msgstr "Filter je vypnutý. Pravidlá sa nenačítajú."
 #: src/etc/inc/pkg-utils.inc:874 src/etc/inc/pkg-utils.inc:920
 #: src/etc/inc/pkg-utils.inc:946 src/etc/inc/pkg-utils.inc:989
 #: src/etc/inc/pkg-utils.inc:1008 src/etc/inc/rrd.inc:970
-#: src/etc/inc/services.inc:1596 src/etc/inc/services.inc:1999
-#: src/etc/inc/services.inc:2216 src/etc/inc/services.inc:2266
-#: src/etc/inc/services.inc:2492 src/etc/inc/system.inc:1256
-#: src/etc/inc/system.inc:1356 src/etc/inc/system.inc:1659
-#: src/etc/inc/system.inc:2231
+#: src/etc/inc/services.inc:1600 src/etc/inc/services.inc:2003
+#: src/etc/inc/services.inc:2220 src/etc/inc/services.inc:2288
+#: src/etc/inc/services.inc:2514 src/etc/inc/system.inc:1257
+#: src/etc/inc/system.inc:1357 src/etc/inc/system.inc:1660
+#: src/etc/inc/system.inc:2232
 msgid "done."
 msgstr "hotovo."
 
@@ -2053,8 +2054,8 @@ msgstr "Služba %1$s/%2$s: %3$s"
 msgid "No mirrors found."
 msgstr "Nenašiel sa žiadny mirror."
 
-#: src/etc/inc/gmirror.inc:73 src/etc/inc/gwlb.inc:1355
-#: src/etc/inc/shaper.inc:1201 src/etc/inc/shaper.inc:3283
+#: src/etc/inc/gmirror.inc:73 src/etc/inc/gwlb.inc:1359
+#: src/etc/inc/shaper.inc:1201 src/etc/inc/shaper.inc:3286
 #: src/usr/local/www/diag_gmirror.php:221
 #: src/usr/local/www/diag_gmirror.php:302
 #: src/usr/local/www/firewall_aliases.php:190
@@ -2069,7 +2070,7 @@ msgstr "Nenašiel sa žiadny mirror."
 #: src/usr/local/www/load_balancer_virtual_server.php:139
 #: src/usr/local/www/load_balancer_virtual_server_edit.php:65
 #: src/usr/local/www/load_balancer_virtual_server_edit.php:70
-#: src/usr/local/www/pkg_mgr.php:66 src/usr/local/www/pkg_mgr.php:158
+#: src/usr/local/www/pkg_mgr.php:65 src/usr/local/www/pkg_mgr.php:157
 #: src/usr/local/www/pkg_mgr_installed.php:67
 #: src/usr/local/www/services_captiveportal_filemanager.php:189
 #: src/usr/local/www/services_checkip.php:93
@@ -2081,7 +2082,7 @@ msgstr "Nenašiel sa žiadny mirror."
 #: src/usr/local/www/status_openvpn.php:236
 #: src/usr/local/www/status_openvpn.php:296
 #: src/usr/local/www/system_camanager.php:358
-#: src/usr/local/www/system_certmanager.php:1107
+#: src/usr/local/www/system_certmanager.php:1118
 #: src/usr/local/www/system_crlmanager.php:578
 #: src/usr/local/www/system_gateways.php:250
 #: src/usr/local/www/system_groupmanager.php:224
@@ -2091,7 +2092,7 @@ msgstr "Nenašiel sa žiadny mirror."
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:50
 #: src/usr/local/www/widgets/widgets/openvpn.widget.php:346
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:34
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:139
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:154
 msgid "Name"
 msgstr "Názov"
 
@@ -2143,8 +2144,8 @@ msgstr "Názov"
 #: src/usr/local/www/system_usermanager.php:615
 #: src/usr/local/www/widgets/widgets/carp_status.widget.php:39
 #: src/usr/local/www/widgets/widgets/gateways.widget.php:213
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:210
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:226
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:213
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:229
 #: src/usr/local/www/widgets/widgets/wake_on_lan.widget.php:67
 msgid "Status"
 msgstr "Stav"
@@ -2153,59 +2154,64 @@ msgstr "Stav"
 msgid "Component"
 msgstr "Komponent"
 
-#: src/etc/inc/gwlb.inc:185
+#: src/etc/inc/gwlb.inc:172
+msgid ""
+"Timeout waiting for IPv6 address in tentative state.  dpinger will not run."
+msgstr ""
+
+#: src/etc/inc/gwlb.inc:189
 msgid "No gateways to monitor. dpinger will not run."
 msgstr "Žiadne brány na monitorovanie. dpinger nebude spustený."
 
-#: src/etc/inc/gwlb.inc:233 src/etc/inc/gwlb.inc:274
+#: src/etc/inc/gwlb.inc:237 src/etc/inc/gwlb.inc:278
 #, php-format
 msgid ""
 "Removing static route for monitor %1$s and adding a new route through %2$s"
 msgstr ""
 "Odstraňuje sa statický smer pre monitor %1$s a pridáva sa nový smer cez %2$s"
 
-#: src/etc/inc/gwlb.inc:302
+#: src/etc/inc/gwlb.inc:306
 #, php-format
 msgid "Error starting gateway monitor for %s"
 msgstr "Chyba pri štartovaní monitora brány %s"
 
-#: src/etc/inc/gwlb.inc:315
+#: src/etc/inc/gwlb.inc:319
 #, php-format
 msgid "dpinger: No dpinger session running for gateway %s"
 msgstr "dpinger: Žiadna dpinger relácia nie je spustená pre bránu %s"
 
-#: src/etc/inc/gwlb.inc:329
+#: src/etc/inc/gwlb.inc:333
 #, php-format
 msgid "dpinger: cannot connect to status socket %1$s - %2$s (%3$s)"
 msgstr "dpinger: nie je možné pripojiť sa k status socketu %1$s - %2$s (%3$s)"
 
-#: src/etc/inc/gwlb.inc:996
+#: src/etc/inc/gwlb.inc:1000
 #, php-format
 msgid "MONITOR: %1$s is down, omitting from routing group %2$s"
 msgstr ""
 "MONITOR: Brána %1$s nie je aktívna, vynecháva sa zo skupiny smerovania %2$s"
 
-#: src/etc/inc/gwlb.inc:1000
+#: src/etc/inc/gwlb.inc:1004
 #, php-format
 msgid "MONITOR: %1$s has packet loss, omitting from routing group %2$s"
 msgstr ""
 "MONITOR: Brána %1$s má stratu paketov, vynecháva sa zo skupiny smerovania "
 "%2$s"
 
-#: src/etc/inc/gwlb.inc:1004
+#: src/etc/inc/gwlb.inc:1008
 #, php-format
 msgid "MONITOR: %1$s has high latency, omitting from routing group %2$s"
 msgstr ""
 "MONITOR: Brána %1$s má vysokú latenciu, vynecháva sa zo skupiny smerovania "
 "%2$s"
 
-#: src/etc/inc/gwlb.inc:1027
+#: src/etc/inc/gwlb.inc:1031
 #, php-format
 msgid "MONITOR: %1$s is available now, adding to routing group %2$s"
 msgstr ""
 "MONITOR: Brána %1$s je teraz dostupná, pridáva sa do skupiny smerovania %2$s"
 
-#: src/etc/inc/gwlb.inc:1045
+#: src/etc/inc/gwlb.inc:1049
 #, php-format
 msgid ""
 "Gateways status could not be determined, considering all as up/active. "
@@ -2213,23 +2219,23 @@ msgid ""
 msgstr ""
 "Stav brán nemohol byť zistený, všetky sa považujú za aktívne. (Skupina: %s)"
 
-#: src/etc/inc/gwlb.inc:1088
+#: src/etc/inc/gwlb.inc:1092
 #, php-format
 msgid "GATEWAYS: Group %1$s did not have any gateways up on tier %2$s!"
 msgstr "BRÁNY: Skupina %1$s nemá žiadne aktívne brány na vrstve %2$s!"
 
-#: src/etc/inc/gwlb.inc:1110
+#: src/etc/inc/gwlb.inc:1114
 #, php-format
 msgid "Updating gateway group gateway for %1$s - new gateway is %2$s"
 msgstr ""
 "Aktualizuje sa brána skupiny brán pre rozhranie %1$s - nová brána je %2$s"
 
-#: src/etc/inc/gwlb.inc:1355 src/usr/local/www/diag_arp.php:332
-#: src/usr/local/www/diag_dump_states.php:132
-#: src/usr/local/www/diag_dump_states.php:181
+#: src/etc/inc/gwlb.inc:1359 src/usr/local/www/diag_arp.php:332
+#: src/usr/local/www/diag_dump_states.php:136
+#: src/usr/local/www/diag_dump_states.php:185
 #: src/usr/local/www/diag_ndp.php:141 src/usr/local/www/easyrule.php:80
 #: src/usr/local/www/easyrule.php:88 src/usr/local/www/firewall_nat.php:224
-#: src/usr/local/www/firewall_nat_1to1.php:149
+#: src/usr/local/www/firewall_nat_1to1.php:150
 #: src/usr/local/www/firewall_nat_1to1_edit.php:122
 #: src/usr/local/www/firewall_nat_1to1_edit.php:125
 #: src/usr/local/www/firewall_nat_edit.php:239
@@ -2267,7 +2273,7 @@ msgstr ""
 #: src/usr/local/www/status_logs_filter_dynamic.php:391
 #: src/usr/local/www/system_gateways.php:251
 #: src/usr/local/www/system_routes.php:244
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:239
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:240
 #: src/usr/local/www/widgets/widgets/interface_statistics.widget.php:241
 #: src/usr/local/www/widgets/widgets/interfaces.widget.php:169
 #: src/usr/local/www/widgets/widgets/traffic_graphs.widget.php:216
@@ -2276,11 +2282,11 @@ msgstr ""
 msgid "Interface"
 msgstr "Rozhranie"
 
-#: src/etc/inc/gwlb.inc:1363
+#: src/etc/inc/gwlb.inc:1367
 msgid "gateway"
 msgstr "brána"
 
-#: src/etc/inc/gwlb.inc:1372 src/usr/local/www/system_gateways.php:78
+#: src/etc/inc/gwlb.inc:1376 src/usr/local/www/system_gateways.php:78
 #, php-format
 msgid ""
 "Gateway \"%1$s\" cannot be disabled because it is in use on Gateway Group "
@@ -2289,7 +2295,7 @@ msgstr ""
 "Bránu \"%1$s\" nebolo možné vypnúť, pretože sa používa v gateway skupine "
 "\"%2$s\""
 
-#: src/etc/inc/gwlb.inc:1384 src/usr/local/www/system_gateways.php:94
+#: src/etc/inc/gwlb.inc:1388 src/usr/local/www/system_gateways.php:94
 #, php-format
 msgid ""
 "Gateway \"%1$s\" cannot be disabled because it is in use on Static Route "
@@ -2298,11 +2304,11 @@ msgstr ""
 "Brána \"%1$s\" nemôže byť zablokovaná, pretože je používaná statickým smerom "
 "\"%2$s\""
 
-#: src/etc/inc/gwlb.inc:1392
+#: src/etc/inc/gwlb.inc:1396
 msgid "A valid gateway IP address must be specified."
 msgstr "Musí byť uvedená platná IP brány."
 
-#: src/etc/inc/gwlb.inc:1402
+#: src/etc/inc/gwlb.inc:1406
 msgid ""
 "Cannot add IPv4 Gateway Address because no IPv4 address could be found on "
 "the interface."
@@ -2310,14 +2316,14 @@ msgstr ""
 "Nebolo možné pridať IPv4 adresu brány, pretože nebolo možné nájsť žiadnu "
 "IPv4 adresu na rozhraní."
 
-#: src/etc/inc/gwlb.inc:1424 src/etc/inc/gwlb.inc:1457
+#: src/etc/inc/gwlb.inc:1428 src/etc/inc/gwlb.inc:1461
 #, php-format
 msgid ""
 "The gateway address %s does not lie within one of the chosen interface's "
 "subnets."
 msgstr "Adresa brány %s nepatrí do subnetu jedného zo zvolených rozhraní."
 
-#: src/etc/inc/gwlb.inc:1435
+#: src/etc/inc/gwlb.inc:1439
 msgid ""
 "Cannot add IPv6 Gateway Address because no IPv6 address could be found on "
 "the interface."
@@ -2325,7 +2331,7 @@ msgstr ""
 "Nebolo možné pridať IPv6 adresu brány, pretože na rozhraní neexistuje žiadna "
 "IPv6 adresa."
 
-#: src/etc/inc/gwlb.inc:1465
+#: src/etc/inc/gwlb.inc:1469
 msgid ""
 "Dynamic gateway values cannot be specified for interfaces with a static IPv4 "
 "configuration."
@@ -2333,7 +2339,7 @@ msgstr ""
 "Dynamické hodnoty brány nemôžu byť uvedené pre rozhranie s nakonfigurovanou "
 "statickou IPv4 adresou."
 
-#: src/etc/inc/gwlb.inc:1470
+#: src/etc/inc/gwlb.inc:1474
 msgid ""
 "Dynamic gateway values cannot be specified for interfaces with a static IPv6 "
 "configuration."
@@ -2341,45 +2347,45 @@ msgstr ""
 "Dynamické hodnoty brány nemôžu byť uvedené pre rozhranie s nakonfigurovanou "
 "statickou IPv6 adresou."
 
-#: src/etc/inc/gwlb.inc:1478
+#: src/etc/inc/gwlb.inc:1482
 msgid "A valid data payload must be specified."
 msgstr "Musí byť uvedený platný payload dát."
 
-#: src/etc/inc/gwlb.inc:1483
+#: src/etc/inc/gwlb.inc:1487
 #, php-format
 msgid "The IPv6 gateway address '%s' can not be used as a IPv4 gateway."
 msgstr "IPv6 adresa brány \"%s\" nemôže byť použitá ako IPv4 brána."
 
-#: src/etc/inc/gwlb.inc:1486
+#: src/etc/inc/gwlb.inc:1490
 #, php-format
 msgid "The IPv4 gateway address '%s' can not be used as a IPv6 gateway."
 msgstr "IPv4 adresa brány \"%s\" nemôže byť použitá ako IPv6 brána."
 
-#: src/etc/inc/gwlb.inc:1492
+#: src/etc/inc/gwlb.inc:1496
 #, php-format
 msgid "The IPv6 monitor address '%s' can not be used on a IPv4 gateway."
 msgstr "Monitor IPv6 adresy \"%s\" nemôže byť použitý na bránu s IPv4 adresou."
 
-#: src/etc/inc/gwlb.inc:1495
+#: src/etc/inc/gwlb.inc:1499
 #, php-format
 msgid "The IPv4 monitor address '%s' can not be used on a IPv6 gateway."
 msgstr "Monitor IPv4 adresy \"%s\" nemôže byť použitý na bránu s IPv6 adresou."
 
-#: src/etc/inc/gwlb.inc:1504
+#: src/etc/inc/gwlb.inc:1508
 msgid "Changing name on a gateway is not allowed."
 msgstr "Zmena názvu brány nie je povolená."
 
-#: src/etc/inc/gwlb.inc:1510
+#: src/etc/inc/gwlb.inc:1514
 #, php-format
 msgid "The gateway name \"%s\" already exists."
 msgstr "Názov brány \"%s\" už existuje."
 
-#: src/etc/inc/gwlb.inc:1516
+#: src/etc/inc/gwlb.inc:1520
 #, php-format
 msgid "The gateway IP address \"%s\" already exists."
 msgstr "IP adresa brány \"%s\" už existuje."
 
-#: src/etc/inc/gwlb.inc:1522
+#: src/etc/inc/gwlb.inc:1526
 #, php-format
 msgid ""
 "The monitor IP address \"%s\" is already in use. A different monitor IP must "
@@ -2388,87 +2394,87 @@ msgstr ""
 "IP adresa monitora \"%s\" sa už používa. Musí byť zvolená iná IP adresa "
 "monitora "
 
-#: src/etc/inc/gwlb.inc:1535
+#: src/etc/inc/gwlb.inc:1539
 msgid "The low latency threshold needs to be a numeric value."
 msgstr "Dolná hranica oneskorenia musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1537
+#: src/etc/inc/gwlb.inc:1541
 msgid "The low latency threshold needs to be positive."
 msgstr "Dolná hranica oneskorenia musí byť kladná."
 
-#: src/etc/inc/gwlb.inc:1546
+#: src/etc/inc/gwlb.inc:1550
 msgid "The high latency threshold needs to be a numeric value."
 msgstr "Horná hranica oneskorenia musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1548
+#: src/etc/inc/gwlb.inc:1552
 msgid "The high latency threshold needs to be positive."
 msgstr "Horná hranica oneskorenia musí byť kladná."
 
-#: src/etc/inc/gwlb.inc:1557
+#: src/etc/inc/gwlb.inc:1561
 msgid "The low Packet Loss threshold needs to be a numeric value."
 msgstr "Dolná hranica straty paketov musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1559
+#: src/etc/inc/gwlb.inc:1563
 msgid "The low Packet Loss threshold needs to be positive."
 msgstr "Dolná hranica straty paketov musí byť kladná."
 
-#: src/etc/inc/gwlb.inc:1561
+#: src/etc/inc/gwlb.inc:1565
 msgid "The low Packet Loss threshold needs to be less than 100."
 msgstr "Dolná hranica straty paketov musí byť menej ako 100."
 
-#: src/etc/inc/gwlb.inc:1570
+#: src/etc/inc/gwlb.inc:1574
 msgid "The high Packet Loss threshold needs to be a numeric value."
 msgstr "Horná hranica straty paketov musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1572
+#: src/etc/inc/gwlb.inc:1576
 msgid "The high Packet Loss threshold needs to be positive."
 msgstr "Horná hranica straty paketov musí byť kladná."
 
-#: src/etc/inc/gwlb.inc:1574
+#: src/etc/inc/gwlb.inc:1578
 msgid "The high Packet Loss threshold needs to be 100 or less."
 msgstr "Horná hranica straty paketov musí byť menej alebo rovné 100."
 
-#: src/etc/inc/gwlb.inc:1583
+#: src/etc/inc/gwlb.inc:1587
 msgid ""
 "The time period over which results are averaged needs to be a numeric value."
 msgstr "Doba, po ktorej sa výsledky spriemerujú, musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1585
+#: src/etc/inc/gwlb.inc:1589
 msgid "The time period over which results are averaged needs to be positive."
 msgstr "Doba, po ktorej sa výsledky spriemerujú, musí byť kladná."
 
-#: src/etc/inc/gwlb.inc:1594
+#: src/etc/inc/gwlb.inc:1598
 msgid "The probe interval needs to be a numeric value."
 msgstr "Interval analýzy musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1596
+#: src/etc/inc/gwlb.inc:1600
 msgid "The probe interval needs to be positive."
 msgstr "Interval analýzy musí byť kladný."
 
-#: src/etc/inc/gwlb.inc:1605
+#: src/etc/inc/gwlb.inc:1609
 msgid "The loss interval needs to be a numeric value."
 msgstr "Interval straty musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1607
+#: src/etc/inc/gwlb.inc:1611
 msgid "The loss interval setting needs to be positive."
 msgstr "Interval straty musí byť kladný."
 
-#: src/etc/inc/gwlb.inc:1616
+#: src/etc/inc/gwlb.inc:1620
 msgid "The alert interval needs to be a numeric value."
 msgstr "Interval výstrahy musí mať číselnú hodnotu."
 
-#: src/etc/inc/gwlb.inc:1618
+#: src/etc/inc/gwlb.inc:1622
 msgid "The alert interval setting needs to be positive."
 msgstr "Interval výstrahy musí byť kladný."
 
-#: src/etc/inc/gwlb.inc:1626
+#: src/etc/inc/gwlb.inc:1630
 msgid ""
 "The high latency threshold needs to be greater than the low latency "
 "threshold"
 msgstr ""
 "Horná hranica oneskorenia musí byť väčšia ako dolná hranica oneskorenia"
 
-#: src/etc/inc/gwlb.inc:1631
+#: src/etc/inc/gwlb.inc:1635
 msgid ""
 "The high packet loss threshold needs to be higher than the low packet loss "
 "threshold"
@@ -2476,14 +2482,14 @@ msgstr ""
 "Horná hranica straty paketov musí byť väčšia ako dolná hranica straty "
 "paketov"
 
-#: src/etc/inc/gwlb.inc:1637
+#: src/etc/inc/gwlb.inc:1641
 msgid ""
 "The loss interval needs to be greater than or equal to the high latency "
 "threshold."
 msgstr ""
 "Interval straty musí byť väčší alebo rovný hornej hranici oneskorenia."
 
-#: src/etc/inc/gwlb.inc:1642
+#: src/etc/inc/gwlb.inc:1646
 msgid ""
 "The time period needs to be greater than twice the probe interval plus the "
 "loss interval."
@@ -2491,7 +2497,7 @@ msgstr ""
 "Doba musí byť väčšia ako súčet dvojnásobku intervalu analýzy a intervalu "
 "straty."
 
-#: src/etc/inc/gwlb.inc:1648
+#: src/etc/inc/gwlb.inc:1652
 msgid ""
 "The alert interval needs to be greater than or equal to the probe interval."
 msgstr "Interval výstrahy musí byť väčší alebo rovný intervalu analýzy."
@@ -2743,18 +2749,22 @@ msgstr ""
 msgid "There is a conflict on MTU between parent %1$s and VLAN(%2$s)"
 msgstr "Nastal konflikt v MTU medzi rodičovským rozhraním %1$s a VLAN(%2$s)"
 
-#: src/etc/inc/interfaces.inc:3641 src/etc/inc/interfaces.inc:3711
-#: src/etc/inc/interfaces.inc:3775
+#: src/etc/inc/interfaces.inc:3520
+msgid "calling interface_dhcpv6_configure."
+msgstr ""
+
+#: src/etc/inc/interfaces.inc:3644 src/etc/inc/interfaces.inc:3714
+#: src/etc/inc/interfaces.inc:3778
 #, php-format
 msgid "Interface %1$s tracking non-existent interface %2$s"
 msgstr "Rozhranie %1$s sleduje neexistujúce rozhranie %2$s"
 
-#: src/etc/inc/interfaces.inc:3648 src/etc/inc/interfaces.inc:3654
+#: src/etc/inc/interfaces.inc:3651 src/etc/inc/interfaces.inc:3657
 #, php-format
 msgid "Interface %1$s configured via %2$s type %3$s"
 msgstr "Rozhranie %1$s nakonfigurované cez %2$s typ %3$s"
 
-#: src/etc/inc/interfaces.inc:3717
+#: src/etc/inc/interfaces.inc:3720
 #, php-format
 msgid ""
 "The interface IPv4 '%1$s' address on interface '%2$s' is not valid, not "
@@ -2763,12 +2773,12 @@ msgstr ""
 "IPv4 adresa \"%1$s\" na rozhraní \"%2$s\" nie je platná, 6RD tunel nebude "
 "konfigurovaný"
 
-#: src/etc/inc/interfaces.inc:3753
+#: src/etc/inc/interfaces.inc:3756
 #, php-format
 msgid "rd6 %1$s with ipv6 address %2$s based on %3$s ipv4 %4$s"
 msgstr "rd6 %1$s s ipv6 adresou %2$s založený na %3$s ipv4 %4$s"
 
-#: src/etc/inc/interfaces.inc:3781 src/etc/inc/interfaces.inc:3836
+#: src/etc/inc/interfaces.inc:3784 src/etc/inc/interfaces.inc:3839
 #: src/etc/inc/interfaces.inc:3922
 #, php-format
 msgid ""
@@ -2778,7 +2788,7 @@ msgstr ""
 "IPv4 adresa \"%1$s\" na rozhraní \"%2$s\" nie je verejná, 6RD tunel nebude "
 "konfigurovaný"
 
-#: src/etc/inc/interfaces.inc:3813
+#: src/etc/inc/interfaces.inc:3816
 #, php-format
 msgid "sixto4 %1$s with ipv6 address %2$s based on %3$s ipv4 %4$s"
 msgstr "sixto4 %1$s s ipv6 adresou %2$s založený na %3$s ipv4 %4$s"
@@ -3102,8 +3112,8 @@ msgstr "30 (brainpool ecp512)"
 msgid "Mobile Client"
 msgstr "Mobilný klient"
 
-#: src/etc/inc/ipsec.inc:414 src/etc/inc/pfsense-utils.inc:3137
-#: src/etc/inc/shaper.inc:3866 src/etc/inc/shaper.inc:4170
+#: src/etc/inc/ipsec.inc:414 src/etc/inc/pfsense-utils.inc:3139
+#: src/etc/inc/shaper.inc:3869 src/etc/inc/shaper.inc:4173
 #: src/usr/local/www/diag_pftop.php:116
 #: src/usr/local/www/firewall_nat_edit.php:923
 #: src/usr/local/www/firewall_rules_edit.php:1617
@@ -3267,8 +3277,8 @@ msgid "LZ4 Compression [compress lz4]"
 msgstr "LZ4 kompresia [compress lz4]"
 
 #: src/etc/inc/openvpn.inc:127
-msgid "LZ4 Comression v2 [compress lz4-v2]"
-msgstr "LZ4 kompresia v2 [compress lz4-v2]"
+msgid "LZ4 Compression v2 [compress lz4-v2]"
+msgstr ""
 
 #: src/etc/inc/openvpn.inc:128
 #, fuzzy
@@ -3347,12 +3357,12 @@ msgid "CA: %s"
 msgstr "CA: %s"
 
 #: src/etc/inc/openvpn.inc:246 src/usr/local/www/system_camanager.php:363
-#: src/usr/local/www/system_certmanager.php:1110
+#: src/usr/local/www/system_certmanager.php:1121
 #: src/usr/local/www/system_crlmanager.php:581
 msgid "In Use"
 msgstr "Používa sa"
 
-#: src/etc/inc/openvpn.inc:249 src/usr/local/www/system_certmanager.php:1206
+#: src/etc/inc/openvpn.inc:249 src/usr/local/www/system_certmanager.php:1229
 msgid "Revoked"
 msgstr "Odvolaný"
 
@@ -3410,7 +3420,7 @@ msgstr ""
 #: src/etc/inc/openvpn.inc:1292
 #, php-format
 msgid "OpenVPN ID %1$s PID %2$s still running, killing."
-msgstr "OpenVPN ID %1$s PID %2$s stále beží, zabíja sa."
+msgstr "OpenVPN ID %1$s PID %2$s stále beží, ukončuje sa."
 
 #: src/etc/inc/openvpn.inc:1527
 #, php-format
@@ -3768,35 +3778,43 @@ msgid "English"
 msgstr "Angličtina"
 
 #: src/etc/inc/pfsense-utils.inc:2945
+msgid "French"
+msgstr ""
+
+#: src/etc/inc/pfsense-utils.inc:2946
 msgid "German (Germany)"
 msgstr "Nemčina (Nemecko)"
 
-#: src/etc/inc/pfsense-utils.inc:2946
+#: src/etc/inc/pfsense-utils.inc:2947
 msgid "Norwegian Bokmål"
 msgstr "Nórština (Bokmål)"
 
-#: src/etc/inc/pfsense-utils.inc:2947
+#: src/etc/inc/pfsense-utils.inc:2948
+msgid "Polish"
+msgstr ""
+
+#: src/etc/inc/pfsense-utils.inc:2949
 msgid "Portuguese (Brazil)"
 msgstr "Portugalsky (Brazília)"
 
-#: src/etc/inc/pfsense-utils.inc:2948
+#: src/etc/inc/pfsense-utils.inc:2950
 msgid "Russian"
 msgstr "Ruština"
 
-#: src/etc/inc/pfsense-utils.inc:2949
+#: src/etc/inc/pfsense-utils.inc:2951
 msgid "Spanish"
 msgstr "Španielčina"
 
-#: src/etc/inc/pfsense-utils.inc:2950
+#: src/etc/inc/pfsense-utils.inc:2952
 msgid "Spanish (Argentina)"
 msgstr "Španielsky (Argentína)"
 
-#: src/etc/inc/pfsense-utils.inc:3145 src/etc/inc/pfsense-utils.inc:3160
-#: src/etc/inc/pfsense-utils.inc:3186
+#: src/etc/inc/pfsense-utils.inc:3147 src/etc/inc/pfsense-utils.inc:3162
+#: src/etc/inc/pfsense-utils.inc:3188
 msgid "No Service"
 msgstr "Žiadna služba"
 
-#: src/etc/inc/pfsense-utils.inc:3155 src/etc/inc/pfsense-utils.inc:3198
+#: src/etc/inc/pfsense-utils.inc:3157 src/etc/inc/pfsense-utils.inc:3200
 #: src/usr/local/www/firewall_nat_out.php:230
 #: src/usr/local/www/firewall_nat_out.php:234
 #: src/usr/local/www/interfaces.php:888 src/usr/local/www/interfaces.php:3033
@@ -3812,83 +3830,83 @@ msgstr "Žiadna služba"
 msgid "Mode"
 msgstr "Režim"
 
-#: src/etc/inc/pfsense-utils.inc:3161
+#: src/etc/inc/pfsense-utils.inc:3163
 msgid "Restricted Service"
 msgstr "Obmedzená služba"
 
-#: src/etc/inc/pfsense-utils.inc:3162
+#: src/etc/inc/pfsense-utils.inc:3164
 msgid "Valid Service"
 msgstr "Platná služba"
 
-#: src/etc/inc/pfsense-utils.inc:3163
+#: src/etc/inc/pfsense-utils.inc:3165
 msgid "Restricted Regional Service"
 msgstr "Obmedzená regionálna služba"
 
-#: src/etc/inc/pfsense-utils.inc:3164
+#: src/etc/inc/pfsense-utils.inc:3166
 msgid "Powersaving Service"
 msgstr "Úsporná služba"
 
-#: src/etc/inc/pfsense-utils.inc:3165
+#: src/etc/inc/pfsense-utils.inc:3167
 msgid "Unknown Service"
 msgstr "Neznáma služba"
 
-#: src/etc/inc/pfsense-utils.inc:3171
+#: src/etc/inc/pfsense-utils.inc:3173
 msgid "Invalid SIM/locked State"
 msgstr "Neplatná SIM/uzamknutý stav"
 
-#: src/etc/inc/pfsense-utils.inc:3172
+#: src/etc/inc/pfsense-utils.inc:3174
 msgid "Valid SIM State"
 msgstr "Platný SIM stav"
 
-#: src/etc/inc/pfsense-utils.inc:3173
+#: src/etc/inc/pfsense-utils.inc:3175
 msgid "Invalid SIM CS State"
 msgstr "Neplatný SIM CS stav"
 
-#: src/etc/inc/pfsense-utils.inc:3174
+#: src/etc/inc/pfsense-utils.inc:3176
 msgid "Invalid SIM PS State"
 msgstr "Neplatný SIM PS stav"
 
-#: src/etc/inc/pfsense-utils.inc:3175
+#: src/etc/inc/pfsense-utils.inc:3177
 msgid "Invalid SIM CS/PS State"
 msgstr "Neplatný SIM CS/PS stav"
 
-#: src/etc/inc/pfsense-utils.inc:3176
+#: src/etc/inc/pfsense-utils.inc:3178
 msgid "Missing SIM State"
 msgstr "Chýbajúci SIM stav"
 
-#: src/etc/inc/pfsense-utils.inc:3187
+#: src/etc/inc/pfsense-utils.inc:3189
 msgid "Limited Service"
 msgstr "Obmedzená služba"
 
-#: src/etc/inc/pfsense-utils.inc:3203
+#: src/etc/inc/pfsense-utils.inc:3205
 msgid "Initializing Service"
 msgstr "Inicializácia služby"
 
-#: src/etc/inc/pfsense-utils.inc:3204
+#: src/etc/inc/pfsense-utils.inc:3206
 msgid "Network Lock error Service"
 msgstr ""
 
-#: src/etc/inc/pfsense-utils.inc:3205
+#: src/etc/inc/pfsense-utils.inc:3207
 msgid "Network Locked Service"
 msgstr ""
 
-#: src/etc/inc/pfsense-utils.inc:3206
+#: src/etc/inc/pfsense-utils.inc:3208
 msgid "Unlocked or correct MCC/MNC Service"
 msgstr ""
 
-#: src/etc/inc/pfsense-utils.inc:3212
+#: src/etc/inc/pfsense-utils.inc:3214
 msgid "No action State"
 msgstr ""
 
-#: src/etc/inc/pfsense-utils.inc:3213
+#: src/etc/inc/pfsense-utils.inc:3215
 msgid "Network lock State"
 msgstr ""
 
-#: src/etc/inc/pfsense-utils.inc:3214
+#: src/etc/inc/pfsense-utils.inc:3216
 msgid "(U)SIM card lock State"
 msgstr ""
 
-#: src/etc/inc/pfsense-utils.inc:3215
+#: src/etc/inc/pfsense-utils.inc:3217
 msgid "Network Lock and (U)SIM card Lock State"
 msgstr ""
 
@@ -6216,7 +6234,7 @@ msgstr "Démon systémového denníka"
 #: src/usr/local/www/status_captiveportal_test.php:55
 #: src/usr/local/www/status_captiveportal_voucher_rolls.php:55
 #: src/usr/local/www/status_captiveportal_vouchers.php:55
-#: src/usr/local/www/system_certmanager.php:1224
+#: src/usr/local/www/system_certmanager.php:1247
 msgid "Captive Portal"
 msgstr "Captive Portal"
 
@@ -6372,57 +6390,69 @@ msgstr ""
 "Chyba: nebolo možné otvoriť súbor dhcpd.conf v services_dhcpdv4_configure()."
 "%s"
 
-#: src/etc/inc/services.inc:1649
+#: src/etc/inc/services.inc:1653
 msgid "Could not write Igmpproxy configuration file!"
 msgstr "Nebolo možné zapísať Igmpproxy konfiguračný súbor!"
 
-#: src/etc/inc/services.inc:1662
+#: src/etc/inc/services.inc:1666
 msgid "Started IGMP proxy service."
 msgstr "Služba IGMP proxy spustená."
 
-#: src/etc/inc/services.inc:1686
+#: src/etc/inc/services.inc:1690
 msgid "Starting DHCP relay service..."
 msgstr "Spúšťa sa služba DHCP relé..."
 
-#: src/etc/inc/services.inc:1711
+#: src/etc/inc/services.inc:1715
 msgid "No destination IP has been configured!"
 msgstr "Nebola nakonfigurovaná žiadna cieľová IP!"
 
-#: src/etc/inc/services.inc:1785
+#: src/etc/inc/services.inc:1789
 msgid "No suitable interface found for running dhcrelay!"
 msgstr "Nebolo nájdené žiadne vhodné rozhranie pre spustenie dhcrelay!"
 
-#: src/etc/inc/services.inc:1821
+#: src/etc/inc/services.inc:1825
 msgid "Starting DHCPv6 relay service..."
 msgstr "Spúšťa sa služba DHCPv6 relé..."
 
-#: src/etc/inc/services.inc:1912
+#: src/etc/inc/services.inc:1916
 msgid "No suitable interface found for running dhcrelay -6!"
 msgstr "Nebolo nájdené žiadne vhodné rozhranie pre spustenie dhcrelay -6!"
 
-#: src/etc/inc/services.inc:1973
+#: src/etc/inc/services.inc:1977
 msgid "Starting DynDNS clients..."
 msgstr "Spúšťajú sa klienti DynDNS..."
 
-#: src/etc/inc/services.inc:2079
+#: src/etc/inc/services.inc:2083
 msgid "Starting DNS forwarder..."
 msgstr "Spúšťa sa DNS Forwarder"
 
-#: src/etc/inc/services.inc:2254
+#: src/etc/inc/services.inc:2258
 msgid "Starting DNS Resolver..."
 msgstr "Spúšťa sa DNS Resolver..."
 
-#: src/etc/inc/services.inc:2303
+#: src/etc/inc/services.inc:2274
+msgid "Unbound start waiting on dhcp6c."
+msgstr ""
+
+#: src/etc/inc/services.inc:2278
+msgid "dhcp6 init complete. Continuing"
+msgstr ""
+
+#: src/etc/inc/services.inc:2287
+msgid "sync unbound done."
+msgstr ""
+
+#: src/etc/inc/services.inc:2325
 msgid "Starting SNMP daemon... "
 msgstr "Spúšťa sa démon SNMP..."
 
-#: src/etc/inc/services.inc:2314
+#: src/etc/inc/services.inc:2336
 #, php-format
 msgid "Error: cannot open snmpd.conf in services_snmpd_configure().%s"
 msgstr ""
 "Chyba: nebolo možné otvoriť súbor snmpd.conf v services_snmpd_configure().%s"
 
-#: src/etc/inc/services.inc:2643
+#: src/etc/inc/services.inc:2665
 #, php-format
 msgid ""
 "phpDynDNS: Not updating %s A record because the IP address has not changed."
@@ -6430,7 +6460,7 @@ msgstr ""
 "phpDynDNS: A záznamy %s nebudú aktualizované, pretože IP adresa sa nezmenila."
 ""
 
-#: src/etc/inc/services.inc:2662
+#: src/etc/inc/services.inc:2684
 #, php-format
 msgid ""
 "phpDynDNS: Not updating %s AAAA record because the IPv6 address has not "
@@ -6439,45 +6469,45 @@ msgstr ""
 "phpDynDNS: AAAA záznamy %s nebudú aktualizované, pretože IPv6 adresa sa "
 "nezmenila."
 
-#: src/etc/inc/services.inc:2697
+#: src/etc/inc/services.inc:2719
 #, php-format
 msgid "DynDNS updated IP Address (A) for %1$s on %2$s (%3$s) to %4$s"
 msgstr ""
 "DynDNS aktualizoval IP adresu (A) pre %1$s na rozhraní %2$s (%3$s) na %4$s"
 
-#: src/etc/inc/services.inc:2709
+#: src/etc/inc/services.inc:2731
 #, php-format
 msgid "DynDNS updated IPv6 Address (AAAA) for %1$s on %2$s (%3$s) to %4$s"
 msgstr ""
 "DynDNS aktualizoval IPv6 adresu (AAAA) pre %1$s na rozhraní %2$s (%3$s) na "
 "%4$s"
 
-#: src/etc/inc/services.inc:2717
+#: src/etc/inc/services.inc:2739
 #, php-format
 msgid "phpDynDNS: ERROR while updating IP Address (A) for %1$s (%2$s)"
 msgstr "phpDynDNS: CHYBA počas aktualizácie IP adresy (A) pre %1$s (%2$s)"
 
-#: src/etc/inc/services.inc:2722
+#: src/etc/inc/services.inc:2744
 #, php-format
 msgid "phpDynDNS: ERROR while updating IP Address (AAAA) for %1$s (%2$s)"
 msgstr "phpDynDNS: CHYBA počas aktualizácie IP adresy (AAAA) pre %1$s (%2$s)"
 
-#: src/etc/inc/services.inc:2756
+#: src/etc/inc/services.inc:2778
 msgid "Created:"
 msgstr "Vytvorený:"
 
-#: src/etc/inc/services.inc:2782
+#: src/etc/inc/services.inc:2804
 msgid "If possible do not add items to this file manually."
 msgstr "Ak je to možné, nepridávajte manuálne záznamy do tohto súboru."
 
-#: src/etc/inc/services.inc:2783
+#: src/etc/inc/services.inc:2805
 msgid ""
 "If done so, this file must be terminated with a blank line (e.g. new line)"
 msgstr ""
 "Ak tak bolo urobené, tento súbor musí byť ukončený prázdnym riadok (napr. "
 "nový riadok)"
 
-#: src/etc/inc/services.inc:2833
+#: src/etc/inc/services.inc:2855
 msgid "Starting UPnP service... "
 msgstr "Spúšťa sa služba UpPnP..."
 
@@ -6491,19 +6521,19 @@ msgstr "Pole \"%s\" obsahuje neplatný znak."
 msgid "The field '%s' is required."
 msgstr "Pole \"%s\" je požadované."
 
-#: src/etc/inc/shaper.inc:436 src/etc/inc/shaper.inc:1901
-#: src/etc/inc/shaper.inc:2264 src/etc/inc/shaper.inc:2650
-#: src/etc/inc/shaper.inc:2778 src/etc/inc/shaper.inc:2932
-#: src/etc/inc/shaper.inc:3051 src/etc/inc/shaper.inc:3277
-#: src/etc/inc/shaper.inc:3855 src/usr/local/www/interfaces_ppps_edit.php:910
+#: src/etc/inc/shaper.inc:436 src/etc/inc/shaper.inc:1904
+#: src/etc/inc/shaper.inc:2267 src/etc/inc/shaper.inc:2653
+#: src/etc/inc/shaper.inc:2781 src/etc/inc/shaper.inc:2935
+#: src/etc/inc/shaper.inc:3054 src/etc/inc/shaper.inc:3280
+#: src/etc/inc/shaper.inc:3858 src/usr/local/www/interfaces_ppps_edit.php:910
 #: src/usr/local/www/status_queues.php:163
 #: src/usr/local/www/status_queues.php:167
 msgid "Bandwidth"
 msgstr "Šírka pásma"
 
-#: src/etc/inc/shaper.inc:438 src/etc/inc/shaper.inc:1903
-#: src/etc/inc/shaper.inc:2652 src/etc/inc/shaper.inc:2934
-#: src/etc/inc/shaper.inc:3281
+#: src/etc/inc/shaper.inc:438 src/etc/inc/shaper.inc:1906
+#: src/etc/inc/shaper.inc:2655 src/etc/inc/shaper.inc:2937
+#: src/etc/inc/shaper.inc:3284
 msgid "Bandwidthtype"
 msgstr "Typ šírky pásma"
 
@@ -6512,17 +6542,17 @@ msgid "Bandwidth must be set.  This is usually the interface speed."
 msgstr "Šírka pásma musí byť nastavená. Toto je zvyčajne rýchlosť rozhrania."
 
 #: src/etc/inc/shaper.inc:446 src/etc/inc/shaper.inc:1205
-#: src/etc/inc/shaper.inc:1909
+#: src/etc/inc/shaper.inc:1912
 msgid "Bandwidth must be an integer."
 msgstr "Šírka pásma musí byť celé číslo."
 
 #: src/etc/inc/shaper.inc:449 src/etc/inc/shaper.inc:1208
-#: src/etc/inc/shaper.inc:1913
+#: src/etc/inc/shaper.inc:1916
 msgid "Bandwidth cannot be negative."
 msgstr "Šírka pásma nemôže byť záporná."
 
 #: src/etc/inc/shaper.inc:453 src/etc/inc/shaper.inc:1212
-#: src/etc/inc/shaper.inc:1918
+#: src/etc/inc/shaper.inc:1921
 msgid "Bandwidth in percentage should be between 1 and 100."
 msgstr "Šírka pásma v percentách musí by mala byť medzi 1 až 100."
 
@@ -6555,12 +6585,12 @@ msgstr "Front rozhrania bude predvolene vynútený."
 msgid "Remove shaper from this interface"
 msgstr "Odstrániť shaper z tohto rozhrania."
 
-#: src/etc/inc/shaper.inc:798 src/etc/inc/shaper.inc:1406
+#: src/etc/inc/shaper.inc:798 src/etc/inc/shaper.inc:1407
 msgid "Enable/Disable"
 msgstr "Povoliť/Zakázať"
 
-#: src/etc/inc/shaper.inc:805 src/etc/inc/shaper.inc:1414
-#: src/etc/inc/shaper.inc:3830 src/etc/inc/shaper.inc:4143
+#: src/etc/inc/shaper.inc:805 src/etc/inc/shaper.inc:1415
+#: src/etc/inc/shaper.inc:3833 src/etc/inc/shaper.inc:4146
 #: src/usr/local/www/firewall_aliases_edit.php:660
 #: src/usr/local/www/load_balancer_monitor_edit.php:264
 #: src/usr/local/www/load_balancer_pool_edit.php:302
@@ -6580,7 +6610,7 @@ msgid ""
 msgstr ""
 "Zmena tohto mení všetky detské fronty! Pozor, informácie môžu byť stratené."
 
-#: src/etc/inc/shaper.inc:844 src/etc/inc/shaper.inc:1436
+#: src/etc/inc/shaper.inc:844 src/etc/inc/shaper.inc:1439
 msgid "Queue Limit"
 msgstr "Limit fronta"
 
@@ -6597,30 +6627,30 @@ msgstr ""
 "heuristiky založené na šírke pásma rozhrania sú použité na zistenie veľkosti."
 ""
 
-#: src/etc/inc/shaper.inc:1219
+#: src/etc/inc/shaper.inc:1220
 msgid "The priority must be an integer between 1 and 15."
 msgstr "Priorita musí byť celé číslo medzi 1 a 15."
 
-#: src/etc/inc/shaper.inc:1222 src/etc/inc/shaper.inc:3296
+#: src/etc/inc/shaper.inc:1223 src/etc/inc/shaper.inc:3299
 msgid "Queue limit must be an integer"
 msgstr "Limit fronta musí byť celé číslo"
 
-#: src/etc/inc/shaper.inc:1225
+#: src/etc/inc/shaper.inc:1226
 msgid "Queue limit must be positive"
 msgstr "Limit fronta musí byť kladný"
 
-#: src/etc/inc/shaper.inc:1228 src/etc/inc/shaper.inc:1231
-#: src/etc/inc/shaper.inc:3299 src/etc/inc/shaper.inc:3302
+#: src/etc/inc/shaper.inc:1229 src/etc/inc/shaper.inc:1232
+#: src/etc/inc/shaper.inc:3302 src/etc/inc/shaper.inc:3305
 msgid "Queue names must be alphanumeric and _ or - only."
 msgstr ""
 "Mená frontov musia obsahovať iba alfanumerické znaky a podčiarkovník (_) "
 "alebo spojovník (-)."
 
-#: src/etc/inc/shaper.inc:1235
+#: src/etc/inc/shaper.inc:1236
 msgid "Only one default queue per interface is allowed."
 msgstr "Na jedno rozhranie je povolený iba jeden predvolený front."
 
-#: src/etc/inc/shaper.inc:1417
+#: src/etc/inc/shaper.inc:1418
 msgid ""
 "Enter the name of the queue here. Do not use spaces and limit the size to 15 "
 "characters."
@@ -6628,63 +6658,62 @@ msgstr ""
 "Sem vložte názov fronta. Nepoužívajte medzery a nepoužite viac ako 15 znakov."
 ""
 
-#: src/etc/inc/shaper.inc:1428 src/usr/local/www/interfaces_bridge_edit.php:592
+#: src/etc/inc/shaper.inc:1430 src/usr/local/www/interfaces_bridge_edit.php:592
 #: src/usr/local/www/interfaces_vlan.php:109
 #: src/usr/local/www/system_gateway_groups.php:130
 msgid "Priority"
 msgstr "Priorita"
 
-#: src/etc/inc/shaper.inc:1432
+#: src/etc/inc/shaper.inc:1434
 msgid ""
-"For hfsc, the range is 0 to 7. The default is 1. Hfsc queues with a higher "
-"priority are preferred in the case of overload."
+"For cbq and fairq the range is 0 to 7. The default is 1. For priq the range "
+"is 0 to 15, queues with a higher priority are preferred in the case of "
+"overload."
 msgstr ""
-"Rozsah pre hfsc je od 0 po 7. Predvolený je 1. Hfsc fronty s vyššou "
-"prioritou sú uprednostňované v prípade preťaženia."
 
-#: src/etc/inc/shaper.inc:1439
+#: src/etc/inc/shaper.inc:1442
 msgid "Queue limit in packets."
 msgstr "Limit fronta v paketách."
 
-#: src/etc/inc/shaper.inc:1441
+#: src/etc/inc/shaper.inc:1444
 msgid "Scheduler options"
 msgstr "Možnosti rozvrhu"
 
-#: src/etc/inc/shaper.inc:1450 src/usr/local/www/firewall_rules_edit.php:1749
+#: src/etc/inc/shaper.inc:1453 src/usr/local/www/firewall_rules_edit.php:1749
 msgid "Default Queue"
 msgstr "Predvolený front"
 
-#: src/etc/inc/shaper.inc:1458
+#: src/etc/inc/shaper.inc:1461
 #, php-format
 msgid "%1$sRandom Early Detection%2$s"
 msgstr ""
 
-#: src/etc/inc/shaper.inc:1465
+#: src/etc/inc/shaper.inc:1468
 #, php-format
 msgid "%1$sRandom Early Detection In and Out%2$s"
 msgstr ""
 
-#: src/etc/inc/shaper.inc:1472
+#: src/etc/inc/shaper.inc:1475
 #, php-format
 msgid "%1$sExplicit Congestion Notification%2$s"
 msgstr ""
 
-#: src/etc/inc/shaper.inc:1479
+#: src/etc/inc/shaper.inc:1482
 #, php-format
 msgid "%1$sCodel Active Queue%2$s"
 msgstr ""
 
-#: src/etc/inc/shaper.inc:1481
+#: src/etc/inc/shaper.inc:1484
 msgid "Select options for this queue"
 msgstr "Vyberte možnosti pre tento front"
 
-#: src/etc/inc/shaper.inc:1487 src/etc/inc/shaper.inc:3891
-#: src/etc/inc/shaper.inc:4195 src/usr/local/www/firewall_aliases.php:192
+#: src/etc/inc/shaper.inc:1490 src/etc/inc/shaper.inc:3894
+#: src/etc/inc/shaper.inc:4198 src/usr/local/www/firewall_aliases.php:192
 #: src/usr/local/www/firewall_aliases_edit.php:668
 #: src/usr/local/www/firewall_aliases_edit.php:726
 #: src/usr/local/www/firewall_aliases_import.php:262
 #: src/usr/local/www/firewall_nat.php:232
-#: src/usr/local/www/firewall_nat_1to1.php:153
+#: src/usr/local/www/firewall_nat_1to1.php:154
 #: src/usr/local/www/firewall_nat_1to1_edit.php:530
 #: src/usr/local/www/firewall_nat_edit.php:894
 #: src/usr/local/www/firewall_nat_npt.php:151
@@ -6724,7 +6753,7 @@ msgstr "Vyberte možnosti pre tento front"
 #: src/usr/local/www/load_balancer_pool_edit.php:319
 #: src/usr/local/www/load_balancer_virtual_server.php:145
 #: src/usr/local/www/load_balancer_virtual_server_edit.php:179
-#: src/usr/local/www/pkg_mgr.php:68 src/usr/local/www/pkg_mgr.php:159
+#: src/usr/local/www/pkg_mgr.php:67 src/usr/local/www/pkg_mgr.php:158
 #: src/usr/local/www/pkg_mgr_installed.php:70
 #: src/usr/local/www/services_captiveportal_hostname.php:116
 #: src/usr/local/www/services_captiveportal_hostname_edit.php:188
@@ -6746,7 +6775,7 @@ msgstr "Vyberte možnosti pre tento front"
 #: src/usr/local/www/services_dnsmasq_edit.php:225
 #: src/usr/local/www/services_dnsmasq_edit.php:274
 #: src/usr/local/www/services_dyndns.php:96
-#: src/usr/local/www/services_dyndns_edit.php:408
+#: src/usr/local/www/services_dyndns_edit.php:409
 #: src/usr/local/www/services_igmpproxy.php:86
 #: src/usr/local/www/services_igmpproxy_edit.php:160
 #: src/usr/local/www/services_pppoe.php:102
@@ -6793,207 +6822,203 @@ msgstr "Vyberte možnosti pre tento front"
 #: src/usr/local/www/vpn_openvpn_csc.php:663
 #: src/usr/local/www/vpn_openvpn_server.php:746
 #: src/usr/local/www/vpn_openvpn_server.php:1340
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:209
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:212
 #: src/usr/local/www/widgets/widgets/load_balancer_status.widget.php:62
 #: src/usr/local/www/widgets/widgets/services_status.widget.php:77
 #: src/usr/local/www/widgets/widgets/wake_on_lan.widget.php:152
 msgid "Description"
 msgstr "Popis"
 
-#: src/etc/inc/shaper.inc:1566
+#: src/etc/inc/shaper.inc:1569
 msgid "Delete Queue from this Interface"
 msgstr "Vymazať front z tohto rozhrania"
 
-#: src/etc/inc/shaper.inc:1924
+#: src/etc/inc/shaper.inc:1927
 msgid "upperlimit service curve defined but missing (d) value"
 msgstr "Krivka služby upperlimit definovaná, ale chýba (d) hodnota"
 
-#: src/etc/inc/shaper.inc:1927
+#: src/etc/inc/shaper.inc:1930
 msgid ""
 "upperlimit service curve defined but missing initial bandwidth (m1) value"
 msgstr ""
 "Krivka služby upperlimit definovaná, ale chýba hodnota iniciálnej šírky "
 "pásma (m1)"
 
-#: src/etc/inc/shaper.inc:1930
+#: src/etc/inc/shaper.inc:1933
 msgid "upperlimit m1 value needs to be Kb, Mb, Gb, or %"
 msgstr "upperlimit hodnota m1 musí byť Kb, Mb, Gb alebo %"
 
-#: src/etc/inc/shaper.inc:1933
+#: src/etc/inc/shaper.inc:1936
 msgid "upperlimit d value needs to be numeric"
 msgstr "upperlimit hodnota d musí byť číselná"
 
-#: src/etc/inc/shaper.inc:1936
+#: src/etc/inc/shaper.inc:1939
 msgid "upperlimit m2 value needs to be Kb, Mb, Gb, or %"
 msgstr "upperlimit hodnota m2 musí byť Kb, Mb, Gb alebo %"
 
-#: src/etc/inc/shaper.inc:1953
+#: src/etc/inc/shaper.inc:1956
 msgid "linkshare service curve defined but missing (d) value"
 msgstr "Krivka služby linkshare definovaná, ale chýba (d) hodnota"
 
-#: src/etc/inc/shaper.inc:1956
+#: src/etc/inc/shaper.inc:1959
 msgid ""
 "linkshare service curve defined but missing initial bandwidth (m1) value"
 msgstr ""
 "Krivka služby linkshare definovaná, ale chýba hodnota iniciálnej šírky pásma "
 "(m1)"
 
-#: src/etc/inc/shaper.inc:1959
+#: src/etc/inc/shaper.inc:1962
 msgid "linkshare m1 value needs to be Kb, Mb, Gb, or %"
 msgstr "linkshare hodnota m1 musí byť Kb, Mb, Gb alebo %"
 
-#: src/etc/inc/shaper.inc:1962
+#: src/etc/inc/shaper.inc:1965
 msgid "linkshare d value needs to be numeric"
 msgstr "linkshare hodnota d musí byť číselná"
 
-#: src/etc/inc/shaper.inc:1965
+#: src/etc/inc/shaper.inc:1968
 msgid "linkshare m2 value needs to be Kb, Mb, Gb, or %"
 msgstr "linkshare hodnota m2 musí byť Kb, Mb, Gb alebo %"
 
-#: src/etc/inc/shaper.inc:1968
+#: src/etc/inc/shaper.inc:1971
 msgid "realtime service curve defined but missing (d) value"
 msgstr "Krivka služby realtime definovaná, ale chýba (d) hodnota"
 
-#: src/etc/inc/shaper.inc:1971
+#: src/etc/inc/shaper.inc:1974
 msgid ""
 "realtime service curve defined but missing initial bandwidth (m1) value"
 msgstr ""
 "Krivka služby realtime definovaná, ale chýba hodnota iniciálnej šírky pásma "
 "(m1)"
 
-#: src/etc/inc/shaper.inc:1989
+#: src/etc/inc/shaper.inc:1992
 msgid "realtime m1 value needs to be Kb, Mb, Gb, or %"
 msgstr "realtime hodnota m1 musí byť Kb, Mb, Gb alebo %"
 
-#: src/etc/inc/shaper.inc:1992
+#: src/etc/inc/shaper.inc:1995
 msgid "realtime d value needs to be numeric"
 msgstr "realtime hodnota d musí byť číselná"
 
-#: src/etc/inc/shaper.inc:1995
+#: src/etc/inc/shaper.inc:1998
 msgid "realtime m2 value needs to be Kb, Mb, Gb, or %"
 msgstr "realtime hodnota m2 musí byť Kb, Mb, Gb alebo %"
 
-#: src/etc/inc/shaper.inc:2262
+#: src/etc/inc/shaper.inc:2265
 msgid "Service Curve (sc)"
 msgstr "Krivka služby (sc)"
 
-#: src/etc/inc/shaper.inc:2285 src/etc/inc/shaper.inc:2798
-#: src/etc/inc/shaper.inc:3071
+#: src/etc/inc/shaper.inc:2288 src/etc/inc/shaper.inc:2801
+#: src/etc/inc/shaper.inc:3074
 msgid "Choose the amount of bandwidth for this queue"
 msgstr "Zvoľte veľkosť šírky pásma pre tento front"
 
-#: src/etc/inc/shaper.inc:2289
+#: src/etc/inc/shaper.inc:2292
 msgid "Max bandwidth for queue."
 msgstr "Maximálna šírka pásma pre front."
 
-#: src/etc/inc/shaper.inc:2303 src/etc/inc/shaper.inc:2336
-#: src/etc/inc/shaper.inc:2368
+#: src/etc/inc/shaper.inc:2306 src/etc/inc/shaper.inc:2339
+#: src/etc/inc/shaper.inc:2371
 msgid "m1"
 msgstr "m1"
 
-#: src/etc/inc/shaper.inc:2310 src/etc/inc/shaper.inc:2343
-#: src/etc/inc/shaper.inc:2375
+#: src/etc/inc/shaper.inc:2313 src/etc/inc/shaper.inc:2346
+#: src/etc/inc/shaper.inc:2378
 msgid "d"
 msgstr "d"
 
-#: src/etc/inc/shaper.inc:2317 src/etc/inc/shaper.inc:2350
-#: src/etc/inc/shaper.inc:2382
+#: src/etc/inc/shaper.inc:2320 src/etc/inc/shaper.inc:2353
+#: src/etc/inc/shaper.inc:2385
 msgid "m2"
 msgstr "m2"
 
-#: src/etc/inc/shaper.inc:2322
+#: src/etc/inc/shaper.inc:2325
 msgid "Min bandwidth for queue."
 msgstr "Minimálna šírka pásma pre front."
 
-#: src/etc/inc/shaper.inc:2354
+#: src/etc/inc/shaper.inc:2357
 msgid "B/W share of a backlogged queue."
 msgstr ""
 
-#: src/etc/inc/shaper.inc:2647
-msgid "Priority must be an integer between 1 and 7."
-msgstr "Priorita musí byť celé číslo medzi 1 a 7"
+#: src/etc/inc/shaper.inc:2650 src/etc/inc/shaper.inc:2932
+msgid "Priority must be an integer between 0 and 7."
+msgstr ""
 
-#: src/etc/inc/shaper.inc:2776
+#: src/etc/inc/shaper.inc:2779
 msgid "NOTITLE"
 msgstr "BEZ NÁZVU"
 
-#: src/etc/inc/shaper.inc:2804
+#: src/etc/inc/shaper.inc:2807
 msgid "Scheduler option"
 msgstr "Možnosť rozvrhu"
 
-#: src/etc/inc/shaper.inc:2929
-msgid "Priority must be an integer between 1 and 255."
-msgstr "Priorita musí byť celé číslo medzi 1 a 255."
-
-#: src/etc/inc/shaper.inc:3077
+#: src/etc/inc/shaper.inc:3080
 msgid "Scheduler specific options"
 msgstr "Možnosti špecifické rozvrhu"
 
-#: src/etc/inc/shaper.inc:3080
+#: src/etc/inc/shaper.inc:3083
 msgid "Number of buckets available"
 msgstr "Množstvo dostupných bucketov"
 
-#: src/etc/inc/shaper.inc:3087
+#: src/etc/inc/shaper.inc:3090
 msgid "Bandwidth limit for hosts to not saturate link"
 msgstr "Limit šírky pásma pre hostiteľov proti zaplneniu linky"
 
-#: src/etc/inc/shaper.inc:3289
+#: src/etc/inc/shaper.inc:3292
 msgid "Packet Loss Rate must be a value between 0 and 1."
 msgstr "Miera straty paketov musí mať hodnotu medzi 0 a 1."
 
-#: src/etc/inc/shaper.inc:3293
+#: src/etc/inc/shaper.inc:3296
 msgid "Buckets must be an integer between 16 and 65535."
 msgstr "Buckety musia byť celé číslo  medzi 16 a 65535."
 
-#: src/etc/inc/shaper.inc:3306
+#: src/etc/inc/shaper.inc:3309
 msgid "IPv4 bit mask must be blank or numeric value between 1 and 32."
 msgstr ""
 "IPv4 maska v bitoch musí byť prázdna ale mať číselnú hodnotu medzi 1 a 32."
 
-#: src/etc/inc/shaper.inc:3311
+#: src/etc/inc/shaper.inc:3314
 msgid "IPv6 bit mask must be blank or numeric value between 1 and 128."
 msgstr ""
 "IPv6 maska v bitoch musí byť prázdna ale mať číselnú hodnotu medzi 1 a 128."
 
-#: src/etc/inc/shaper.inc:3407
+#: src/etc/inc/shaper.inc:3410
 #, php-format
 msgid "SHAPER: Could not create queue %1$s on interface %2$s because: %3$s"
 msgstr ""
 "SHAPER: Nebolo možné vytvoriť front %1$s na rozhraní %2$s z nasledujúceho "
 "dôvodu: %3$s"
 
-#: src/etc/inc/shaper.inc:3465
+#: src/etc/inc/shaper.inc:3468
 #, php-format
 msgid "Bandwidth for schedule %s must be an integer."
 msgstr "Šírka pásma pre rozvrh %s musí byť celé číslo."
 
-#: src/etc/inc/shaper.inc:3467
+#: src/etc/inc/shaper.inc:3470
 #, php-format
 msgid "Burst for schedule %s must be an integer."
 msgstr "Pretrhnutie pre rozvrh %s musí byť celé číslo."
 
-#: src/etc/inc/shaper.inc:3474
+#: src/etc/inc/shaper.inc:3477
 msgid "A schedule needs to be specified for every additional entry."
 msgstr "Pre každý dodatočný záznam musí byť uvedený rozvrh."
 
-#: src/etc/inc/shaper.inc:3477
+#: src/etc/inc/shaper.inc:3480
 msgid ""
 "If more than one bandwidth configured all schedules need to be selected."
 msgstr ""
 "Ak je nakonfigurovaná viac ako jedna šírka pásma, všetky rozvrhy musia byť "
 "označené."
 
-#: src/etc/inc/shaper.inc:3480
+#: src/etc/inc/shaper.inc:3483
 msgid "At least one bw specification is necessary."
 msgstr "Je potrebná aspoň jedna špecifikácia šírky pásma."
 
-#: src/etc/inc/shaper.inc:3483
+#: src/etc/inc/shaper.inc:3486
 msgid "Delay must be an integer."
 msgstr "Oneskorenie musí byť celé číslo."
 
-#: src/etc/inc/shaper.inc:3787 src/usr/local/www/firewall_aliases_edit.php:733
+#: src/etc/inc/shaper.inc:3790 src/usr/local/www/firewall_aliases_edit.php:733
 #: src/usr/local/www/firewall_nat.php:469
-#: src/usr/local/www/firewall_nat_1to1.php:244
+#: src/usr/local/www/firewall_nat_1to1.php:251
 #: src/usr/local/www/firewall_nat_npt.php:232
 #: src/usr/local/www/firewall_nat_out.php:504
 #: src/usr/local/www/firewall_rules.php:829
@@ -7013,16 +7038,16 @@ msgstr "Oneskorenie musí byť celé číslo."
 #: src/usr/local/www/services_unbound_acls.php:255
 #: src/usr/local/www/services_unbound_host_edit.php:284
 #: src/usr/local/www/system.php:527
-#: src/usr/local/www/system_certmanager.php:1015
+#: src/usr/local/www/system_certmanager.php:1026
 #: src/usr/local/www/system_usermanager.php:663
 msgid "Delete"
 msgstr "Odstrániť"
 
-#: src/etc/inc/shaper.inc:3795
+#: src/etc/inc/shaper.inc:3798
 msgid "Add Schedule"
 msgstr "Pridať rozvrh"
 
-#: src/etc/inc/shaper.inc:3818 src/etc/inc/shaper.inc:4131
+#: src/etc/inc/shaper.inc:3821 src/etc/inc/shaper.inc:4134
 #: src/usr/local/www/firewall_shaper.php:372
 #: src/usr/local/www/firewall_shaper_queues.php:205
 #: src/usr/local/www/firewall_shaper_vinterface.php:39
@@ -7031,7 +7056,7 @@ msgstr "Pridať rozvrh"
 msgid "Limiters"
 msgstr "Limitery"
 
-#: src/etc/inc/shaper.inc:3822 src/etc/inc/shaper.inc:4135
+#: src/etc/inc/shaper.inc:3825 src/etc/inc/shaper.inc:4138
 #: src/usr/local/www/firewall_nat_1to1_edit.php:541
 #: src/usr/local/www/firewall_rules.php:780
 #: src/usr/local/www/interfaces.php:1785 src/usr/local/www/interfaces.php:3093
@@ -7055,19 +7080,19 @@ msgstr "Limitery"
 msgid "Enable"
 msgstr "Povoliť"
 
-#: src/etc/inc/shaper.inc:3866 src/etc/inc/shaper.inc:4170
+#: src/etc/inc/shaper.inc:3869 src/etc/inc/shaper.inc:4173
 msgid "Source addresses"
 msgstr "Zdrojové adresy"
 
-#: src/etc/inc/shaper.inc:3866 src/etc/inc/shaper.inc:4170
+#: src/etc/inc/shaper.inc:3869 src/etc/inc/shaper.inc:4173
 msgid "Destination addresses"
 msgstr "Cieľové adresy"
 
-#: src/etc/inc/shaper.inc:3864 src/etc/inc/shaper.inc:4168
+#: src/etc/inc/shaper.inc:3867 src/etc/inc/shaper.inc:4171
 msgid "Mask"
 msgstr "Maska"
 
-#: src/etc/inc/shaper.inc:3867 src/etc/inc/shaper.inc:4171
+#: src/etc/inc/shaper.inc:3870 src/etc/inc/shaper.inc:4174
 msgid ""
 "If \"source\" or \"destination\" slots is chosen a dynamic pipe with the "
 "bandwidth, delay, packet loss and queue size given above will be created for "
@@ -7079,17 +7104,17 @@ msgstr ""
 "vyššie pre každú zistenú zdrojovú/cieľovú IP adresu respektívne. Toto "
 "umožňuje jednoduché určenie limitov šírky pásma na hostiteľa."
 
-#: src/etc/inc/shaper.inc:3878 src/etc/inc/shaper.inc:4182
+#: src/etc/inc/shaper.inc:3881 src/etc/inc/shaper.inc:4185
 #, php-format
 msgid "IPv4 mask bits%1$s%2$s"
 msgstr "IPv4 maska v bitoch%1$s%2$s"
 
-#: src/etc/inc/shaper.inc:3885 src/etc/inc/shaper.inc:4189
+#: src/etc/inc/shaper.inc:3888 src/etc/inc/shaper.inc:4192
 #, php-format
 msgid "IPv6 mask bits%1$s%2$s"
 msgstr "IPv6 maska v bitoch%1$s%2$s"
 
-#: src/etc/inc/shaper.inc:3894 src/etc/inc/shaper.inc:4198
+#: src/etc/inc/shaper.inc:3897 src/etc/inc/shaper.inc:4201
 #: src/usr/local/www/firewall_aliases_edit.php:671
 #: src/usr/local/www/firewall_aliases_import.php:265
 #: src/usr/local/www/firewall_nat_1to1_edit.php:533
@@ -7108,7 +7133,7 @@ msgstr "IPv6 maska v bitoch%1$s%2$s"
 #: src/usr/local/www/services_dhcpv6_edit.php:238
 #: src/usr/local/www/services_dnsmasq_domainoverride_edit.php:159
 #: src/usr/local/www/services_dnsmasq_edit.php:228
-#: src/usr/local/www/services_dyndns_edit.php:411
+#: src/usr/local/www/services_dyndns_edit.php:412
 #: src/usr/local/www/services_igmpproxy_edit.php:163
 #: src/usr/local/www/services_rfc2136_edit.php:285
 #: src/usr/local/www/services_unbound_domainoverride_edit.php:138
@@ -7124,7 +7149,7 @@ msgid ""
 "A description may be entered here for administrative reference (not parsed)."
 msgstr "Sem môžte zadať popis pre administratívne účely (nie je analyzovaný)."
 
-#: src/etc/inc/shaper.inc:3898 src/etc/inc/shaper.inc:4202
+#: src/etc/inc/shaper.inc:3901 src/etc/inc/shaper.inc:4205
 #: src/usr/local/www/firewall_rules_edit.php:1493
 #: src/usr/local/www/firewall_rules_edit.php:1499
 #: src/usr/local/www/interfaces_bridge_edit.php:426
@@ -7132,22 +7157,22 @@ msgstr "Sem môžte zadať popis pre administratívne účely (nie je analyzovan
 msgid "Advanced Options"
 msgstr "Rozšírené možnosti"
 
-#: src/etc/inc/shaper.inc:3902
+#: src/etc/inc/shaper.inc:3905
 msgid "Delay (ms)"
 msgstr "Oneskorenie (ms)"
 
-#: src/etc/inc/shaper.inc:3905
+#: src/etc/inc/shaper.inc:3908
 msgid ""
 "In most cases, zero (0) should specified here (or leave the field empty)."
 msgstr ""
 "Vo väčšine prípadov by tu mala byť uvedená nula (0) (alebo ponechajte pole "
 "prázdne)."
 
-#: src/etc/inc/shaper.inc:3909 src/etc/inc/shaper.inc:4215
+#: src/etc/inc/shaper.inc:3912 src/etc/inc/shaper.inc:4218
 msgid "Packet Loss Rate"
 msgstr "Miera straty paketov"
 
-#: src/etc/inc/shaper.inc:3913
+#: src/etc/inc/shaper.inc:3916
 msgid ""
 "In most cases, zero (0) should be specified here (or leave the field empty). "
 "A value of 0.001 means one packet in 1000 gets dropped."
@@ -7155,11 +7180,11 @@ msgstr ""
 "Vo väčšine prípadov by tu mala byť uvedená nula (0) (alebo ponechajte pole "
 "prázdne). Hodnota 0,001 znamená, že jeden z 1000 paketov bude zahodený."
 
-#: src/etc/inc/shaper.inc:3918 src/etc/inc/shaper.inc:4224
+#: src/etc/inc/shaper.inc:3921 src/etc/inc/shaper.inc:4227
 msgid "Queue size (slots)"
 msgstr "Veľkosť front (sloty)"
 
-#: src/etc/inc/shaper.inc:3921 src/etc/inc/shaper.inc:4227
+#: src/etc/inc/shaper.inc:3924 src/etc/inc/shaper.inc:4230
 msgid ""
 "In most cases, the field should be left empty. All packets in this pipe are "
 "placed into a fixed-size queue first, then they are delayed by value "
@@ -7170,11 +7195,11 @@ msgstr ""
 "sú najprv umiestnené do frontu s pevnou veľkosťou, potom sú oneskorené podľa "
 "uvedenej hodnoty v poli Oneskorenie a potom sú doručené do cieľu."
 
-#: src/etc/inc/shaper.inc:3926 src/etc/inc/shaper.inc:4232
+#: src/etc/inc/shaper.inc:3929 src/etc/inc/shaper.inc:4235
 msgid "Bucket size (slots)"
 msgstr "Veľkosť bucketu (sloty)"
 
-#: src/etc/inc/shaper.inc:3929
+#: src/etc/inc/shaper.inc:3932
 msgid ""
 "In most cases, this field should be left empty. It increases the hash size "
 "set."
@@ -7182,15 +7207,15 @@ msgstr ""
 "Vo väčšine prípadov by malo toto pole ostať prázdne. Zvyšuje nastavenie "
 "veľkosti hash."
 
-#: src/etc/inc/shaper.inc:4000
+#: src/etc/inc/shaper.inc:4003
 msgid "Weight must be an integer between 1 and 100."
 msgstr "Váha musí byť celé číslo medzi 1 a 100."
 
-#: src/etc/inc/shaper.inc:4206 src/usr/local/www/system_gateways_edit.php:271
+#: src/etc/inc/shaper.inc:4209 src/usr/local/www/system_gateways_edit.php:271
 msgid "Weight"
 msgstr "Váha"
 
-#: src/etc/inc/shaper.inc:4210
+#: src/etc/inc/shaper.inc:4213
 msgid ""
 "For queues under the same parent this specifies the share that a queue "
 "gets(values range from 1 to 100), it can be left blank otherwise."
@@ -7198,7 +7223,7 @@ msgstr ""
 "Pre fronty pod tým istým rodičom toto spresňuje diel, ktorý front dostane "
 "(hodnoty v rozsahu od 1 do 100), v inom prípade môže ostať prázdne."
 
-#: src/etc/inc/shaper.inc:4219
+#: src/etc/inc/shaper.inc:4222
 msgid ""
 "In most cases, zero (0) should be specified here (or leave the field empty). "
 "A value of 0.001 means one packet in 1000 gets dropped"
@@ -7206,7 +7231,7 @@ msgstr ""
 "Vo väčšine prípadov by tu mala byť uvedená nula (0) (alebo ponechajte pole "
 "prázdne). Hodnota 0,001 znamená, že jeden z 1000 paketov bude zahodený"
 
-#: src/etc/inc/shaper.inc:4235
+#: src/etc/inc/shaper.inc:4238
 msgid ""
 "In most cases, this field should be left empty. It increases the hash size "
 "set"
@@ -7214,29 +7239,29 @@ msgstr ""
 "Vo väčšine prípadov by malo toto pole ostať prázdne. Zvyšuje nastavenie "
 "veľkosti hash"
 
-#: src/etc/inc/shaper.inc:4630
+#: src/etc/inc/shaper.inc:4633
 msgid "Clone Shaper to this Interface"
 msgstr "Klonovať Shaper na toto rozhranie"
 
-#: src/etc/inc/shaper.inc:4639
+#: src/etc/inc/shaper.inc:4642
 #, php-format
 msgid "Welcome to the %s Traffic Shaper."
 msgstr "Víta Vás Traffic Shaper %s."
 
-#: src/etc/inc/shaper.inc:4642
+#: src/etc/inc/shaper.inc:4645
 #, php-format
 msgid "The tree on the left navigates through the %s."
 msgstr "Stromové zobrazenie naľavo naviguje medzi %s."
 
-#: src/etc/inc/shaper.inc:4643
+#: src/etc/inc/shaper.inc:4646
 msgid "queues"
 msgstr "frontmi"
 
-#: src/etc/inc/shaper.inc:4644
+#: src/etc/inc/shaper.inc:4647
 msgid "limiters"
 msgstr "limitermi"
 
-#: src/etc/inc/shaper.inc:4646
+#: src/etc/inc/shaper.inc:4649
 #, php-format
 msgid ""
 "Buttons at the bottom represent %s actions and are activated accordingly."
@@ -7244,118 +7269,118 @@ msgstr ""
 "Tlačidlá v dolnej časti predstavujú funkcie pre %s a sú podľa toho "
 "aktivované ."
 
-#: src/etc/inc/shaper.inc:4647 src/usr/local/www/diag_pftop.php:97
+#: src/etc/inc/shaper.inc:4650 src/usr/local/www/diag_pftop.php:97
 msgid "queue"
 msgstr "fronty"
 
-#: src/etc/inc/shaper.inc:4648
+#: src/etc/inc/shaper.inc:4651
 msgid "limiter"
 msgstr "limitery"
 
-#: src/etc/inc/system.inc:563
+#: src/etc/inc/system.inc:564
 msgid "Error: cannot open hosts file in system_hosts_generate()."
 msgstr "Chyba: nebolo možné otvoriť súbor hosts v system_hosts_generate()"
 
-#: src/etc/inc/system.inc:733
+#: src/etc/inc/system.inc:734
 msgid "Not adding default route because OLSR dynamic gateway is enabled."
 msgstr ""
 "Nepridáva sa predvolený smer, pretože dynamická brána OLSR je povolená."
 
-#: src/etc/inc/system.inc:757
+#: src/etc/inc/system.inc:758
 #, php-format
 msgid "ROUTING: setting default route to %s"
 msgstr "SMEROVANIE: nastavuje sa predvolený smer na %s"
 
-#: src/etc/inc/system.inc:768
+#: src/etc/inc/system.inc:769
 #, php-format
 msgid "ROUTING: setting IPv6 default route to %s"
 msgstr "SMEROVANIE: nastavuje sa IPv6 predvolený smer na %s"
 
-#: src/etc/inc/system.inc:789
+#: src/etc/inc/system.inc:790
 #, php-format
 msgid "Static Routes: Gateway IP could not be found for %s"
 msgstr "Statické smery: IP adresu brány nebolo možné nájsť pre %s"
 
-#: src/etc/inc/system.inc:1014
+#: src/etc/inc/system.inc:1015
 msgid "Starting syslog..."
 msgstr "Spúšťa sa syslog..."
 
-#: src/etc/inc/system.inc:1187
+#: src/etc/inc/system.inc:1188
 #, php-format
 msgid "Error: cannot open syslog.conf in system_syslogd_start().%s"
 msgstr ""
 "Chyba: nebolo možné otvoriť súbor syslog.conf v system_syslogd_start().%s"
 
-#: src/etc/inc/system.inc:1273
+#: src/etc/inc/system.inc:1274
 msgid "Creating SSL Certificate for this host"
 msgstr "Vytváranie SSL certifikátov pre tohto hostiteľa"
 
-#: src/etc/inc/system.inc:1277
+#: src/etc/inc/system.inc:1278
 #, php-format
 msgid "webConfigurator default (%s)"
 msgstr "Predvolený pre webConfigurator (%s)"
 
-#: src/etc/inc/system.inc:1291
+#: src/etc/inc/system.inc:1292
 #, php-format
 msgid "Error creating WebGUI Certificate: openssl library returns: %s"
 msgstr ""
 "Chyba počas vytvárania WebGUI certifikátu: openssl knižnica vrátila: %s"
 
-#: src/etc/inc/system.inc:1300
+#: src/etc/inc/system.inc:1301
 #, php-format
 msgid "Generated new self-signed HTTPS certificate (%s)"
 msgstr "Bol vygenerovaný nový self-signed HTTPS certifikát (%s)"
 
-#: src/etc/inc/system.inc:1308
+#: src/etc/inc/system.inc:1309
 msgid "Starting webConfigurator..."
 msgstr "Spúšťa sa webConfigurator..."
 
-#: src/etc/inc/system.inc:1358 src/etc/inc/system.inc:2234
-#: src/etc/inc/system.inc:2237
+#: src/etc/inc/system.inc:1359 src/etc/inc/system.inc:2235
+#: src/etc/inc/system.inc:2238
 msgid "failed!"
 msgstr "zlyhalo!"
 
-#: src/etc/inc/system.inc:1560
+#: src/etc/inc/system.inc:1561
 #, php-format
 msgid "Error: cannot open certificate file in system_webgui_start().%s"
 msgstr ""
 "Chyba: nebolo možné otvoriť súbor certifikátu v system_webgui_start().%s"
 
-#: src/etc/inc/system.inc:1573
+#: src/etc/inc/system.inc:1574
 #, php-format
 msgid "Error: cannot open certificate key file in system_webgui_start().%s"
 msgstr ""
 "Chyba: nebolo možné otvoriť kľúč certifikátu v system_webgui_start().%s"
 
-#: src/etc/inc/system.inc:1600
+#: src/etc/inc/system.inc:1601
 #, php-format
 msgid "Error: cannot open %1$s in system_generate_nginx_config().%2$s"
 msgstr ""
 "Chyba: nebolo možné otvoriť súbor %1$s v system_generate_nginx_config().%2$s"
 
-#: src/etc/inc/system.inc:1649
+#: src/etc/inc/system.inc:1650
 msgid "Setting timezone..."
 msgstr "Nastavuje sa časové pásmo..."
 
-#: src/etc/inc/system.inc:2066
+#: src/etc/inc/system.inc:2067
 #, php-format
 msgid "Could not open %s/ntpd.conf for writing"
 msgstr "Nebolo možné otvoriť súbor %s/ntpd.conf pre zápis"
 
-#: src/etc/inc/system.inc:2186
+#: src/etc/inc/system.inc:2187
 #, php-format
 msgid "Error: cannot open dmesg.boot in system_dmesg_save().%s"
 msgstr "Chyba: nebolo možné otvoriť dmesg.boot v system_dmesg_save().%s"
 
-#: src/etc/inc/system.inc:2213
+#: src/etc/inc/system.inc:2214
 msgid "Setting hard disk standby... "
 msgstr "Nastavuje sa pohotovostný režim pevných diskov..."
 
-#: src/etc/inc/system.inc:2475
+#: src/etc/inc/system.inc:2476
 msgid "PC Engines WRAP"
 msgstr "PC Engines WRAP"
 
-#: src/etc/inc/system.inc:2479 src/etc/inc/system.inc:2498
+#: src/etc/inc/system.inc:2480 src/etc/inc/system.inc:2499
 msgid "PC Engines ALIX"
 msgstr "PC Engines ALIX"
 
@@ -7885,49 +7910,49 @@ msgstr "Chyba: Neplatné hash informácie certifikátu pre %s"
 msgid "Error: Cannot write IPsec CA file for %s"
 msgstr "Chyba: Chyba zápisu súboru IPsec CA pre %s"
 
-#: src/etc/inc/vpn.inc:1374
+#: src/etc/inc/vpn.inc:1376
 #, php-format
 msgid "No phase2 specifications for tunnel with REQID = %s"
 msgstr "Žiadne špecifikácie fázy 2 pre tunel s REQID = %s"
 
-#: src/etc/inc/vpn.inc:1493
+#: src/etc/inc/vpn.inc:1495
 #, php-format
 msgid "Ignoring IPsec reload since there are no tunnels on interface %s"
 msgstr ""
 "Ignoruje sa obnovenie IPsec, keďže na rozhraní %s nie sú žiadne tunely"
 
-#: src/etc/inc/vpn.inc:1499
+#: src/etc/inc/vpn.inc:1501
 msgid "Forcefully reloading IPsec"
 msgstr "Prebieha vynútené obnovenie IPsec"
 
-#: src/etc/inc/vpn.inc:1549
+#: src/etc/inc/vpn.inc:1551
 msgid "Configuring PPPoE Server service... "
 msgstr "Konfiguruje sa služby PPPoE Server..."
 
-#: src/etc/inc/vpn.inc:1574
+#: src/etc/inc/vpn.inc:1576
 #, php-format
 msgid "Error: cannot open mpd.conf in vpn_pppoe_configure()."
 msgstr "Chyba: nebolo možné otvoriť súbor mpd.conf v vpn_pppoe_configure()."
 
-#: src/etc/inc/vpn.inc:1691
+#: src/etc/inc/vpn.inc:1693
 #, php-format
 msgid "Error: cannot open mpd.secret in vpn_pppoe_configure()."
 msgstr "Chyba: nebolo možné otvoriť súbor mpd.secret v vpn_pppoe_configure()."
 
-#: src/etc/inc/vpn.inc:1725
+#: src/etc/inc/vpn.inc:1727
 msgid "done"
 msgstr "hotovo"
 
-#: src/etc/inc/vpn.inc:1747
+#: src/etc/inc/vpn.inc:1749
 msgid "Configuring l2tp VPN service... "
 msgstr "Konfiguruje sa služba l2tp VPN..."
 
-#: src/etc/inc/vpn.inc:1786
+#: src/etc/inc/vpn.inc:1788
 #, php-format
 msgid "Error: cannot open mpd.conf in vpn_l2tp_configure()."
 msgstr "Chyba: nebolo možné otvoriť súbor mpd.conf v vpn_l2tp_configure()."
 
-#: src/etc/inc/vpn.inc:1878
+#: src/etc/inc/vpn.inc:1880
 #, php-format
 msgid "Error: cannot open mpd.secret in vpn_l2tp_configure()."
 msgstr "Chyba: nebolo možné otvoriť súbor mpd.secret v vpn_l2tp_configure()."
@@ -8026,7 +8051,7 @@ msgstr "Potvrdiť"
 #: src/usr/local/www/diag_confbak.php:179 src/usr/local/www/diag_edit.php:122
 #: src/usr/local/www/diag_edit.php:124 src/usr/local/www/firewall_nat.php:473
 #: src/usr/local/www/firewall_nat.php:487
-#: src/usr/local/www/firewall_nat_1to1.php:248
+#: src/usr/local/www/firewall_nat_1to1.php:255
 #: src/usr/local/www/firewall_nat_npt.php:236
 #: src/usr/local/www/firewall_nat_out.php:508
 #: src/usr/local/www/firewall_rules.php:833
@@ -8039,23 +8064,23 @@ msgstr "Potvrdiť"
 #: src/usr/local/www/system_authservers.php:82
 #: src/usr/local/www/system_camanager.php:318
 #: src/usr/local/www/system_camanager.php:349
-#: src/usr/local/www/system_certmanager.php:206
-#: src/usr/local/www/system_certmanager.php:587
-#: src/usr/local/www/system_certmanager.php:618
+#: src/usr/local/www/system_certmanager.php:207
+#: src/usr/local/www/system_certmanager.php:591
+#: src/usr/local/www/system_certmanager.php:622
 #: src/usr/local/www/system_crlmanager.php:256
 #: src/usr/local/www/system_crlmanager.php:341
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:267
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:268
 #: src/usr/local/www/widgets/widgets/gateways.widget.php:299
 #: src/usr/local/www/widgets/widgets/interface_statistics.widget.php:292
 #: src/usr/local/www/widgets/widgets/interfaces.widget.php:195
-#: src/usr/local/www/widgets/widgets/log.widget.php:276
+#: src/usr/local/www/widgets/widgets/log.widget.php:290
 #: src/usr/local/www/widgets/widgets/openvpn.widget.php:389
 #: src/usr/local/www/widgets/widgets/picture.widget.php:86
 #: src/usr/local/www/widgets/widgets/rss.widget.php:162
 #: src/usr/local/www/widgets/widgets/services_status.widget.php:161
 #: src/usr/local/www/widgets/widgets/smart_status.widget.php:160
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:486
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:230
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:499
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:262
 #: src/usr/local/www/widgets/widgets/traffic_graphs.widget.php:241
 #: src/usr/local/www/widgets/widgets/wake_on_lan.widget.php:182
 msgid "Save"
@@ -8193,8 +8218,8 @@ msgstr "MAC adresa"
 #: src/usr/local/www/status_dhcp_leases.php:362
 #: src/usr/local/www/status_dhcpv6_leases.php:441
 #: src/usr/local/www/system.php:158
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:179
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:241
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:180
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:242
 msgid "Hostname"
 msgstr "Hostname"
 
@@ -8206,7 +8231,7 @@ msgstr "Druh spojenia"
 #: src/usr/local/www/diag_ndp.php:143
 #: src/usr/local/www/firewall_aliases.php:193
 #: src/usr/local/www/firewall_nat.php:233
-#: src/usr/local/www/firewall_nat_1to1.php:154
+#: src/usr/local/www/firewall_nat_1to1.php:155
 #: src/usr/local/www/firewall_nat_npt.php:152
 #: src/usr/local/www/firewall_nat_out.php:288
 #: src/usr/local/www/firewall_rules.php:391
@@ -8251,7 +8276,7 @@ msgstr "Druh spojenia"
 #: src/usr/local/www/status_services.php:89
 #: src/usr/local/www/system_authservers.php:444
 #: src/usr/local/www/system_camanager.php:364
-#: src/usr/local/www/system_certmanager.php:1112
+#: src/usr/local/www/system_certmanager.php:1123
 #: src/usr/local/www/system_crlmanager.php:582
 #: src/usr/local/www/system_gateway_groups.php:132
 #: src/usr/local/www/system_gateways.php:255
@@ -8527,7 +8552,7 @@ msgstr "NAT"
 
 #: src/usr/local/www/diag_backup.php:433 src/usr/local/www/head.inc:243
 #: src/usr/local/www/head.inc:679 src/usr/local/www/pkg_mgr.php:38
-#: src/usr/local/www/pkg_mgr.php:130 src/usr/local/www/pkg_mgr_install.php:249
+#: src/usr/local/www/pkg_mgr.php:129 src/usr/local/www/pkg_mgr_install.php:249
 #: src/usr/local/www/pkg_mgr_installed.php:34
 #: src/usr/local/www/pkg_mgr_installed.php:182
 msgid "Package Manager"
@@ -8547,7 +8572,7 @@ msgid "Syslog"
 msgstr "Syslog"
 
 #: src/usr/local/www/diag_backup.php:437 src/usr/local/www/head.inc:679
-#: src/usr/local/www/pkg_mgr.php:38 src/usr/local/www/pkg_mgr.php:130
+#: src/usr/local/www/pkg_mgr.php:38 src/usr/local/www/pkg_mgr.php:129
 #: src/usr/local/www/pkg_mgr_install.php:244
 #: src/usr/local/www/pkg_mgr_install.php:249
 #: src/usr/local/www/pkg_mgr_installed.php:34
@@ -8565,7 +8590,7 @@ msgstr "Syslog"
 #: src/usr/local/www/system_advanced_sysctl.php:115
 #: src/usr/local/www/system_authservers.php:407
 #: src/usr/local/www/system_camanager.php:315
-#: src/usr/local/www/system_certmanager.php:584
+#: src/usr/local/www/system_certmanager.php:588
 #: src/usr/local/www/system_crlmanager.php:253
 #: src/usr/local/www/system_gateway_groups.php:101
 #: src/usr/local/www/system_gateway_groups_edit.php:144
@@ -8584,8 +8609,8 @@ msgstr "Syslog"
 #: src/usr/local/www/system_usermanager_settings.php:109
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:145
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:35
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:148
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:236
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:163
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:268
 msgid "System"
 msgstr "Systém"
 
@@ -8628,14 +8653,14 @@ msgstr "Wake-on-LAN"
 #: src/usr/local/www/services_snmp.php:176
 #: src/usr/local/www/services_unbound.php:231
 #: src/usr/local/www/status_graph.php:145
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:268
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:269
 #: src/usr/local/www/widgets/widgets/gateways.widget.php:300
 #: src/usr/local/www/widgets/widgets/interface_statistics.widget.php:293
 #: src/usr/local/www/widgets/widgets/interfaces.widget.php:196
 #: src/usr/local/www/widgets/widgets/openvpn.widget.php:390
 #: src/usr/local/www/widgets/widgets/services_status.widget.php:162
 #: src/usr/local/www/widgets/widgets/smart_status.widget.php:161
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:487
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:500
 #: src/usr/local/www/widgets/widgets/traffic_graphs.widget.php:242
 #: src/usr/local/www/widgets/widgets/wake_on_lan.widget.php:183
 #: src/usr/local/www/diag_smart.php:253
@@ -8822,7 +8847,7 @@ msgstr "Vyvolať nasledujúci príkaz"
 msgid "Clear command entry"
 msgstr "Vymazať prikazový záznam"
 
-#: src/usr/local/www/diag_command.php:218 src/usr/local/www/pkg_mgr.php:165
+#: src/usr/local/www/diag_command.php:218 src/usr/local/www/pkg_mgr.php:164
 #: src/usr/local/www/system_groupmanager_addprivs.php:213
 #: src/usr/local/www/system_usermanager_addprivs.php:197
 #: src/usr/local/www/interfaces.php:2101
@@ -8967,11 +8992,11 @@ msgstr "Diff"
 msgid "Date"
 msgstr "Dátum"
 
-#: src/usr/local/www/diag_confbak.php:219 src/usr/local/www/pkg_mgr.php:67
+#: src/usr/local/www/diag_confbak.php:219 src/usr/local/www/pkg_mgr.php:66
 #: src/usr/local/www/pkg_mgr_installed.php:69
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:51
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:37
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:203
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:218
 msgid "Version"
 msgstr "Verzia"
 
@@ -9156,7 +9181,7 @@ msgstr "Hostname"
 #: src/usr/local/www/diag_dns.php:195 src/usr/local/www/services_rfc2136.php:82
 #: src/usr/local/www/services_rfc2136_edit.php:233
 #: src/usr/local/www/status_ntpd.php:296
-#: src/usr/local/www/system_certmanager.php:1168
+#: src/usr/local/www/system_certmanager.php:1179
 #: src/usr/local/www/vpn_openvpn_client.php:940
 #: src/usr/local/www/widgets/widgets/load_balancer_status.widget.php:60
 msgid "Server"
@@ -9271,8 +9296,8 @@ msgid "invalid input"
 msgstr "neplatný vstup"
 
 #: src/usr/local/www/diag_dump_states.php:75
-#: src/usr/local/www/diag_dump_states.php:107
-#: src/usr/local/www/diag_dump_states.php:175
+#: src/usr/local/www/diag_dump_states.php:111
+#: src/usr/local/www/diag_dump_states.php:179
 #: src/usr/local/www/diag_dump_states_sources.php:53
 #: src/usr/local/www/diag_dump_states_sources.php:58
 #: src/usr/local/www/diag_resetstate.php:56
@@ -9283,7 +9308,11 @@ msgstr "neplatný vstup"
 msgid "States"
 msgstr "Stavy"
 
-#: src/usr/local/www/diag_dump_states.php:109
+#: src/usr/local/www/diag_dump_states.php:78
+msgid "Are you sure you wish to delete this state?"
+msgstr ""
+
+#: src/usr/local/www/diag_dump_states.php:113
 #: src/usr/local/www/diag_dump_states_sources.php:53
 #: src/usr/local/www/diag_dump_states_sources.php:59
 #: src/usr/local/www/diag_resetstate.php:84
@@ -9291,23 +9320,23 @@ msgstr "Stavy"
 msgid "Source Tracking"
 msgstr "Sledovanie zdroja"
 
-#: src/usr/local/www/diag_dump_states.php:111
+#: src/usr/local/www/diag_dump_states.php:115
 #: src/usr/local/www/diag_dump_states_sources.php:60
 #: src/usr/local/www/diag_resetstate.php:56
 #: src/usr/local/www/diag_resetstate.php:87
 msgid "Reset States"
 msgstr "Vynulovať stavy"
 
-#: src/usr/local/www/diag_dump_states.php:119
+#: src/usr/local/www/diag_dump_states.php:123
 msgid "State Filter"
 msgstr "Filter stavov"
 
-#: src/usr/local/www/diag_dump_states.php:139
+#: src/usr/local/www/diag_dump_states.php:143
 #: src/usr/local/www/diag_dump_states_sources.php:97
 msgid "Filter expression"
 msgstr "Filtrovaný výraz"
 
-#: src/usr/local/www/diag_dump_states.php:147
+#: src/usr/local/www/diag_dump_states.php:151
 #: src/usr/local/www/diag_dump_states_sources.php:106
 #: src/usr/local/www/diag_routes.php:98 src/usr/local/www/pkg.php:352
 #: src/usr/local/www/status_graph.php:147
@@ -9318,19 +9347,19 @@ msgstr "Filtrovaný výraz"
 msgid "Filter"
 msgstr "Filter"
 
-#: src/usr/local/www/diag_dump_states.php:160
+#: src/usr/local/www/diag_dump_states.php:164
 msgid "Kill States"
-msgstr "Zabiť stavy"
+msgstr "Ukončit stavy"
 
-#: src/usr/local/www/diag_dump_states.php:166
+#: src/usr/local/www/diag_dump_states.php:170
 msgid "Kill filtered states"
-msgstr "Zabiť filtrované stavy"
+msgstr "Ukončiť filtrované stavy"
 
-#: src/usr/local/www/diag_dump_states.php:168
+#: src/usr/local/www/diag_dump_states.php:172
 msgid "Remove all states to and from the filtered address"
 msgstr "Vymazať všetky stavy na a z filtrovanej adresy."
 
-#: src/usr/local/www/diag_dump_states.php:182
+#: src/usr/local/www/diag_dump_states.php:186
 #: src/usr/local/www/diag_states_summary.php:153
 #: src/usr/local/www/easyrule.php:90 src/usr/local/www/firewall_nat.php:225
 #: src/usr/local/www/firewall_nat_edit.php:239
@@ -9354,34 +9383,34 @@ msgstr "Vymazať všetky stavy na a z filtrovanej adresy."
 msgid "Protocol"
 msgstr "Protokol"
 
-#: src/usr/local/www/diag_dump_states.php:183
+#: src/usr/local/www/diag_dump_states.php:187
 msgid "Source (Original Source) -> Destination (Original Destination)"
 msgstr "Zdroj (pôvodný zdroj) -> Cieľ (pôvodný cieľ)"
 
-#: src/usr/local/www/diag_dump_states.php:184
+#: src/usr/local/www/diag_dump_states.php:188
 #: src/usr/local/www/status_dhcpv6_leases.php:539
 msgid "State"
 msgstr "Stav"
 
-#: src/usr/local/www/diag_dump_states.php:185
+#: src/usr/local/www/diag_dump_states.php:189
 msgid "Packets"
 msgstr "Pakety"
 
-#: src/usr/local/www/diag_dump_states.php:186
+#: src/usr/local/www/diag_dump_states.php:190
 #: src/usr/local/www/diag_pftop.php:118
 msgid "Bytes"
 msgstr "Bajty"
 
-#: src/usr/local/www/diag_dump_states.php:254
+#: src/usr/local/www/diag_dump_states.php:258
 #, php-format
 msgid "Remove all state entries from %1$s to %2$s"
 msgstr "Vymazať všetky záznamy stavov z %1$s do %2$s"
 
-#: src/usr/local/www/diag_dump_states.php:269
+#: src/usr/local/www/diag_dump_states.php:273
 msgid "No states were found that match the current filter."
 msgstr "Neboli nájdené žiadne stavy, ktoré sa zhodujú s aktuálnym filtrom."
 
-#: src/usr/local/www/diag_dump_states.php:271
+#: src/usr/local/www/diag_dump_states.php:275
 msgid ""
 "State display suppressed without filter submission. See System > General "
 "Setup, Require State Filter."
@@ -9389,7 +9418,7 @@ msgstr ""
 "Zobrazenie stavov bez zadaného filtra užívateľom je zakázané. Viď Systém > "
 "Všeobecné nastavenie, Požadovať filter stavov."
 
-#: src/usr/local/www/diag_dump_states.php:274
+#: src/usr/local/www/diag_dump_states.php:278
 msgid "No states were found."
 msgstr "Neboli nájdené žiadne stavy."
 
@@ -9782,13 +9811,13 @@ msgstr "Zachytávač paketov"
 
 #: src/usr/local/www/diag_packet_capture.php:127
 #: src/usr/local/www/system_camanager.php:419
-#: src/usr/local/www/system_certmanager.php:1215
+#: src/usr/local/www/system_certmanager.php:1238
 msgid "OpenVPN Server"
 msgstr "OpenVPN server"
 
 #: src/usr/local/www/diag_packet_capture.php:127
 #: src/usr/local/www/system_camanager.php:422
-#: src/usr/local/www/system_certmanager.php:1218
+#: src/usr/local/www/system_certmanager.php:1241
 msgid "OpenVPN Client"
 msgstr "OpenVPN klient"
 
@@ -10380,10 +10409,10 @@ msgstr "Použite bežný výraz pre filtrovanie tabuliek."
 #: src/usr/local/www/diag_routes.php:107 src/usr/local/www/diag_tables.php:152
 #: src/usr/local/www/head.inc:240 src/usr/local/www/pkg_mgr_install.php:244
 #: src/usr/local/www/pkg_mgr_installed.php:211
-#: src/usr/local/www/system_certmanager.php:530
-#: src/usr/local/www/system_certmanager.php:587
-#: src/usr/local/www/system_certmanager.php:1044
-#: src/usr/local/www/system_certmanager.php:1092
+#: src/usr/local/www/system_certmanager.php:534
+#: src/usr/local/www/system_certmanager.php:591
+#: src/usr/local/www/system_certmanager.php:1055
+#: src/usr/local/www/system_certmanager.php:1103
 #: src/usr/local/www/system_update_settings.php:98
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:120
 msgid "Update"
@@ -10592,7 +10621,7 @@ msgstr "Počet protokolov"
 #: src/usr/local/www/firewall_aliases.php:149
 #: src/usr/local/www/services_dnsmasq.php:372
 #: src/usr/local/www/services_dnsmasq.php:446
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:225
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:228
 msgid "IP"
 msgstr "IP"
 
@@ -10933,8 +10962,8 @@ msgstr "Druh pravidla"
 #: src/usr/local/www/status_logs_filter_dynamic.php:392
 #: src/usr/local/www/vpn_ipsec_mobile.php:455
 #: src/usr/local/www/vpn_ipsec_mobile.php:465
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:207
-#: src/usr/local/www/widgets/widgets/log.widget.php:115
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:210
+#: src/usr/local/www/widgets/widgets/log.widget.php:119
 msgid "Source"
 msgstr "Zdroj"
 
@@ -10953,8 +10982,8 @@ msgstr "IP protokol"
 #: src/usr/local/www/status_ipsec_spd.php:60
 #: src/usr/local/www/status_logs_filter.php:162
 #: src/usr/local/www/status_logs_filter_dynamic.php:393
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:208
-#: src/usr/local/www/widgets/widgets/log.widget.php:116
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:211
+#: src/usr/local/www/widgets/widgets/log.widget.php:120
 msgid "Destination"
 msgstr "Cieľ"
 
@@ -11072,8 +11101,8 @@ msgstr "Odstrániť alias"
 #: src/usr/local/www/firewall_aliases.php:271
 #: src/usr/local/www/firewall_nat.php:461
 #: src/usr/local/www/firewall_nat.php:465
-#: src/usr/local/www/firewall_nat_1to1.php:236
-#: src/usr/local/www/firewall_nat_1to1.php:240
+#: src/usr/local/www/firewall_nat_1to1.php:243
+#: src/usr/local/www/firewall_nat_1to1.php:247
 #: src/usr/local/www/firewall_nat_npt.php:224
 #: src/usr/local/www/firewall_nat_npt.php:228
 #: src/usr/local/www/firewall_nat_out.php:496
@@ -11123,7 +11152,7 @@ msgstr "Odstrániť alias"
 #: src/usr/local/www/services_wol.php:202
 #: src/usr/local/www/system_authservers.php:470
 #: src/usr/local/www/system_camanager.php:453
-#: src/usr/local/www/system_certmanager.php:1034
+#: src/usr/local/www/system_certmanager.php:1045
 #: src/usr/local/www/system_crlmanager.php:537
 #: src/usr/local/www/system_gateway_groups.php:186
 #: src/usr/local/www/system_gateways.php:325
@@ -11236,7 +11265,7 @@ msgstr "Tabuľka webových adries (port)"
 #: src/usr/local/www/system_advanced_sysctl.php:119
 #: src/usr/local/www/system_authservers.php:411
 #: src/usr/local/www/system_camanager.php:319
-#: src/usr/local/www/system_certmanager.php:588
+#: src/usr/local/www/system_certmanager.php:592
 #: src/usr/local/www/system_crlmanager.php:257
 #: src/usr/local/www/system_gateway_groups_edit.php:144
 #: src/usr/local/www/system_gateways_edit.php:111
@@ -11729,7 +11758,7 @@ msgid "NAT Ports"
 msgstr "NAT porty"
 
 #: src/usr/local/www/firewall_nat.php:291
-#: src/usr/local/www/firewall_nat_1to1.php:177
+#: src/usr/local/www/firewall_nat_1to1.php:182
 #: src/usr/local/www/firewall_nat_npt.php:177
 #: src/usr/local/www/firewall_rules.php:501 src/usr/local/www/vpn_ipsec.php:295
 #: src/usr/local/www/vpn_ipsec.php:430
@@ -11737,7 +11766,7 @@ msgid "click to toggle enabled/disabled status"
 msgstr "kliknite pre prepnutie povoleného/zablokovaného stavu"
 
 #: src/usr/local/www/firewall_nat.php:293
-#: src/usr/local/www/firewall_nat_1to1.php:179
+#: src/usr/local/www/firewall_nat_1to1.php:184
 msgid "Negated: This rule excludes NAT from a later rule"
 msgstr "Negated: Toto pravidlo vylučuje NAT z neskoršieho pravidla"
 
@@ -11756,6 +11785,7 @@ msgstr "Firewall pravidlo ID %s je spravované týmto pravidlom"
 #: src/usr/local/www/firewall_nat.php:384
 #: src/usr/local/www/firewall_nat.php:401
 #: src/usr/local/www/firewall_nat.php:419
+#: src/usr/local/www/firewall_nat_1to1.php:211
 #: src/usr/local/www/firewall_rules.php:708
 #: src/usr/local/www/firewall_rules.php:717
 #: src/usr/local/www/firewall_rules.php:726
@@ -11830,7 +11860,7 @@ msgstr "Legenda"
 #: src/usr/local/www/services_captiveportal_mac.php:60
 #: src/usr/local/www/services_captiveportal_mac_edit.php:200
 #: src/usr/local/www/status_logs_common.inc:418
-#: src/usr/local/www/widgets/widgets/log.widget.php:238
+#: src/usr/local/www/widgets/widgets/log.widget.php:252
 #: src/usr/local/www/status_logs_common.inc:419
 msgid "Pass"
 msgstr "Povoliť"
@@ -11859,63 +11889,63 @@ msgstr "Firewall: NAT: 1:1 - povolené NAT 1:1 pravidlo."
 msgid "Firewall: NAT: 1:1 - disabled a NAT 1:1 rule."
 msgstr "Firewall: NAT: 1:1 - zakázané NAT 1:1 pravidlo."
 
-#: src/usr/local/www/firewall_nat_1to1.php:142
+#: src/usr/local/www/firewall_nat_1to1.php:143
 msgid "NAT 1:1 Mappings"
 msgstr "NAT 1:1 priradenia"
 
-#: src/usr/local/www/firewall_nat_1to1.php:150
+#: src/usr/local/www/firewall_nat_1to1.php:151
 msgid "External IP"
 msgstr "Externá IP adresa"
 
-#: src/usr/local/www/firewall_nat_1to1.php:151
+#: src/usr/local/www/firewall_nat_1to1.php:152
 #: src/usr/local/www/status_upnp.php:71
 msgid "Internal IP"
 msgstr "Interná IP adresa"
 
-#: src/usr/local/www/firewall_nat_1to1.php:152
+#: src/usr/local/www/firewall_nat_1to1.php:153
 msgid "Destination IP"
 msgstr "Cieľová IP adresa"
 
-#: src/usr/local/www/firewall_nat_1to1.php:218
+#: src/usr/local/www/firewall_nat_1to1.php:225
 #: src/usr/local/www/firewall_nat_npt.php:207
 #: src/usr/local/www/firewall_nat_out.php:479
 msgid "Edit mapping"
 msgstr "Úprava priradení"
 
-#: src/usr/local/www/firewall_nat_1to1.php:219
+#: src/usr/local/www/firewall_nat_1to1.php:226
 #: src/usr/local/www/firewall_nat_npt.php:208
 #: src/usr/local/www/firewall_nat_out.php:480
 msgid "Add a new mapping based on this one"
 msgstr "Pridať nové priradenie založené na tomto priradení"
 
-#: src/usr/local/www/firewall_nat_1to1.php:220
+#: src/usr/local/www/firewall_nat_1to1.php:227
 #: src/usr/local/www/firewall_nat_npt.php:209
 #: src/usr/local/www/firewall_nat_out.php:481
 msgid "Delete mapping"
 msgstr "Odstrániť priradenie"
 
-#: src/usr/local/www/firewall_nat_1to1.php:234
+#: src/usr/local/www/firewall_nat_1to1.php:241
 #: src/usr/local/www/firewall_nat_npt.php:222
 msgid "Add mapping to the top of the list"
 msgstr "Pridať priradenie na začiatok zoznamu"
 
-#: src/usr/local/www/firewall_nat_1to1.php:238
+#: src/usr/local/www/firewall_nat_1to1.php:245
 #: src/usr/local/www/firewall_nat_npt.php:226
 msgid "Add mapping to the end of the list"
 msgstr "Pridať priradenie na koniec zoznamu"
 
-#: src/usr/local/www/firewall_nat_1to1.php:242
+#: src/usr/local/www/firewall_nat_1to1.php:249
 #: src/usr/local/www/firewall_nat_npt.php:230
 msgid "Delete selected mappings"
 msgstr "Odstrániť označené priradenia"
 
-#: src/usr/local/www/firewall_nat_1to1.php:246
+#: src/usr/local/www/firewall_nat_1to1.php:253
 #: src/usr/local/www/firewall_nat_npt.php:234
 #: src/usr/local/www/firewall_nat_out.php:506
 msgid "Save mapping order"
 msgstr "Uložiť poradie priradení"
 
-#: src/usr/local/www/firewall_nat_1to1.php:254
+#: src/usr/local/www/firewall_nat_1to1.php:261
 #, php-format
 msgid ""
 "Depending on the way the WAN connection is setup, this may also need a "
@@ -11924,7 +11954,7 @@ msgstr ""
 "V závislosti na spôsobe nastavenia WAN pripojenia, toto môže taktiež "
 "potrebovať %1$svirtuálnu IP adresu%2$s."
 
-#: src/usr/local/www/firewall_nat_1to1.php:256
+#: src/usr/local/www/firewall_nat_1to1.php:263
 msgid ""
 "If a 1:1 NAT entry is added for any of the interface IPs on this system, it "
 "will make this system inaccessible on that IP address. i.e. if the WAN IP "
@@ -11937,7 +11967,7 @@ msgstr ""
 "(IPsec, OpenVPN server, atď.), ktorá používa WAN IP adresu prestane fungovať."
 ""
 
-#: src/usr/local/www/firewall_nat_1to1.php:291
+#: src/usr/local/www/firewall_nat_1to1.php:298
 msgid ""
 "One or more NAT 1:1 mappings have been moved but have not yet been saved"
 msgstr ""
@@ -12177,8 +12207,8 @@ msgstr ""
 #: src/usr/local/www/system_authservers.php:225
 #: src/usr/local/www/system_authservers.php:248
 #: src/usr/local/www/system_authservers.php:442
-#: src/usr/local/www/system_certmanager.php:1001
-#: src/usr/local/www/system_certmanager.php:1004
+#: src/usr/local/www/system_certmanager.php:1012
+#: src/usr/local/www/system_certmanager.php:1015
 #: src/usr/local/www/vpn_ipsec_keys.php:102
 #: src/usr/local/www/vpn_ipsec_phase2.php:525
 #: src/usr/local/www/vpn_ipsec_phase2.php:551
@@ -13494,14 +13524,14 @@ msgstr ""
 #: src/usr/local/www/services_captiveportal_mac.php:61
 #: src/usr/local/www/services_captiveportal_mac_edit.php:200
 #: src/usr/local/www/status_logs_common.inc:459
-#: src/usr/local/www/widgets/widgets/log.widget.php:242
+#: src/usr/local/www/widgets/widgets/log.widget.php:256
 #: src/usr/local/www/status_logs_common.inc:460
 msgid "Block"
 msgstr "Zablokovať"
 
 #: src/usr/local/www/firewall_rules.php:850
 #: src/usr/local/www/firewall_rules_edit.php:1175
-#: src/usr/local/www/widgets/widgets/log.widget.php:246
+#: src/usr/local/www/widgets/widgets/log.widget.php:260
 msgid "Reject"
 msgstr "Odmietnuť"
 
@@ -15140,7 +15170,7 @@ msgstr "vypisujú sa iba prvých 10 000 položiek"
 #: src/usr/local/www/services_dhcp.php:1363
 #: src/usr/local/www/services_dhcpv6.php:969
 #: src/usr/local/www/system_advanced_sysctl.php:159
-#: src/usr/local/www/system_certmanager.php:1011
+#: src/usr/local/www/system_certmanager.php:1022
 msgid "Value"
 msgstr "Hodnota"
 
@@ -15153,7 +15183,7 @@ msgstr "Hodnota"
 #: src/usr/local/www/system_advanced_sysctl.php:115
 #: src/usr/local/www/system_gateways_edit.php:265
 #: src/usr/local/www/vpn_openvpn_csc.php:581
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:236
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:268
 msgid "Advanced"
 msgstr "Rozšírené"
 
@@ -16901,7 +16931,7 @@ msgid "WPA2"
 msgstr "WPA2"
 
 #: src/usr/local/www/interfaces.php:3110 src/usr/local/www/interfaces.php:3117
-#: src/usr/local/www/interfaces.php:3124 src/usr/local/www/pkg_mgr.php:160
+#: src/usr/local/www/interfaces.php:3124 src/usr/local/www/pkg_mgr.php:159
 #: src/usr/local/www/services_captiveportal_hostname_edit.php:151
 #: src/usr/local/www/services_captiveportal_ip_edit.php:194
 #: src/usr/local/www/widgets/widgets/gateways.widget.php:258
@@ -17484,11 +17514,11 @@ msgstr ""
 #: src/usr/local/www/vpn_openvpn_server.php:1272
 #: src/usr/local/www/interfaces.php:2003 src/usr/local/www/interfaces.php:2188
 msgid "Advanced Configuration"
-msgstr ""
+msgstr "Rozšírená konfigurácia"
 
 #: src/usr/local/www/interfaces_bridge_edit.php:438
 msgid "Cache Size"
-msgstr ""
+msgstr "Veľkosť vyrovnávacej pamäte"
 
 #: src/usr/local/www/interfaces_bridge_edit.php:441
 msgid "Set the size of the bridge address cache. The default is 2000 entries."
@@ -17742,9 +17772,9 @@ msgid "gif tunnel remote netmask"
 msgstr ""
 
 #: src/usr/local/www/interfaces_gif_edit.php:67
-#: src/usr/local/www/interfaces_gre_edit.php:70
 msgid ""
-"The tunnel local and tunnel remote fields must have valid IP addresses."
+"The tunnel local and tunnel remote fields must have valid IP addresses and "
+"must not contain CIDR masks or prefixes."
 msgstr ""
 
 #: src/usr/local/www/interfaces_gif_edit.php:71
@@ -17871,6 +17901,11 @@ msgstr ""
 
 #: src/usr/local/www/interfaces_gre_edit.php:63
 msgid "Remote tunnel network"
+msgstr ""
+
+#: src/usr/local/www/interfaces_gre_edit.php:70
+msgid ""
+"The tunnel local and tunnel remote fields must have valid IP addresses."
 msgstr ""
 
 #: src/usr/local/www/interfaces_gre_edit.php:74
@@ -18677,28 +18712,28 @@ msgstr ""
 
 #: src/usr/local/www/interfaces_vlan.php:163
 msgid "Are you sure you want to delete this VLAN?"
-msgstr ""
+msgstr "Ste si istý, že chcete zmazať tento VLAN?"
 
 #: src/usr/local/www/interfaces_vlan_edit.php:74
 msgid "The VLAN tag must be an integer between 1 and 4094."
-msgstr ""
+msgstr "VLAN značka musí byť celé číslo medzi 1 a 4094."
 
 #: src/usr/local/www/interfaces_vlan_edit.php:77
 msgid "The VLAN Priority must be an integer between 0 and 7."
-msgstr ""
+msgstr "VLAN priorita musí byť celé číslo medzi 0 a 7."
 
 #: src/usr/local/www/interfaces_vlan_edit.php:81
 msgid "Interface supplied as parent is invalid"
-msgstr ""
+msgstr "Rozhranie poskytnuté ako rodičovské nie je platné"
 
 #: src/usr/local/www/interfaces_vlan_edit.php:87
 msgid "The VLAN tag cannot be changed while the interface is assigned."
-msgstr ""
+msgstr "VLAN značka nemôže byť zmenená, kým je rozhranie priradené."
 
 #: src/usr/local/www/interfaces_vlan_edit.php:97
 #, php-format
 msgid "A VLAN with the tag %s is already defined on this interface."
-msgstr ""
+msgstr "VLAN so značkou %s je už definované na tomto rozhraní."
 
 #: src/usr/local/www/interfaces_vlan_edit.php:104
 #, php-format
@@ -18809,13 +18844,15 @@ msgstr "Licencia"
 #: src/usr/local/www/license.php:36
 #, php-format
 msgid "%1$s is Copyright &copy; %2$s %3$s. All rights reserved."
-msgstr ""
+msgstr "%1$s - Copyright &copy; %2$s %3$s. Všetky práva vyhradené."
 
 #: src/usr/local/www/license.php:37
 msgid ""
 "m0n0wall is Copyright &copy; 2002-2015 by Manuel Kasper (mk@neon1.net). All "
 "rights reserved."
 msgstr ""
+"m0n0wall - Copyright &copy; 2002-2015 Manuel Kasper (mk@neon1.net). Všetky "
+"práva vyhradené."
 
 #: src/usr/local/www/license.php:38
 #, php-format
@@ -18902,7 +18939,7 @@ msgstr "Copyright 2000, 2001, 2002 Edwin Groothuis. Všetky práva vyhradené."
 
 #: src/usr/local/www/license.php:133
 msgid "This product includes software developed by Edwin Groothuis."
-msgstr ""
+msgstr "Tento produkt obsahuje softvér vyvinutý Edwinom Groothuisom."
 
 #: src/usr/local/www/license.php:137
 msgid "2005-2016 University of Applied Sciences Rapperswil"
@@ -19257,43 +19294,48 @@ msgstr ""
 
 #: src/usr/local/www/load_balancer_setting.php:56
 msgid "Timeout must be a numeric value"
-msgstr ""
+msgstr "Čas vypršania musí mať číselnú hodnotu"
 
 #: src/usr/local/www/load_balancer_setting.php:60
 msgid "Interval must be a numeric value"
-msgstr ""
+msgstr "Interval musí mať číselnú hodnotu"
 
 #: src/usr/local/www/load_balancer_setting.php:65
 msgid "Prefork must be a numeric value"
-msgstr ""
+msgstr "Prefork musí mať číselnú hodnotu"
 
 #: src/usr/local/www/load_balancer_setting.php:68
 msgid "Prefork value must be between 1 and 32"
-msgstr ""
+msgstr "Hodnota prefork musí byť medzi 1 a 32"
 
 #: src/usr/local/www/load_balancer_setting.php:113
 msgid "Relayd Global Settings"
-msgstr ""
+msgstr "Globálne nastavenia Relayd"
 
 #: src/usr/local/www/load_balancer_setting.php:120
 msgid ""
 "Set the global timeout in milliseconds for checks. Leave blank to use the "
 "default value of 1000 ms."
 msgstr ""
+"Nastavte globálny čas vypršania v milisekundách pre kontroly. Ponechajte "
+"prázdne pre použitie predvolenej hodnoty 1000 ms."
 
 #: src/usr/local/www/load_balancer_setting.php:124
 msgid "Interval"
-msgstr ""
+msgstr "Interval"
 
 #: src/usr/local/www/load_balancer_setting.php:127
 msgid ""
 "Set the interval in seconds at which the member of a pool will be checked. "
 "Leave blank to use the default interval of 10 seconds."
 msgstr ""
+"Nastavte hodnotu intervalu v sekundách, po ktorom budú členovia združenia "
+"skontrolovaní. Ponechajte prázdne pre použitie predvoleného intervalu 10 "
+"sekúnd."
 
 #: src/usr/local/www/load_balancer_setting.php:131
 msgid "Prefork"
-msgstr ""
+msgstr "Prefork"
 
 #: src/usr/local/www/load_balancer_setting.php:134
 msgid ""
@@ -19537,37 +19579,37 @@ msgstr ""
 msgid "Hide Advanced Options"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:83
+#: src/usr/local/www/pkg_mgr.php:82
 msgid "Visit official website"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:92 src/usr/local/www/pkg_mgr_installed.php:136
+#: src/usr/local/www/pkg_mgr.php:91 src/usr/local/www/pkg_mgr_installed.php:136
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:106
 msgid "View changelog"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:103
+#: src/usr/local/www/pkg_mgr.php:102
 #: src/usr/local/www/pkg_mgr_installed.php:147
 msgid "Package Dependencies"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:114
+#: src/usr/local/www/pkg_mgr.php:113
 msgid "Click to install"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:117
+#: src/usr/local/www/pkg_mgr.php:116
 #: src/usr/local/www/pkg_mgr_installed.php:167
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:126
 msgid "View more information"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:130 src/usr/local/www/pkg_mgr.php:136
+#: src/usr/local/www/pkg_mgr.php:129 src/usr/local/www/pkg_mgr.php:135
 #: src/usr/local/www/pkg_mgr_install.php:252
 #: src/usr/local/www/pkg_mgr_installed.php:188
 msgid "Available Packages"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:135 src/usr/local/www/pkg_mgr_install.php:251
+#: src/usr/local/www/pkg_mgr.php:134 src/usr/local/www/pkg_mgr_install.php:251
 #: src/usr/local/www/pkg_mgr_installed.php:182
 #: src/usr/local/www/pkg_mgr_installed.php:187
 #: src/usr/local/www/pkg_mgr_installed.php:194
@@ -19575,31 +19617,31 @@ msgstr ""
 msgid "Installed Packages"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:142 src/usr/local/www/pkg_mgr.php:164
+#: src/usr/local/www/pkg_mgr.php:141 src/usr/local/www/pkg_mgr.php:163
 msgid "Search"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:153
+#: src/usr/local/www/pkg_mgr.php:152
 msgid "Search term"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:168
+#: src/usr/local/www/pkg_mgr.php:167
 msgid ""
 "Enter a search string or *nix regular expression to search package names and "
 "descriptions."
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:175
+#: src/usr/local/www/pkg_mgr.php:174
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:145
 msgid "Packages"
 msgstr ""
 
-#: src/usr/local/www/pkg_mgr.php:178
+#: src/usr/local/www/pkg_mgr.php:177
 #: src/usr/local/www/pkg_mgr_installed.php:197
 msgid "Please wait while the list of packages is retrieved and formatted."
 msgstr "Prosím čakajte, kým sa obdrží a spracuje zoznam balíkov."
 
-#: src/usr/local/www/pkg_mgr.php:182
+#: src/usr/local/www/pkg_mgr.php:181
 #: src/usr/local/www/pkg_mgr_installed.php:201
 msgid "Unable to retrieve package information."
 msgstr ""
@@ -23271,8 +23313,8 @@ msgstr "Klient Dynamického DNS povolený."
 #: src/usr/local/www/status_openvpn.php:242
 #: src/usr/local/www/status_openvpn.php:303
 #: src/usr/local/www/status_services.php:86
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:178
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:240
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:179
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:241
 #: src/usr/local/www/widgets/widgets/services_status.widget.php:76
 #: src/usr/local/www/widgets/widgets/services_status.widget.php:133
 msgid "Service"
@@ -23280,7 +23322,7 @@ msgstr "Služba"
 
 #: src/usr/local/www/services_dyndns.php:95
 #: src/usr/local/www/services_rfc2136.php:84
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:180
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:181
 msgid "Cached IP"
 msgstr "IP v medzipamäti"
 
@@ -23304,7 +23346,7 @@ msgid "Service type"
 msgstr "Druh služby"
 
 #: src/usr/local/www/services_dyndns_edit.php:101
-#: src/usr/local/www/services_dyndns_edit.php:385
+#: src/usr/local/www/services_dyndns_edit.php:386
 msgid "Update URL"
 msgstr "Webová adresa aktualizácie"
 
@@ -23434,40 +23476,41 @@ msgid ""
 "FreeDNS (freedns.afraid.org): Enter the \"Authentication Token\" provided by "
 "FreeDNS.%1$sDNS Made Easy: Dynamic DNS Password%1$sRoute 53: Enter the "
 "Secret Access Key.%1$sGleSYS: Enter the API key.%1$sDreamhost: Enter the API "
-"Key.%1$sDNSimple: Enter the API token."
+"Key.%1$sDNSimple: Enter the API token.%1$sCloudflare: Enter the Global API "
+"Key."
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:377
+#: src/usr/local/www/services_dyndns_edit.php:378
 msgid "Zone ID"
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:380
+#: src/usr/local/www/services_dyndns_edit.php:381
 #, php-format
 msgid ""
 "Route53: Enter AWS Zone ID.%1$sDNSimple: Enter the Record ID of record to "
 "update."
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:388
+#: src/usr/local/www/services_dyndns_edit.php:389
 msgid ""
 "This is the only field required by for Custom Dynamic DNS, and is only used "
 "by Custom Entries."
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:392
+#: src/usr/local/www/services_dyndns_edit.php:393
 msgid "Result Match"
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:401
+#: src/usr/local/www/services_dyndns_edit.php:402
 #: src/usr/local/www/services_rfc2136_edit.php:75
 msgid "TTL"
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:404
+#: src/usr/local/www/services_dyndns_edit.php:405
 msgid "Choose TTL for the dns record."
 msgstr ""
 
-#: src/usr/local/www/services_dyndns_edit.php:423
+#: src/usr/local/www/services_dyndns_edit.php:424
 #: src/usr/local/www/services_rfc2136_edit.php:297
 msgid "Save & Force Update"
 msgstr ""
@@ -24522,11 +24565,11 @@ msgstr ""
 
 #: src/usr/local/www/services_router_advertisements.php:442
 msgid "DNS Configuration"
-msgstr ""
+msgstr "Konfigurácia DNS"
 
 #: src/usr/local/www/services_router_advertisements.php:447
 msgid "Server "
-msgstr ""
+msgstr "Server "
 
 #: src/usr/local/www/services_router_advertisements.php:458
 msgid ""
@@ -26253,7 +26296,7 @@ msgstr "Pripojiť"
 
 #: src/usr/local/www/status_interfaces.php:123
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:40
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:257
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:272
 msgid "Uptime"
 msgstr "Doba prevádzky"
 
@@ -26460,7 +26503,7 @@ msgstr "Odpojiť"
 #: src/usr/local/www/status_ipsec_leases.php:40
 #: src/usr/local/www/status_ipsec_sad.php:54
 #: src/usr/local/www/status_ipsec_spd.php:47
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:178
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:181
 msgid "Overview"
 msgstr "Prehľad"
 
@@ -26510,7 +26553,7 @@ msgstr "Algo"
 
 #: src/usr/local/www/status_ipsec.php:500
 msgid "Collecting IPsec status information."
-msgstr ""
+msgstr "Zhromažďujú sa informácie o stave IPsec."
 
 #: src/usr/local/www/status_ipsec.php:517
 #: src/usr/local/www/status_ipsec_leases.php:129
@@ -26656,7 +26699,7 @@ msgstr "Captive Portal autentifikácie"
 #: src/usr/local/www/status_logs_vpn.php:177
 #: src/usr/local/www/status_logs_vpn.php:359
 #: src/usr/local/www/status_logs_vpn.php:401
-#: src/usr/local/www/widgets/widgets/log.widget.php:113
+#: src/usr/local/www/widgets/widgets/log.widget.php:117
 msgid "Time"
 msgstr "Čas"
 
@@ -26776,7 +26819,7 @@ msgstr ""
 #: src/usr/local/www/status_logs_common.inc:395
 #: src/usr/local/www/status_logs_vpn.php:349
 msgid "Advanced Log Filter"
-msgstr "Pokročilý filter denníka"
+msgstr "Rozšírený filter denníka"
 
 #: src/usr/local/www/status_logs_common.inc:265
 #: src/usr/local/www/status_logs_common.inc:305
@@ -26899,13 +26942,15 @@ msgstr ""
 #: src/usr/local/www/status_logs_common.inc:825
 #: src/usr/local/www/status_logs_settings.php:242
 msgid "GUI Log Entries"
-msgstr ""
+msgstr "GUI záznamy denníka"
 
 #: src/usr/local/www/status_logs_common.inc:831
 msgid ""
 "This is the number of log entries displayed in the GUI. It does not affect "
 "how many entries are contained in the log."
 msgstr ""
+"Toto je množstvo záznamov denníka zobrazených v GUI. Neovplyvňuje to koľko "
+"záznamov obsahuje denník."
 
 #: src/usr/local/www/status_logs_common.inc:834
 #: src/usr/local/www/status_logs_common.inc:839
@@ -27095,8 +27140,8 @@ msgid "Data points"
 msgstr "Dátové body"
 
 #: src/usr/local/www/status_logs_filter_summary.php:176
-#: src/usr/local/www/widgets/widgets/log.widget.php:156
-#: src/usr/local/www/widgets/widgets/log.widget.php:159
+#: src/usr/local/www/widgets/widgets/log.widget.php:160
+#: src/usr/local/www/widgets/widgets/log.widget.php:163
 msgid "Reverse Resolve with DNS"
 msgstr "Reverzné vyriešenie s DNS"
 
@@ -27338,7 +27383,7 @@ msgstr "VPN prihlásenia"
 #: src/usr/local/www/status_logs_vpn.php:385
 #: src/usr/local/www/system_usermanager_addprivs.php:142
 #: src/usr/local/www/vpn_l2tp_users_edit.php:148
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:224
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:227
 #: src/usr/local/www/services_rfc2136_edit.php:217
 msgid "User"
 msgstr "Užívateľ"
@@ -27505,7 +27550,7 @@ msgstr "Odoslané/prijaté bajty"
 #: src/usr/local/www/widgets/widgets/openvpn.widget.php:78
 #, php-format
 msgid "Kill client connection from %s"
-msgstr "Zabiť pripojenie klienta z %s"
+msgstr "Ukončiť pripojenie klienta z %s"
 
 #: src/usr/local/www/status_openvpn.php:175
 #: src/usr/local/www/status_openvpn.php:177
@@ -27872,7 +27917,7 @@ msgstr "Zvoľte jazyk pre webConfigurator"
 
 #: src/usr/local/www/system.php:592
 #: src/usr/local/www/system_advanced_admin.php:308
-#: src/usr/local/www/system_certmanager.php:1209
+#: src/usr/local/www/system_certmanager.php:1232
 msgid "webConfigurator"
 msgstr "webConfigurator"
 
@@ -27919,20 +27964,6 @@ msgstr "Vyberte farbu pre prihlasovaciu stránku"
 #: src/usr/local/www/system.php:620
 msgid "Login hostname"
 msgstr "Hostname pri prihlásení"
-
-#: src/usr/local/www/system.php:627
-msgid "Dashboard update period"
-msgstr "Doba aktualizácie dashboardu"
-
-#: src/usr/local/www/system.php:631
-msgid ""
-"Time in seconds between dashboard widget updates. Small values cause more "
-"frequent updates but increase the load on the web server. Minimum is 5 "
-"seconds, maximum 600 seconds"
-msgstr ""
-"Čas v sekundách medzi obnoveniami widgetov na dashboarde. Malé hodnoty "
-"spôsobujú častejšie aktualizácie, ale aj väčšie zaťaženie na web server. "
-"Minimum je 5 sekúnd, maximum je 600 sekúnd."
 
 #: src/usr/local/www/system.php:639
 #: src/usr/local/www/system_user_settings.php:168
@@ -27991,7 +28022,7 @@ msgstr "Firewall a NAT"
 #: src/usr/local/www/system_advanced_network.php:171
 #: src/usr/local/www/system_advanced_notifications.php:213
 #: src/usr/local/www/system_advanced_sysctl.php:141
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:236
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:268
 msgid "Miscellaneous"
 msgstr "Rôzne"
 
@@ -28679,97 +28710,102 @@ msgid ""
 msgstr ""
 
 #: src/usr/local/www/system_advanced_misc.php:76
+#, fuzzy
 msgid "AES-NI CPU-based Acceleration"
-msgstr ""
+msgstr "AES-NI procesorová akcelerácia"
 
 #: src/usr/local/www/system_advanced_misc.php:77
 msgid "BSD Crypto Device (cryptodev)"
-msgstr ""
+msgstr "BSD kryptografické zariadenie (cryptodev)"
 
 #: src/usr/local/www/system_advanced_misc.php:81
 msgid "Intel Core* CPU on-die thermal sensor"
-msgstr ""
+msgstr "Vstavaný termálny senzor procesorov Intel Core*"
 
 #: src/usr/local/www/system_advanced_misc.php:82
 msgid "AMD K8, K10 and K11 CPU on-die thermal sensor"
-msgstr ""
+msgstr "Vstavaný termálny senzor procesorov AMD K8, K10 a K11"
 
 #: src/usr/local/www/system_advanced_misc.php:92
 msgid "Please select a valid Cryptographic Accelerator."
-msgstr ""
+msgstr "Prosím zvoľte platný kryptografický akcelerátor."
 
 #: src/usr/local/www/system_advanced_misc.php:96
 msgid "Please select a valid Thermal Hardware Sensor."
-msgstr ""
+msgstr "Prosím zvoľte platný termálny hardvérový senzor."
 
 #: src/usr/local/www/system_advanced_misc.php:100
 msgid "/tmp Size must be numeric and should not be less than 40MiB."
-msgstr ""
+msgstr "Veľkosť oddielu /tmp musí byť číselná a nemal by byť menej ako 40MiB."
 
 #: src/usr/local/www/system_advanced_misc.php:104
 msgid "/var Size must be numeric and should not be less than 60MiB."
-msgstr ""
+msgstr "Veľkosť oddielu /var musí byť číselná a nemal by byť menej ako 60MiB."
 
 #: src/usr/local/www/system_advanced_misc.php:108
 msgid "Proxy port must be a valid port number, 1-65535."
-msgstr ""
+msgstr "Proxy port musí byť platné číslo portu, 1-65535."
 
 #: src/usr/local/www/system_advanced_misc.php:112
 msgid "Proxy URL must be a valid IP address or FQDN."
-msgstr ""
+msgstr "Proxy webová adresa musí byť platná IP adresa alebo FQDN."
 
 #: src/usr/local/www/system_advanced_misc.php:116
 msgid "The proxy username contains invalid characters."
-msgstr ""
+msgstr "Proxy meno užívateľa obsahuje neplatné znaky."
 
 #: src/usr/local/www/system_advanced_misc.php:120
 msgid "Proxy password and confirmation must match."
-msgstr ""
+msgstr "Proxy heslo a potvrdenie hesla sa musia zhodovať."
 
 #: src/usr/local/www/system_advanced_misc.php:318
 msgid "Proxy Support"
-msgstr ""
+msgstr "Proxy podpora"
 
 #: src/usr/local/www/system_advanced_misc.php:322
 msgid "Proxy URL"
-msgstr ""
+msgstr "Proxy webová adresa"
 
 #: src/usr/local/www/system_advanced_misc.php:325
 msgid ""
 "Hostname or IP address of proxy server this system will use for its outbound "
 "Internet access."
 msgstr ""
+"Hostname alebo IP adresa proxy servera, ktorý tento systém použije pre jeho "
+"odchádzajúci prístup na internet."
 
 #: src/usr/local/www/system_advanced_misc.php:330
 msgid "Proxy Port"
-msgstr ""
+msgstr "Proxy port"
 
 #: src/usr/local/www/system_advanced_misc.php:333
 msgid "Port where proxy server is listening."
-msgstr ""
+msgstr "Port, na ktorom proxy server načúva."
 
 #: src/usr/local/www/system_advanced_misc.php:337
 msgid "Proxy Username"
-msgstr ""
+msgstr "Proxy meno užívateľa"
 
 #: src/usr/local/www/system_advanced_misc.php:340
 msgid ""
 "Username for authentication to proxy server. Optional, leave blank to not "
 "use authentication."
 msgstr ""
+"Meno užívateľa pre autentifikáciu na proxy server. Voliteľné, ponechajte "
+"prázdne pre pripojenie bez autentifikácie."
 
 #: src/usr/local/www/system_advanced_misc.php:345
 msgid "Proxy Password"
-msgstr ""
+msgstr "Proxy heslo"
 
 #: src/usr/local/www/system_advanced_misc.php:348
 msgid "Password for authentication to proxy server."
-msgstr ""
+msgstr "Heslo pre autentifikáciu na proxy server."
 
 #: src/usr/local/www/system_advanced_misc.php:351
 #: src/usr/local/www/system_advanced_misc.php:353
 msgid "Load Balancing"
-msgstr ""
+msgstr "Vyvažovanie zaťaženia"
 
 #: src/usr/local/www/system_advanced_misc.php:357
 #: src/usr/local/www/system_advanced_misc.php:358
@@ -28789,7 +28825,7 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_misc.php:370
 msgid "Source tracking timeout"
-msgstr ""
+msgstr "Čas vypršania sledovania zdroja"
 
 #: src/usr/local/www/system_advanced_misc.php:374
 msgid ""
@@ -28853,23 +28889,23 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_misc.php:421
 msgid "AC Power"
-msgstr ""
+msgstr "AC napájanie"
 
 #: src/usr/local/www/system_advanced_misc.php:428
 msgid "Battery Power"
-msgstr ""
+msgstr "Napájanie z batérie"
 
 #: src/usr/local/www/system_advanced_misc.php:435
 msgid "Unknown Power"
-msgstr ""
+msgstr "Neznáme napájanie"
 
 #: src/usr/local/www/system_advanced_misc.php:441
 msgid "Cryptographic & Thermal Hardware"
-msgstr ""
+msgstr "Kryptografický a termálny hardvér"
 
 #: src/usr/local/www/system_advanced_misc.php:445
 msgid "Cryptographic Hardware"
-msgstr ""
+msgstr "Kryptografický hardvér"
 
 #: src/usr/local/www/system_advanced_misc.php:448
 msgid ""
@@ -28880,12 +28916,19 @@ msgid ""
 "not contain a crypto chip, this option will have no effect. To unload the "
 "selected module, set this option to \"none\" and then reboot."
 msgstr ""
+"Modul akcelerácie kryptografie použije hardvérovú podporu pre zrýchlenie "
+"niektorých kryptografických funkcií v systémoch, ktoré majú tento čip. "
+"Načítaním BSD kryptografického zariadenia povolí prístup k akceleračným "
+"zariadeniam použitím ovládačov vstavaných do kernela, ako napríklad k "
+"čipsetom Hifn alebo ubsec. Ak firewall neobsahuje kryptografický čip, táto "
+"možnosť nebude mať žiadny účinok. Pre zrušenie načítania zvoleného modulu, "
+"nastavte túto možnosť na \"žiadne\" a reštartujte firewall."
 
 #: src/usr/local/www/system_advanced_misc.php:457
 #: src/usr/local/www/widgets/include/thermal_sensors.inc:24
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:236
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:268
 msgid "Thermal Sensors"
-msgstr ""
+msgstr "Termálne senzory"
 
 #: src/usr/local/www/system_advanced_misc.php:460
 msgid ""
@@ -28899,7 +28942,7 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_misc.php:473
 msgid "Schedule States"
-msgstr ""
+msgstr "Rozvrh stavov"
 
 #: src/usr/local/www/system_advanced_misc.php:476
 msgid ""
@@ -28911,11 +28954,11 @@ msgstr ""
 #: src/usr/local/www/system_advanced_misc.php:481
 #: src/usr/local/www/system_gateways_edit.php:206
 msgid "Gateway Monitoring"
-msgstr ""
+msgstr "Monitorovanie brán"
 
 #: src/usr/local/www/system_advanced_misc.php:485
 msgid "State Killing on Gateway Failure"
-msgstr ""
+msgstr "Ukončenie stavov pri zlyhaní brány"
 
 #: src/usr/local/www/system_advanced_misc.php:488
 msgid ""
@@ -28925,7 +28968,7 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_misc.php:493
 msgid "Skip rules when gateway is down"
-msgstr ""
+msgstr "Vynechať pravidlá keď je brána neaktívna"
 
 #: src/usr/local/www/system_advanced_misc.php:496
 msgid ""
@@ -28933,14 +28976,17 @@ msgid ""
 "the rule is created omitting the gateway. This option overrides that "
 "behavior by omitting the entire rule instead."
 msgstr ""
+"Ak je v pravidle uvedená brána, a táto brána je neaktívna, predvolene je "
+"pravidlo vytvorené vynechaním brány. Povolením tejto možnosti sa namiesto "
+"toho vynechá celé pravidlo."
 
 #: src/usr/local/www/system_advanced_misc.php:501
 msgid "RAM Disk Settings (Reboot to Apply Changes)"
-msgstr ""
+msgstr "Nastavenia RAM disku (Reštartujte pre použitie zmien)"
 
 #: src/usr/local/www/system_advanced_misc.php:505
 msgid "Use RAM Disks"
-msgstr ""
+msgstr "Použiť RAM disky"
 
 #: src/usr/local/www/system_advanced_misc.php:508
 msgid ""
@@ -28950,50 +28996,55 @@ msgid ""
 "retained. Changing this setting will cause the firewall to reboot after "
 "clicking \"Save\"."
 msgstr ""
+"Povoľte túto možnosť pre použitie RAM diskov (disky s pamäťovým súborovým "
+"systémom) pre oddiely /tmp a /var na úplných inštaláciách namiesto použitia "
+"pevného disku. Povolenie tejto možnosti zapríčiní stratu údajov v /tmp a /"
+"var. RRD, DHCP prenájmy a priečinky so súbormi denníkov budú ponechané. "
+"Zmenou tejto možnosti sa firewall reštartuje po kliknutí na \"Uložiť\"."
 
 #: src/usr/local/www/system_advanced_misc.php:513
 msgid "RAM Disk Size"
-msgstr ""
+msgstr "Veľkosť RAM disku"
 
 #: src/usr/local/www/system_advanced_misc.php:517
 msgid "/tmp RAM Disk Size"
-msgstr ""
+msgstr "Veľkosť /tmp RAM disku"
 
 #: src/usr/local/www/system_advanced_misc.php:521
 msgid "/tmp RAM Disk<br />Do not set lower than 40."
-msgstr ""
+msgstr "/tmp RAM disk<br />Nenastavte nižšiu hodnotu ako 40."
 
 #: src/usr/local/www/system_advanced_misc.php:525
 msgid "/var RAM Disk Size"
-msgstr ""
+msgstr "Veľkosť /var RAM disku"
 
 #: src/usr/local/www/system_advanced_misc.php:529
 msgid "/var RAM Disk<br />Do not set lower than 60."
-msgstr ""
+msgstr "/var RAM disk<br />Nenastavte nižšiu hodnotu ako 60."
 
 #: src/usr/local/www/system_advanced_misc.php:531
 msgid "Sets the size, in MiB, for the RAM disks."
-msgstr ""
+msgstr "Nastaví veľkosť v MiB pre RAM disky."
 
 #: src/usr/local/www/system_advanced_misc.php:535
 msgid "Periodic RAM Disk Data Backups"
-msgstr ""
+msgstr "Pravidelné zálohy údajov RAM diskov"
 
 #: src/usr/local/www/system_advanced_misc.php:539
 msgid "Periodic RRD Backup"
-msgstr ""
+msgstr "Pravidelné zálohy RRD údajov"
 
 #: src/usr/local/www/system_advanced_misc.php:547
 msgid "Periodic DHCP Leases Backup"
-msgstr ""
+msgstr "Pravidelné zálohy DHCP prenájmov"
 
 #: src/usr/local/www/system_advanced_misc.php:555
 msgid "Periodic Logs Backup"
-msgstr ""
+msgstr "Pravidelné zálohy denníka"
 
 #: src/usr/local/www/system_advanced_misc.php:559
 msgid "Log Directory"
-msgstr ""
+msgstr "Priečinok súborov denníka"
 
 #: src/usr/local/www/system_advanced_misc.php:561
 msgid ""
@@ -29002,18 +29053,22 @@ msgid ""
 "mind that the more frequent the backup, the more writes will happen to the "
 "media."
 msgstr ""
+"Nastaví interval v hodinách pre pravidelné zálohovanie týchto oblastí údajov "
+"RAM diskov, takže môžu byť automaticky obnovené pri najbližšom zapnutí. "
+"Majte na pamäti, že čím sú zálohy pravidelnejšie, tým viac zápisov sa udeje "
+"na médiu."
 
 #: src/usr/local/www/system_advanced_misc.php:569
 msgid "Hardware Settings"
-msgstr ""
+msgstr "Nastavenia hardvéru"
 
 #: src/usr/local/www/system_advanced_misc.php:578
 msgid "Always on"
-msgstr ""
+msgstr "Vždy zapnutý"
 
 #: src/usr/local/www/system_advanced_misc.php:576
 msgid "Hard disk standby time"
-msgstr ""
+msgstr "Pohotovostný režim pevného disku"
 
 #: src/usr/local/www/system_advanced_misc.php:579
 #, php-format
@@ -29021,20 +29076,24 @@ msgid ""
 "Puts the hard disk into standby mode when the selected number of minutes has "
 "elapsed since the last access.%1$s%2$sDo not set this for CF cards.%3$s"
 msgstr ""
+"Prepne pevný disk do pohotovostného režimu po uplynutí uvedeného počtu minút "
+"od posledného prístupu.%1$s%2$sNenastavujte túto možnosť pre CF karty.%3$s"
 
 #: src/usr/local/www/system_advanced_misc.php:584
 msgid "Installation Feedback"
-msgstr ""
+msgstr "Spätná väzba inštalácie"
 
 #: src/usr/local/www/system_advanced_misc.php:588
 msgid "Netgate Device ID"
-msgstr ""
+msgstr "ID zariadenia Netgate"
 
 #: src/usr/local/www/system_advanced_misc.php:591
 msgid ""
 "Enable this option to not send Netgate Device ID to pfSense as part of User-"
 "Agent header."
 msgstr ""
+"Povoľte túto možnosť pre zakázanie odosielania ID zariadenia Netgate do "
+"pfSense ako súčasť hlavičky User-Agent."
 
 #: src/usr/local/www/system_advanced_misc.php:597
 msgid ""
@@ -29042,6 +29101,8 @@ msgid ""
 "firewall\\nto reboot immediately after the new setting is saved.\\n\\nPlease "
 "confirm."
 msgstr ""
+"Nastavenie \\\"Použiť RAM disk\\\" bolo zmenené. Toto zapríčiní okamžitý "
+"reštart\\nfirewallu po uložení nových nastavení.\\n\\nProsím potvrďte."
 
 #: src/usr/local/www/system_advanced_network.php:58
 msgid "An IP address to NAT IPv6 packets must be specified."
@@ -29049,25 +29110,27 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_network.php:65
 msgid "A valid DUID must be specified"
-msgstr ""
+msgstr "Musí byť uvedené platné DUID"
 
 #: src/usr/local/www/system_advanced_network.php:178
 msgid "IPv6 Options"
-msgstr ""
+msgstr "Možnosti IPv6"
 
 #: src/usr/local/www/system_advanced_network.php:182
 msgid "Allow IPv6"
-msgstr ""
+msgstr "Povoliť IPv6"
 
 #: src/usr/local/www/system_advanced_network.php:185
 msgid ""
 "NOTE: This does not disable any IPv6 features on the firewall, it only "
 "blocks traffic."
 msgstr ""
+"POZNÁMKA: Toto nezakazuje žiadne IPv6 funkcie vo firewalle, iba zablokuje "
+"tok dát."
 
 #: src/usr/local/www/system_advanced_network.php:190
 msgid "IPv6 over IPv4 Tunneling"
-msgstr ""
+msgstr "Tunelovanie IPv6 cez IPv4"
 
 #: src/usr/local/www/system_advanced_network.php:193
 #, php-format
@@ -29084,7 +29147,7 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_network.php:206
 msgid "Prefer IPv4 over IPv6"
-msgstr ""
+msgstr "Uprednostniť IPv4 pred IPv6"
 
 #: src/usr/local/www/system_advanced_network.php:209
 msgid ""
@@ -29092,10 +29155,13 @@ msgid ""
 "addresses, IPv6 will be used. If this option is selected, IPv4 will be "
 "preferred over IPv6."
 msgstr ""
+"Ak je nakonfigurovaná IPv6 a názov hostiteľa vyrieši IPv4 aj IPv6 adresu, "
+"predvolene sa použije IPv6. Ak je táto možnosť povolená, uprednostní sa IPv4 "
+"namiesto IPv6."
 
 #: src/usr/local/www/system_advanced_network.php:214
 msgid "IPv6 DNS entry"
-msgstr ""
+msgstr "IPv6 DNS záznam"
 
 #: src/usr/local/www/system_advanced_network.php:217
 msgid ""
@@ -29110,11 +29176,11 @@ msgstr ""
 #: src/usr/local/www/system_advanced_network.php:222
 #: src/usr/local/www/system_advanced_network.php:226
 msgid "DHCP6 DUID"
-msgstr ""
+msgstr "DHCP6 DUID"
 
 #: src/usr/local/www/system_advanced_network.php:234
 msgid "Copy DUID"
-msgstr ""
+msgstr "Kopírovať DUID"
 
 #: src/usr/local/www/system_advanced_network.php:242
 #, php-format
@@ -29205,11 +29271,11 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_notifications.php:104
 msgid "Growl passwords must match"
-msgstr ""
+msgstr "Growl heslá sa musia zhodovať"
 
 #: src/usr/local/www/system_advanced_notifications.php:137
 msgid "SMTP passwords must match"
-msgstr ""
+msgstr "SMTP heslá sa musia zhodovať"
 
 #: src/usr/local/www/system_advanced_notifications.php:172
 #, php-format
@@ -29459,11 +29525,11 @@ msgstr ""
 #: src/usr/local/www/system_camanager.php:167
 #: src/usr/local/www/system_camanager.php:184
 #: src/usr/local/www/system_camanager.php:199
-#: src/usr/local/www/system_certmanager.php:215
-#: src/usr/local/www/system_certmanager.php:235
-#: src/usr/local/www/system_certmanager.php:252
-#: src/usr/local/www/system_certmanager.php:270
-#: src/usr/local/www/system_certmanager.php:537
+#: src/usr/local/www/system_certmanager.php:216
+#: src/usr/local/www/system_certmanager.php:236
+#: src/usr/local/www/system_certmanager.php:253
+#: src/usr/local/www/system_certmanager.php:271
+#: src/usr/local/www/system_certmanager.php:541
 #: src/usr/local/www/system_crlmanager.php:198
 #: src/usr/local/www/system_crlmanager.php:204
 #: src/usr/local/www/system_usermanager.php:201
@@ -29597,8 +29663,8 @@ msgstr ""
 
 #: src/usr/local/www/system_authservers.php:492
 #: src/usr/local/www/system_camanager.php:485
-#: src/usr/local/www/system_certmanager.php:653
-#: src/usr/local/www/system_certmanager.php:1052
+#: src/usr/local/www/system_certmanager.php:657
+#: src/usr/local/www/system_certmanager.php:1063
 #: src/usr/local/www/system_crlmanager.php:358
 #: src/usr/local/www/system_crlmanager.php:423
 msgid "*Descriptive name"
@@ -29818,12 +29884,12 @@ msgid "Certificate Authority %s and its CRLs (if any) successfully deleted."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:168
-#: src/usr/local/www/system_certmanager.php:236
+#: src/usr/local/www/system_certmanager.php:237
 msgid "Certificate data"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:170
-#: src/usr/local/www/system_certmanager.php:239
+#: src/usr/local/www/system_certmanager.php:240
 msgid "This certificate does not appear to be valid."
 msgstr ""
 
@@ -29832,15 +29898,15 @@ msgid "Encrypted private keys are not yet supported."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:176
-#: src/usr/local/www/system_certmanager.php:243
+#: src/usr/local/www/system_certmanager.php:244
 msgid ""
 "The submitted private key does not match the submitted certificate data."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:185
 #: src/usr/local/www/system_camanager.php:201
-#: src/usr/local/www/system_certmanager.php:254
-#: src/usr/local/www/system_certmanager.php:271
+#: src/usr/local/www/system_certmanager.php:255
+#: src/usr/local/www/system_certmanager.php:272
 #: src/usr/local/www/system_usermanager.php:203
 #: src/usr/local/www/system_usermanager.php:932
 msgid "Key length"
@@ -29848,7 +29914,7 @@ msgstr ""
 
 #: src/usr/local/www/system_camanager.php:186
 #: src/usr/local/www/system_camanager.php:202
-#: src/usr/local/www/system_certmanager.php:256
+#: src/usr/local/www/system_certmanager.php:257
 #: src/usr/local/www/system_usermanager.php:204
 #: src/usr/local/www/system_usermanager.php:952
 #: src/usr/local/www/vpn_ipsec_phase2.php:668
@@ -29857,43 +29923,43 @@ msgstr ""
 
 #: src/usr/local/www/system_camanager.php:187
 #: src/usr/local/www/system_camanager.php:203
-#: src/usr/local/www/system_certmanager.php:257
-#: src/usr/local/www/system_certmanager.php:272
+#: src/usr/local/www/system_certmanager.php:258
+#: src/usr/local/www/system_certmanager.php:273
 msgid "Distinguished name Country Code"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:188
 #: src/usr/local/www/system_camanager.php:204
-#: src/usr/local/www/system_certmanager.php:258
-#: src/usr/local/www/system_certmanager.php:273
+#: src/usr/local/www/system_certmanager.php:259
+#: src/usr/local/www/system_certmanager.php:274
 msgid "Distinguished name State or Province"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:189
 #: src/usr/local/www/system_camanager.php:205
-#: src/usr/local/www/system_certmanager.php:259
-#: src/usr/local/www/system_certmanager.php:274
+#: src/usr/local/www/system_certmanager.php:260
+#: src/usr/local/www/system_certmanager.php:275
 msgid "Distinguished name City"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:190
 #: src/usr/local/www/system_camanager.php:206
-#: src/usr/local/www/system_certmanager.php:260
-#: src/usr/local/www/system_certmanager.php:275
+#: src/usr/local/www/system_certmanager.php:261
+#: src/usr/local/www/system_certmanager.php:276
 msgid "Distinguished name Organization"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:191
 #: src/usr/local/www/system_camanager.php:207
-#: src/usr/local/www/system_certmanager.php:261
-#: src/usr/local/www/system_certmanager.php:276
+#: src/usr/local/www/system_certmanager.php:262
+#: src/usr/local/www/system_certmanager.php:277
 msgid "Distinguished name Email Address"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:192
 #: src/usr/local/www/system_camanager.php:208
-#: src/usr/local/www/system_certmanager.php:262
-#: src/usr/local/www/system_certmanager.php:277
+#: src/usr/local/www/system_certmanager.php:263
+#: src/usr/local/www/system_certmanager.php:278
 msgid "Distinguished name Common Name"
 msgstr ""
 
@@ -29906,48 +29972,49 @@ msgid "The field 'Descriptive Name' contains invalid characters."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:221
-#: src/usr/local/www/system_certmanager.php:356
+#: src/usr/local/www/system_certmanager.php:357
 msgid ""
 "The field 'Distinguished name Email Address' contains invalid characters."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:226
-#: src/usr/local/www/system_certmanager.php:362
-#: src/usr/local/www/system_certmanager.php:369
+#: src/usr/local/www/system_certmanager.php:363
+#: src/usr/local/www/system_certmanager.php:370
 msgid "Please select a valid Key Length."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:229
-#: src/usr/local/www/system_certmanager.php:365
-#: src/usr/local/www/system_certmanager.php:372
+#: src/usr/local/www/system_certmanager.php:366
+#: src/usr/local/www/system_certmanager.php:373
+#: src/usr/local/www/system_certmanager.php:376
 msgid "Please select a valid Digest Algorithm."
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:315
-#: src/usr/local/www/system_certmanager.php:584
+#: src/usr/local/www/system_certmanager.php:588
 #: src/usr/local/www/system_crlmanager.php:253
 msgid "Certificate Manager"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:315
 #: src/usr/local/www/system_camanager.php:344
-#: src/usr/local/www/system_certmanager.php:602
+#: src/usr/local/www/system_certmanager.php:606
 #: src/usr/local/www/system_crlmanager.php:336
 msgid "CAs"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:345
 #: src/usr/local/www/system_camanager.php:361
-#: src/usr/local/www/system_certmanager.php:584
-#: src/usr/local/www/system_certmanager.php:603
-#: src/usr/local/www/system_certmanager.php:1101
+#: src/usr/local/www/system_certmanager.php:588
+#: src/usr/local/www/system_certmanager.php:607
+#: src/usr/local/www/system_certmanager.php:1112
 #: src/usr/local/www/system_crlmanager.php:337
 #: src/usr/local/www/system_crlmanager.php:580
 msgid "Certificates"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:346
-#: src/usr/local/www/system_certmanager.php:604
+#: src/usr/local/www/system_certmanager.php:608
 #: src/usr/local/www/system_crlmanager.php:253
 #: src/usr/local/www/system_crlmanager.php:338
 msgid "Certificate Revocation"
@@ -29963,37 +30030,37 @@ msgid "Internal"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:360
-#: src/usr/local/www/system_certmanager.php:1108
+#: src/usr/local/www/system_certmanager.php:1119
 msgid "Issuer"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:362
-#: src/usr/local/www/system_certmanager.php:1109
+#: src/usr/local/www/system_certmanager.php:1120
 msgid "Distinguished Name"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:380
-#: src/usr/local/www/system_certmanager.php:1134
+#: src/usr/local/www/system_certmanager.php:1145
 msgid "self-signed"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:382
-#: src/usr/local/www/system_certmanager.php:1136
+#: src/usr/local/www/system_certmanager.php:1147
 msgid "external"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:414
-#: src/usr/local/www/system_certmanager.php:1200
+#: src/usr/local/www/system_certmanager.php:1223
 msgid "Valid From"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:414
-#: src/usr/local/www/system_certmanager.php:1200
+#: src/usr/local/www/system_certmanager.php:1223
 msgid "Valid Until"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:425
-#: src/usr/local/www/system_certmanager.php:1221
+#: src/usr/local/www/system_certmanager.php:1244
 msgid "IPsec Tunnel"
 msgstr ""
 
@@ -30022,7 +30089,7 @@ msgid "Create / Edit CA"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:493
-#: src/usr/local/www/system_certmanager.php:645
+#: src/usr/local/www/system_certmanager.php:649
 #: src/usr/local/www/system_crlmanager.php:349
 msgid "*Method"
 msgstr ""
@@ -30032,12 +30099,12 @@ msgid "Existing Certificate Authority"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:506
-#: src/usr/local/www/system_certmanager.php:731
+#: src/usr/local/www/system_certmanager.php:742
 msgid "*Certificate data"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:508
-#: src/usr/local/www/system_certmanager.php:733
+#: src/usr/local/www/system_certmanager.php:744
 msgid "Paste a certificate in X.509 PEM format here."
 msgstr ""
 
@@ -30075,62 +30142,63 @@ msgid "*Key length (bits)"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:559
-#: src/usr/local/www/system_certmanager.php:779
-#: src/usr/local/www/system_certmanager.php:860
+#: src/usr/local/www/system_certmanager.php:729
+#: src/usr/local/www/system_certmanager.php:790
+#: src/usr/local/www/system_certmanager.php:871
 msgid "*Digest Algorithm"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:562
-#: src/usr/local/www/system_certmanager.php:782
+#: src/usr/local/www/system_certmanager.php:793
 msgid ""
 "NOTE: It is recommended to use an algorithm stronger than SHA1 when possible."
 ""
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:567
-#: src/usr/local/www/system_certmanager.php:787
+#: src/usr/local/www/system_certmanager.php:798
 msgid "*Lifetime (days)"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:574
-#: src/usr/local/www/system_certmanager.php:794
-#: src/usr/local/www/system_certmanager.php:868
+#: src/usr/local/www/system_certmanager.php:805
+#: src/usr/local/www/system_certmanager.php:879
 msgid "*Country Code"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:581
-#: src/usr/local/www/system_certmanager.php:801
-#: src/usr/local/www/system_certmanager.php:875
+#: src/usr/local/www/system_certmanager.php:812
+#: src/usr/local/www/system_certmanager.php:886
 msgid "*State or Province"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:589
-#: src/usr/local/www/system_certmanager.php:809
-#: src/usr/local/www/system_certmanager.php:883
+#: src/usr/local/www/system_certmanager.php:820
+#: src/usr/local/www/system_certmanager.php:894
 msgid "*City"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:597
-#: src/usr/local/www/system_certmanager.php:817
-#: src/usr/local/www/system_certmanager.php:891
+#: src/usr/local/www/system_certmanager.php:828
+#: src/usr/local/www/system_certmanager.php:902
 msgid "*Organization"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:605
-#: src/usr/local/www/system_certmanager.php:825
-#: src/usr/local/www/system_certmanager.php:899
+#: src/usr/local/www/system_certmanager.php:836
+#: src/usr/local/www/system_certmanager.php:910
 msgid "Organizational Unit"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:613
-#: src/usr/local/www/system_certmanager.php:833
-#: src/usr/local/www/system_certmanager.php:907
+#: src/usr/local/www/system_certmanager.php:844
+#: src/usr/local/www/system_certmanager.php:918
 msgid "*Email Address"
 msgstr ""
 
 #: src/usr/local/www/system_camanager.php:621
-#: src/usr/local/www/system_certmanager.php:841
-#: src/usr/local/www/system_certmanager.php:915
+#: src/usr/local/www/system_certmanager.php:852
+#: src/usr/local/www/system_certmanager.php:926
 #: src/usr/local/www/vpn_openvpn_csc.php:341
 msgid "*Common Name"
 msgstr ""
@@ -30160,280 +30228,290 @@ msgstr ""
 msgid "Certificate %s successfully deleted."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:216
+#: src/usr/local/www/system_certmanager.php:217
 msgid "CA to sign with"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:221
+#: src/usr/local/www/system_certmanager.php:222
 msgid "This signing request does not appear to be valid."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:225
+#: src/usr/local/www/system_certmanager.php:226
 msgid "This private does not appear to be valid."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:226
+#: src/usr/local/www/system_certmanager.php:227
 msgid "Key data field should be blank, or a valid x509 private key"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:237
-#: src/usr/local/www/system_certmanager.php:713
+#: src/usr/local/www/system_certmanager.php:238
+#: src/usr/local/www/system_certmanager.php:717
 msgid "Key data"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:253
+#: src/usr/local/www/system_certmanager.php:254
 #: src/usr/local/www/system_usermanager.php:202
 #: src/usr/local/www/system_usermanager.php:925
 msgid "Certificate authority"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:255
+#: src/usr/local/www/system_certmanager.php:256
 msgid "Certificate Type"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:282
+#: src/usr/local/www/system_certmanager.php:283
 msgid "Existing Certificate Choice"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:538
+#: src/usr/local/www/system_certmanager.php:542
 msgid "Final Certificate data"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:562
+#: src/usr/local/www/system_certmanager.php:566
 #, php-format
 msgid ""
 "The certificate public key does not match the signing request public key."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:640
+#: src/usr/local/www/system_certmanager.php:644
 msgid "Add/Sign a New Certificate"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:685
+#: src/usr/local/www/system_certmanager.php:689
 msgid "New CSR (Paste below)"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:688
+#: src/usr/local/www/system_certmanager.php:692
 msgid "Sign CSR"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:693
+#: src/usr/local/www/system_certmanager.php:697
 msgid "*CA to sign with"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:700
+#: src/usr/local/www/system_certmanager.php:704
 msgid "*CSR to sign"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:707
+#: src/usr/local/www/system_certmanager.php:711
 msgid "CSR data"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:709
+#: src/usr/local/www/system_certmanager.php:713
 msgid "Paste a Certificate Signing Request in X.509 PEM format here."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:715
+#: src/usr/local/www/system_certmanager.php:719
 msgid ""
 "Optionally paste a private key here. The key will be associated with the "
 "newly signed certificate in pfSense"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:719
+#: src/usr/local/www/system_certmanager.php:723
 msgid "*Certificate Lifetime (days)"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:726
-msgid "Import Certificate"
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:737
-msgid "*Private key data"
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:739
-msgid "Paste a private key in X.509 PEM format here."
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:742
-msgid "Internal Certificate"
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:748
-msgid "No internal Certificate Authorities have been defined. "
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:749
-msgid ""
-"An internal CA must be defined in order to create an internal certificate. "
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:750
-#, php-format
-msgid "%1$sCreate%2$s an internal CA."
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:747
-#: src/usr/local/www/system_certmanager.php:764
-msgid "*Certificate authority"
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:772
-#: src/usr/local/www/system_certmanager.php:853
-msgid "*Key length"
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:848
-msgid "External Signing Request"
-msgstr ""
-
-#: src/usr/local/www/system_certmanager.php:863
+#: src/usr/local/www/system_certmanager.php:732
+#: src/usr/local/www/system_certmanager.php:874
 msgid ""
 "NOTE: It is recommended to use an algorithm stronger than SHA1 when possible"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:922
+#: src/usr/local/www/system_certmanager.php:737
+msgid "Import Certificate"
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:748
+msgid "*Private key data"
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:750
+msgid "Paste a private key in X.509 PEM format here."
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:753
+msgid "Internal Certificate"
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:759
+msgid "No internal Certificate Authorities have been defined. "
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:760
+msgid ""
+"An internal CA must be defined in order to create an internal certificate. "
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:761
+#, php-format
+msgid "%1$sCreate%2$s an internal CA."
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:758
+#: src/usr/local/www/system_certmanager.php:775
+msgid "*Certificate authority"
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:783
+#: src/usr/local/www/system_certmanager.php:864
+msgid "*Key length"
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:859
+msgid "External Signing Request"
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:933
 msgid "Choose an Existing Certificate"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:951
+#: src/usr/local/www/system_certmanager.php:962
 msgid "*Existing Certificates"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:958
+#: src/usr/local/www/system_certmanager.php:969
 msgid "Certificate Attributes"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:962
+#: src/usr/local/www/system_certmanager.php:973
 msgid "Attribute Notes"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:964
+#: src/usr/local/www/system_certmanager.php:975
 msgid ""
 "The following attributes are added to certificates and requests when they "
 "are created or signed. These attributes behave differently depending on the "
 "selected mode."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:968
+#: src/usr/local/www/system_certmanager.php:979
 msgid ""
 "For Internal Certificates, these attributes are added directly to the "
 "certificate as shown."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:970
+#: src/usr/local/www/system_certmanager.php:981
 msgid ""
 "For Certificate Signing Requests, These attributes are added to the request "
 "but they may be ignored or changed by the CA that signs the request. "
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:972
+#: src/usr/local/www/system_certmanager.php:983
 msgid ""
 "If this CSR will be signed using the Certificate Manager on this firewall, "
 "set the attributes when signing instead as they cannot be carried over."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:973
+#: src/usr/local/www/system_certmanager.php:984
 msgid ""
 "When Signing a Certificate Request, existing attributes in the request "
 "cannot be copied. The attributes below will be applied to the resulting "
 "certificate."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:979
+#: src/usr/local/www/system_certmanager.php:990
 msgid "*Certificate Type"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:982
+#: src/usr/local/www/system_certmanager.php:993
 msgid ""
 "Add type-specific usage attributes to the signed certificate. Used for "
 "placing usage restrictions on, or granting abilities to, the signed "
 "certificate."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:997
+#: src/usr/local/www/system_certmanager.php:1008
 msgid "Alternative Names"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1022
+#: src/usr/local/www/system_certmanager.php:1033
 msgid ""
 "Enter additional identifiers for the certificate in this list. The Common "
 "Name field is automatically added to the certificate as an Alternative Name. "
 "The signing CA may ignore or change these values."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1048
+#: src/usr/local/www/system_certmanager.php:1059
 msgid "Complete Signing Request for "
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1059
+#: src/usr/local/www/system_certmanager.php:1070
 msgid "Signing request data"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1063
+#: src/usr/local/www/system_certmanager.php:1074
 msgid ""
 "Copy the certificate signing data from here and forward it to a certificate "
 "authority for signing."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1067
+#: src/usr/local/www/system_certmanager.php:1078
 msgid "*Final certificate data"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1070
+#: src/usr/local/www/system_certmanager.php:1081
 msgid "Paste the certificate received from the certificate authority here."
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1146
+#: src/usr/local/www/system_certmanager.php:1157
 msgid "private key only"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1152
+#: src/usr/local/www/system_certmanager.php:1163
 msgid "external - signature pending"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1177
+#: src/usr/local/www/system_certmanager.php:1189
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:174
+msgid "Serial: "
+msgstr "Sériové číslo:"
+
+#: src/usr/local/www/system_certmanager.php:1195
+msgid "Signature Digest: "
+msgstr ""
+
+#: src/usr/local/www/system_certmanager.php:1200
 msgid "SAN: "
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1182
+#: src/usr/local/www/system_certmanager.php:1205
 msgid "KU: "
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1187
+#: src/usr/local/www/system_certmanager.php:1210
 msgid "EKU: "
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1212
+#: src/usr/local/www/system_certmanager.php:1235
 msgid "User Cert"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1230
+#: src/usr/local/www/system_certmanager.php:1253
 msgid "Export Certificate"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1232
-#: src/usr/local/www/system_certmanager.php:1238
+#: src/usr/local/www/system_certmanager.php:1255
+#: src/usr/local/www/system_certmanager.php:1261
 msgid "Export Key"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1234
+#: src/usr/local/www/system_certmanager.php:1257
 msgid "Export P12"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1236
+#: src/usr/local/www/system_certmanager.php:1259
 msgid "Update CSR"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1237
+#: src/usr/local/www/system_certmanager.php:1260
 msgid "Export Request"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1241
+#: src/usr/local/www/system_certmanager.php:1264
 msgid "Delete Certificate"
 msgstr ""
 
-#: src/usr/local/www/system_certmanager.php:1257
+#: src/usr/local/www/system_certmanager.php:1280
 msgid "Add/Sign"
 msgstr ""
 
@@ -31934,7 +32012,7 @@ msgstr ""
 #: src/usr/local/www/vpn_ipsec_phase2.php:408
 #: src/usr/local/www/vpn_ipsec_phase2.php:488
 #: src/usr/local/www/vpn_ipsec_settings.php:217
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:179
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:182
 msgid "Tunnels"
 msgstr ""
 
@@ -32909,7 +32987,7 @@ msgid "PFS key group"
 msgstr ""
 
 #: src/usr/local/www/vpn_ipsec_phase2.php:671
-#: src/usr/local/www/widgets/widgets/log.widget.php:271
+#: src/usr/local/www/widgets/widgets/log.widget.php:285
 msgid "Seconds"
 msgstr ""
 
@@ -34596,23 +34674,23 @@ msgstr "Neboli definované žiadne CARP rozhrania."
 msgid "Click %1$shere%2$s to configure CARP."
 msgstr "Pre konfiguráciu CARP kliknite %1$ssem%2$s."
 
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:135
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:136
 msgid "Saved Dynamic DNS Filter via Dashboard."
 msgstr "Filter dynamického DNS bol uložený cez dashboard."
 
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:177
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:178
 msgid "Int."
 msgstr ""
 
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:213
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:214
 msgid "Checking ..."
 msgstr "Prebieha kontrola..."
 
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:220
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:221
 msgid "All Dyn DNS entries are hidden."
 msgstr "Všetky záznamy dynamického DNS sú skryté."
 
-#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:242
+#: src/usr/local/www/widgets/widgets/dyn_dns_status.widget.php:243
 #: src/usr/local/www/widgets/widgets/gateways.widget.php:273
 #: src/usr/local/www/widgets/widgets/interface_statistics.widget.php:242
 #: src/usr/local/www/widgets/widgets/interface_statistics.widget.php:267
@@ -34620,7 +34698,7 @@ msgstr "Všetky záznamy dynamického DNS sú skryté."
 #: src/usr/local/www/widgets/widgets/openvpn.widget.php:347
 #: src/usr/local/www/widgets/widgets/services_status.widget.php:134
 #: src/usr/local/www/widgets/widgets/smart_status.widget.php:138
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:464
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:477
 #: src/usr/local/www/widgets/widgets/traffic_graphs.widget.php:217
 #: src/usr/local/www/widgets/widgets/wake_on_lan.widget.php:155
 msgid "Show"
@@ -34663,14 +34741,6 @@ msgstr "Nebolo možné získať stav"
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:44
 msgid "No packages installed."
 msgstr "Nie sú nainštalované žiadne balíky."
-
-#: src/usr/local/www/widgets/widgets/installed_packages.widget.php:44
-msgid ""
-"Packages can be installed <a href=\"pkg_mgr.php\" class=\"alert-link\">here</"
-"a>."
-msgstr ""
-"Balíky môžu byť nainštalované <a href=\"pkg_mgr.php\" class=\"alert-"
-"link\">tu</a>."
 
 #: src/usr/local/www/widgets/widgets/installed_packages.widget.php:88
 msgid "ok"
@@ -34753,39 +34823,43 @@ msgstr "Filter rozhraní uložený cez dashboard."
 msgid "Uptime: %s"
 msgstr "Doba prevádzky: %s"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:180
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:183
 msgid "Mobile"
 msgstr "Mobilné"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:193
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:196
 msgid "Active Tunnels"
 msgstr "Aktívne tunely"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:194
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:197
 msgid "Inactive Tunnels"
 msgstr "Neaktívne tunely"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:195
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:198
 msgid "Mobile Users"
 msgstr "Mobilní užívatelia"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:199
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:202
 msgid "Retrieving overview data "
 msgstr "Získavajú sa údaje prehľadu"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:214
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:217
 msgid "Retrieving tunnel data "
 msgstr "Získavajú sa údaje tunelu"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:230
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:233
 msgid "Retrieving mobile data "
 msgstr "Získavajú sa mobilných údajov"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:237
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:238
+msgid "No mobile tunnels have been configured"
+msgstr ""
+
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:247
 msgid "There are no configured IPsec Tunnels"
 msgstr "Neboli nakonfigurované žiadne IPsec tunely"
 
-#: src/usr/local/www/widgets/widgets/ipsec.widget.php:238
+#: src/usr/local/www/widgets/widgets/ipsec.widget.php:248
 msgid "IPsec can be configured <a href=\"vpn_ipsec.php\">here</a>."
 msgstr "IPsec môže byť nakonfigurovaný <a href=\"vpn_ipsec.php\">tu</a>."
 
@@ -34793,42 +34867,42 @@ msgstr "IPsec môže byť nakonfigurovaný <a href=\"vpn_ipsec.php\">tu</a>."
 msgid "Saved Filter Log Entries via Dashboard."
 msgstr "Záznamy filtračného denníka uložené cez dashboard."
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:112
+#: src/usr/local/www/widgets/widgets/log.widget.php:116
 msgid "Act"
 msgstr "Aktívne"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:114
+#: src/usr/local/www/widgets/widgets/log.widget.php:118
 msgid "IF"
 msgstr "Rozhranie"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:149
+#: src/usr/local/www/widgets/widgets/log.widget.php:153
 msgid "Rule that triggered this action"
 msgstr "Pravidlo, ktoré spustilo túto akciu"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:171
+#: src/usr/local/www/widgets/widgets/log.widget.php:175
 msgid "No logs to display"
 msgstr "Žiadne záznamy denníka k zobrazeniu"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:225
+#: src/usr/local/www/widgets/widgets/log.widget.php:239
 msgid "Number of entries"
 msgstr "Počet záznamov"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:233
+#: src/usr/local/www/widgets/widgets/log.widget.php:247
 msgid "Filter actions"
 msgstr "Akcie filtra"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:253
+#: src/usr/local/www/widgets/widgets/log.widget.php:267
 msgid "Filter interface"
 msgstr "Rozhranie filtra"
 
-#: src/usr/local/www/widgets/widgets/log.widget.php:266
+#: src/usr/local/www/widgets/widgets/log.widget.php:280
 msgid "Update interval"
 msgstr "Interval aktualizácie"
 
-#: src/usr/local/www/widgets/widgets/netgate_services_and_support.widget.php:38
+#: src/usr/local/www/widgets/widgets/netgate_services_and_support.widget.php:115
 #, php-format
-msgid "%sSupport information could not be retrieved%s"
-msgstr "%sNebolo možné získať informácie o podpore%s"
+msgid "%sRetrieving support information %s %s"
+msgstr ""
 
 #: src/usr/local/www/widgets/widgets/ntp_status.widget.php:43
 msgid "stratum"
@@ -34947,12 +35021,12 @@ msgid "All SMART drives are hidden."
 msgstr "Všetky SMART disky sú skryté."
 
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:36
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:183
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:198
 msgid "BIOS"
 msgstr "BIOS"
 
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:38
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:225
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:240
 msgid "CPU Type"
 msgstr "Druh procesoru"
 
@@ -34973,12 +35047,12 @@ msgid "State Table Size"
 msgstr "Veľkosť tabuľky stavov"
 
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:45
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:323
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:338
 msgid "MBUF Usage"
 msgstr "Využitie MBUF"
 
 #: src/usr/local/www/widgets/widgets/system_information.widget.php:46
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:342
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:357
 msgid "Temperature"
 msgstr "Teplota"
 
@@ -35002,197 +35076,197 @@ msgstr "Využitie swap"
 msgid "Disk Usage"
 msgstr "Využitie disku"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:64
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:55
+#, php-format
+msgid "Obtaining update status %s"
+msgstr ""
+
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:71
 msgid "<i>Unable to check for updates</i>"
 msgstr "<i>Nebolo možné skontrolovať aktualizácie</i>"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:71
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:78
 msgid "<i>Error in version information</i>"
 msgstr "<i>Chyba v informáciách verzie</i>"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:82
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:89
 msgid "Version "
 msgstr "Verzia"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:83
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:90
 msgid "is available."
 msgstr "je k dispozícii."
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:89
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:97
 msgid "The system is on the latest version."
 msgstr "Systém je na najnovšej verzii."
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:92
-msgid "The system is on a later version than<br />the official release."
-msgstr "Systém je na novšej verzii, než<br />je oficiálne vydanie."
-
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:95
-msgid "<i>Error comparing installed version<br />with latest available</i>"
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:101
+msgid "The system is on a later version than official release."
 msgstr ""
-"<i>Chyba počas kontroly nainštalovanej<br />verzie s poslednou dostupnou</i>"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:115
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:105
+msgid "Error comparing installed with latest version available"
+msgstr ""
+
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:112
+msgid "Version information updated at"
+msgstr ""
+
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:136
 msgid "Saved System Information Widget Filter via Dashboard."
 msgstr "Filter widgetu systémových informácií uložený cez dashboard."
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:155
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:170
 msgid "Unknown system"
 msgstr "Neznámy systém"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:159
-msgid "Serial: "
-msgstr "Sériové číslo:"
-
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:164
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:179
 msgid "Netgate Device ID:"
 msgstr "ID zariadenia Netgate:"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:186
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:201
 msgid "Vendor: "
 msgstr "Výrobca:"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:189
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:204
 msgid "Version: "
 msgstr "Verzia:"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:192
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:207
 msgid "Release Date: "
 msgstr "Dátum vydania:"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:208
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:223
 msgid "built on"
 msgstr "zostavený dňa"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:215
-msgid "Obtaining update status "
-msgstr "Získavanie stavu aktualizácie"
-
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:232
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:247
 msgid "CPUs"
 msgstr "Procesory"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:247
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:262
 msgid "Hardware crypto"
 msgstr "Hardvérová kryptografia"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:266
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:281
 msgid "Current date/time"
 msgstr "Aktuálny dátum/čas"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:275
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:290
 msgid "DNS server(s)"
 msgstr "DNS server(y)"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:294
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:309
 msgid "Last config change"
 msgstr "Posledná zmena konfigurácie"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:304
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:319
 msgid "State table size"
 msgstr "Veľkosť tabuľky stavov"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:314
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:329
 msgid "Show states"
 msgstr "Zobraziť stavy"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:359
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:374
 msgid "Load average"
 msgstr "Priemerné zaťaženie"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:361
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:376
 msgid "Last 1, 5 and 15 minutes"
 msgstr "Z poslednej minúty, 5 minút a 15 minút"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:370
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:385
 msgid "CPU usage"
 msgstr "Využitie procesora"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:377
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:391
 #, php-format
-msgid "Updating in %s seconds"
-msgstr "Aktualizuje sa o %s sekúnd"
+msgid "Retrieving CPU data %s"
+msgstr ""
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:386
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:400
 msgid "Memory usage"
 msgstr "Využitie pamäte"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:404
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:418
 msgid "SWAP usage"
 msgstr "Využitie swap"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:424
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:438
 msgid "Disk usage"
 msgstr "Využitie disku"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:430
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:444
 msgid " of "
 msgstr "z"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:430
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:444
 msgid "in RAM"
 msgstr "v pamäti RAM"
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:441
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:455
 msgid "All System Information items are hidden."
 msgstr "Všetky položky systémových informácií sú skryté."
 
-#: src/usr/local/www/widgets/widgets/system_information.widget.php:463
+#: src/usr/local/www/widgets/widgets/system_information.widget.php:476
 msgid "Item"
 msgstr "Položka"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:119
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:124
 msgid "Saved thermal_sensors_widget settings via Dashboard."
 msgstr "Nastavenia thermal_sensors_widget uložené cez dashboard."
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:163
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:195
 msgid "(Updating...)"
 msgstr "(Akzualizuje sa...)"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:174
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:206
 msgid "Thresholds in"
 msgstr ""
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:174
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:206
 msgid "(1 to 100):"
 msgstr "(1 až 100):"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:178
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:210
 msgid "Zone Warning"
 msgstr ""
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:185
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:217
 msgid "Zone Critical"
 msgstr ""
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:192
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:224
 msgid "Core Warning"
 msgstr ""
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:199
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:231
 msgid "Core Critical"
 msgstr ""
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:206
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:238
 msgid "Display settings:"
 msgstr "Nastavenia zobrazenia:"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:210
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:242
 msgid "Show raw output"
 msgstr "Zobraziť hrubé výstupy"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:214
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:246
 msgid "(no graph)"
 msgstr "(žiadny graf)"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:220
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:252
 msgid "Show full sensor name"
 msgstr "Zobraziť celý názov senzora"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:235
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:267
 msgid "* A proper Thermal Sensor / Module can be configured under"
 msgstr "* Riadny teplotný senzor/modul môže byť nastavený v sekcii"
 
-#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:236
+#: src/usr/local/www/widgets/widgets/thermal_sensors.widget.php:268
 msgid "section"
 msgstr " "
 
@@ -35464,31 +35538,31 @@ msgstr "Zobraziť najskôr názov stránky v karte prehliadača"
 msgid "Do not display state table without a filter"
 msgstr "Nezobraziť tabuľku stavov bez filtra"
 
-#: src/etc/inc/shaper.inc:799 src/etc/inc/shaper.inc:1407
+#: src/etc/inc/shaper.inc:799 src/etc/inc/shaper.inc:1408
 msgid "Enable/disable discipline and its children"
 msgstr "Povoliť/zakázať disciplínu a jej deti"
 
-#: src/etc/inc/shaper.inc:2294
+#: src/etc/inc/shaper.inc:2297
 msgid "Upper Limit"
 msgstr "Horný limit"
 
-#: src/etc/inc/shaper.inc:2327
+#: src/etc/inc/shaper.inc:2330
 msgid "Real Time"
 msgstr "Reálny čas"
 
-#: src/etc/inc/shaper.inc:2359
+#: src/etc/inc/shaper.inc:2362
 msgid "Link Share"
 msgstr "Zdieľanie pripojenia"
 
-#: src/etc/inc/shaper.inc:2805
+#: src/etc/inc/shaper.inc:2808
 msgid "Borrow from other queues when available"
 msgstr "Požičať od ostatných frontov ak to je dostupné"
 
-#: src/etc/inc/shaper.inc:3823
+#: src/etc/inc/shaper.inc:3826
 msgid "Enable limiter and its children"
 msgstr "Povoliť limiter a jeho deti"
 
-#: src/etc/inc/shaper.inc:4136
+#: src/etc/inc/shaper.inc:4139
 msgid "Enable this queue"
 msgstr "Povoliť tento front"
 
@@ -35885,11 +35959,15 @@ msgstr ""
 msgid ""
 "Please add a monitor IP address on the monitors tab to use this feature.\""
 msgstr ""
+"Prosím pridajte IP adresu monitora v záložke monitory pre použitie tejto "
+"funkcie.\""
 
 #: src/usr/local/www/load_balancer_virtual_server_edit.php:205
 #: src/usr/local/www/load_balancer_virtual_server_edit.php:225
 msgid "Please add a pool on the \"Pools\" tab to use this feature. "
 msgstr ""
+"Prosím pridajte združenie v záložke \"Združenia\" pre použitie tejto funkcie."
+""
 
 #: src/usr/local/www/pkg_edit.php:1327 src/usr/local/www/pkg_edit.php:1333
 #: src/usr/local/www/pkg_edit.php:1338
@@ -36160,7 +36238,7 @@ msgstr "Povoliť Proxy"
 
 #: src/usr/local/www/services_dyndns_edit.php:333
 msgid "Enable verbose logging"
-msgstr ""
+msgstr "Povoliť podrobné zaznamenávanie do denníka"
 
 #: src/usr/local/www/services_dyndns_edit.php:340
 msgid "Force IPv4 DNS Resolution"
@@ -36180,7 +36258,7 @@ msgstr "Zaznamenať správy peerov do denníka (predvolené: zakázať)."
 
 #: src/usr/local/www/services_ntpd.php:325
 msgid "Log system messages (default: disabled)."
-msgstr ""
+msgstr "Zaznamenať systémové správy do denníka (predvolené: zakázané)."
 
 #: src/usr/local/www/services_ntpd.php:348
 msgid "Log reference clock statistics (default: disabled)."
@@ -36189,14 +36267,15 @@ msgstr ""
 #: src/usr/local/www/services_ntpd.php:355
 msgid "Log clock discipline statistics (default: disabled)."
 msgstr ""
+"Zaznamenať štatistiky časovej disciplíny do denníka (predvolené: zakázané)."
 
 #: src/usr/local/www/services_ntpd.php:362
 msgid "Log NTP peer statistics (default: disabled)."
-msgstr ""
+msgstr "Zaznamenať štatistiky NTP peerov do denníka (predvolené: zakázané)."
 
 #: src/usr/local/www/services_ntpd_acls.php:202
 msgid "Enable KOD packets."
-msgstr ""
+msgstr "Povoliť KOD pakety."
 
 #: src/usr/local/www/services_ntpd_acls.php:209
 msgid "Deny run-time Configuration (nomodify) by ntpq and ntpdc."
@@ -36204,15 +36283,15 @@ msgstr ""
 
 #: src/usr/local/www/services_ntpd_acls.php:216
 msgid "Disable ntpq and ntpdc queries (noquery)."
-msgstr ""
+msgstr "Zakázať ntpq a ntpdc dopyty (noquery)."
 
 #: src/usr/local/www/services_ntpd_acls.php:223
 msgid "Disable all except ntpq and ntpdc queries (noserve)."
-msgstr ""
+msgstr "Zakázať všetko okrem ntpq a ntpdc dopytov (noserve)."
 
 #: src/usr/local/www/services_ntpd_acls.php:230
 msgid "Deny packets that attempt a peer association (nopeer)."
-msgstr ""
+msgstr "Zakázať pakety, ktoré sa pokúšajú o priradenie peeru (nopeer)."
 
 #: src/usr/local/www/services_ntpd_acls.php:237
 msgid "Deny mode 6 control message trap service (notrap)."
@@ -36438,7 +36517,7 @@ msgstr ""
 #: src/usr/local/www/services_unbound_domainoverride_edit.php:151
 #: src/usr/local/www/services_unbound_host_edit.php:235
 #: src/usr/local/www/services_unbound_host_edit.php:303
-#: src/usr/local/www/system_certmanager.php:963
+#: src/usr/local/www/system_certmanager.php:974
 #: src/usr/local/www/system_gateways_edit.php:373
 #: src/usr/local/www/system_groupmanager_addprivs.php:189
 #: src/usr/local/www/system_usermanager_addprivs.php:173
@@ -36570,7 +36649,7 @@ msgstr "Udalosti protokolu sieťového času (NTP démon, NTP klient)"
 
 #: src/usr/local/www/status_logs_settings.php:478
 msgid "Wireless Events (hostapd)"
-msgstr ""
+msgstr "Udalosti bezdrôtového rozhrania (hostapd)"
 
 #: src/usr/local/www/system.php:546
 msgid "Allow DNS server list to be overridden by DHCP/PPP on WAN"
@@ -36606,7 +36685,7 @@ msgstr "Zakázať pravidlo proti vymiznutiu z webConfiguratora"
 
 #: src/usr/local/www/system_advanced_admin.php:415
 msgid "Disable DNS Rebinding Checks"
-msgstr ""
+msgstr "Zakázať DNS Rebind kontroly"
 
 #: src/usr/local/www/system_advanced_admin.php:435
 msgid "Disable HTTP_REFERER enforcement check"
@@ -36722,7 +36801,7 @@ msgstr ""
 
 #: src/usr/local/www/system_advanced_network.php:191
 msgid "Enable IPv6 over IPv4 tunneling"
-msgstr "Povoliť IPv6 cez IPv4 tunneling"
+msgstr "Povoliť tunelovanie IPv6 cez IPv4"
 
 #: src/usr/local/www/system_advanced_network.php:207
 msgid "Prefer to use IPv4 even if IPv6 is available"
@@ -36928,8 +37007,8 @@ msgid "Disable this static route"
 msgstr "Zakázať toto statické smerovanie"
 
 #: src/usr/local/www/system_update_settings.php:161
-msgid "Disable the automatic dashboard auto-update check"
-msgstr "Zakázať automatickú kontrolu aktualizácií na dashboarde"
+msgid "Disable the Dashboard auto-update check"
+msgstr ""
 
 #: src/usr/local/www/system_update_settings.php:173
 msgid "Enable repository/branch sync before reboot"

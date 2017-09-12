@@ -110,7 +110,7 @@ if ($_REQUEST['getupdatestatus']) {
 ?>
 	<div>
 		<?printf("%s %s", gettext("Version information updated at"),
-		    date("Y-m-d H:i", filemtime($cache_file)));?>
+		    date("D M j G:i:s T Y", filemtime($cache_file)));?>
 		    &nbsp;
 		    <a id="updver" href="#" class="fa fa-refresh"></a>
 	</div>
@@ -136,12 +136,6 @@ if ($_REQUEST['getupdatestatus']) {
 	save_widget_settings($_SESSION['Username'], $user_settings["widgets"], gettext("Saved System Information Widget Filter via Dashboard."));
 	header("Location: /index.php");
 }
-
-/*   Adding one second to the system widet update period
- *   will ensure that we update the GUI right after the stats are updated.
- */
-$widgetperiod = isset($config['widgets']['period']) ? $config['widgets']['period'] * 1000 : 10000;
-$widgetperiod += 1000;
 
 $filesystems = get_mounted_filesystems();
 
@@ -210,7 +204,7 @@ $rows_displayed = false;
 				<?=gettext("Version: ");?><strong><?=$biosversion[0];?></strong><br/>
 			<?php endif; ?>
 			<?php if (!empty($biosdate[0])): ?>
-				<?=gettext("Release Date: ");?><strong><?=$biosdate[0];?></strong><br/>
+				<?=gettext("Release Date: ");?><strong><?= date("D M j Y ",strtotime($biosdate[0]));?></strong><br/>
 			<?php endif; ?>
 			</td>
 		</tr>
@@ -394,8 +388,7 @@ $rows_displayed = false;
 					<div id="cpuPB" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
 					</div>
 				</div>
-				<?php $update_period = (!empty($config['widgets']['period'])) ? $config['widgets']['period'] : "10"; ?>
-				<span id="cpumeter"><?=sprintf(gettext("Updating in %s seconds"), $update_period)?></span>
+				<span id="cpumeter"><?=sprintf(gettext("Retrieving CPU data %s"), "<i class=\"fa fa-gear fa-spin\"></i>")?></span>
 			</td>
 		</tr>
 <?php
@@ -473,7 +466,6 @@ $rows_displayed = false;
 </div><div id="<?=$widget_panel_footer_id?>" class="panel-footer collapse">
 
 <form action="/widgets/widgets/system_information.widget.php" method="post" class="form-horizontal">
-	<?=gen_customwidgettitle_div($widgetconfig['title']); ?>
     <div class="panel panel-default col-sm-10">
 		<div class="panel-body">
 			<input type="hidden" name="widgetkey" value="<?=$widgetkey; ?>">
@@ -514,7 +506,8 @@ $rows_displayed = false;
 //<![CDATA[
 <?php if ($widget_first_instance): ?>
 
-var update_interval = "<?=$widgetperiod?>";
+var lastTotal = 0;
+var lastUsed = 0;
 
 function setProgress(barName, percent) {
 	$('[id="' + barName + '"]').css('width', percent + '%').attr('aria-valuenow', percent);
@@ -529,17 +522,23 @@ function stats(x) {
 			return false;
 	}))
 
-	updateUptime(values[2]);
-	updateDateTime(values[5]);
-	updateCPU(values[0]);
-	updateMemory(values[1]);
-	updateState(values[3]);
-	updateTemp(values[4]);
-	updateCpuFreq(values[6]);
-	updateLoadAverage(values[7]);
-	updateMbuf(values[8]);
-	updateMbufMeter(values[9]);
-	updateStateMeter(values[10]);
+	if (lastTotal === 0) {
+		lastTotal = values[0];
+		lastUsed = values[1];
+	} else {
+		updateCPU(values[0], values[1]);
+	}
+
+	updateUptime(values[3]);
+	updateDateTime(values[6]);
+	updateMemory(values[2]);
+	updateState(values[4]);
+	updateTemp(values[5]);
+	updateCpuFreq(values[7]);
+	updateLoadAverage(values[8]);
+	updateMbuf(values[9]);
+	updateMbufMeter(values[10]);
+	updateStateMeter(values[11]);
 }
 
 function updateMemory(x) {
@@ -566,19 +565,32 @@ function updateMbufMeter(x) {
 	}
 }
 
-function updateCPU(x) {
+function updateCPU(total, used) {
+	if ((lastTotal <= total) && (lastUsed <= used)) { // Just in case it wraps
+		// Calculate the total ticks and the used ticks since the last time it was checked
+		var d_total = total - lastTotal;
+		var d_used = used - lastUsed;
 
-	if ($('#cpumeter')) {
-		$('[id="cpumeter"]').html(x + '%');
-	}
-	if ($('#cpuPB')) {
-		setProgress('cpuPB', parseInt(x));
+		// Convert to percent
+		var x = Math.floor(((d_total - d_used)/d_total) * 100);
+
+		if ($('#cpumeter')) {
+			$('[id="cpumeter"]').html(x + '%');
+		}
+
+		if ($('#cpuPB')) {
+			setProgress('cpuPB', parseInt(x));
+		}
+
+		/* Load CPU Graph widget if enabled */
+		if (widgetActive('cpu_graphs')) {
+			GraphValue(graph[0], x);
+		}
 	}
 
-	/* Load CPU Graph widget if enabled */
-	if (widgetActive('cpu_graphs')) {
-		GraphValue(graph[0], x);
-	}
+	// Update the saved "last" values
+	lastTotal = total;
+	lastUsed = used;
 }
 
 function updateTemp(x) {
@@ -643,7 +655,7 @@ function widgetActive(x) {
 
 events.push(function(){
 
-	// --------------------- EXPERIMENTAL centralized widget refresh system ------------------------------
+	// --------------------- Centralized widget refresh system ------------------------------
 
 	// Callback function called by refresh system when data is retrieved
 	function meters_callback(s) {
@@ -692,7 +704,7 @@ events.push(function(){
 	versionObject.parms = postdata;
 	versionObject.freq = 100;
 
-	// Register the AJAX object
+	//Register the AJAX object
 	register_ajax(versionObject);
 <?php endif; ?>
 	// ---------------------------------------------------------------------------------------------------

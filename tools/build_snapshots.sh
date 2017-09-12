@@ -19,28 +19,28 @@
 # limitations under the License.
 
 usage() {
-	echo "Usage: $(basename $0) [-l] [-n] [-r] [-u] [-p]"
+	echo "Usage: $(basename $0) [-l] [-n] [-r] [-U] [-p]"
 	echo "	-l: Build looped operations"
 	echo "	-n: Do not build images, only core pkg repo"
 	echo "	-p: Update poudriere repo"
 	echo "	-r: Do not reset local changes"
-	echo "	-u: Do not upload snapshots"
+	echo "	-U: Upload snapshots"
 }
 
 export BUILDER_TOOLS=$(realpath $(dirname ${0}))
 export BUILDER_ROOT=$(realpath "${BUILDER_TOOLS}/..")
 
-NO_IMAGES=""
+IMAGES="all"
 NO_RESET=""
-NO_UPLOAD=""
+UPLOAD=""
 LOOPED_SNAPSHOTS=""
 POUDRIERE_SNAPSHOTS=""
 
 # Handle command line arguments
-while getopts lnpru opt; do
+while getopts lnprU opt; do
 	case ${opt} in
 		n)
-			NO_IMAGES="none"
+			IMAGES="none"
 			;;
 		l)
 			LOOPED_SNAPSHOTS=1
@@ -51,8 +51,8 @@ while getopts lnpru opt; do
 		r)
 			NO_RESET=1
 			;;
-		u)
-			NO_UPLOAD="-u"
+		U)
+			UPLOAD="-U"
 			;;
 		*)
 			usage
@@ -76,8 +76,25 @@ export COUNTER=0
 export _sleeping=0
 
 snapshot_update_status() {
-	${BUILDER_ROOT}/build.sh ${NO_UPLOAD} ${POUDRIERE_SNAPSHOTS} \
+	${BUILDER_ROOT}/build.sh ${UPLOAD} ${POUDRIERE_SNAPSHOTS} \
 		--snapshot-update-status "$*"
+}
+
+exec_and_update_status() {
+	local _cmd="${@}"
+
+	[ -z "${_cmd}" ] \
+		&& return 1
+
+	# Ref. https://stackoverflow.com/a/30658405
+	exec 4>&1
+	local _result=$( \
+	    { { ${_cmd} 2>&1 3>&-; printf $? 1>&3; } 4>&- \
+	    | while read -r LINE; do \
+	    snapshot_update_status "${LINE}"; done 1>&4; } 3>&1)
+	exec 4>&-
+
+	return ${_result}
 }
 
 git_last_commit() {
@@ -166,32 +183,33 @@ while [ /bin/true ]; do
 	IFS="
 "
 	if [ -n "${POUDRIERE_SNAPSHOTS}" ]; then
-		(${BUILDER_ROOT}/build.sh --update-poudriere-ports 2>&1) \
-		    | while read -r LINE; do
-			snapshot_update_status "${LINE}"
-		done
+		exec_and_update_status \
+		    ${BUILDER_ROOT}/build.sh --update-poudriere-ports
+		rc=$?
 
-		(${BUILDER_ROOT}/build.sh ${NO_UPLOAD} --update-pkg-repo 2>&1) \
-		    | while read -r LINE; do
-			snapshot_update_status "${LINE}"
-		done
+		if [ $rc -eq 0 ]; then
+			exec_and_update_status \
+			    ${BUILDER_ROOT}/build.sh ${UPLOAD} \
+			    --update-pkg-repo
+			rc=$?
+		fi
 	else
-		(${BUILDER_ROOT}/build.sh --clean-builder 2>&1) \
-		    | while read -r LINE; do
-			snapshot_update_status "${LINE}"
-		done
+		exec_and_update_status \
+		    ${BUILDER_ROOT}/build.sh --clean-builder
+		rc=$?
 
-		(${BUILDER_ROOT}/build.sh ${NO_UPLOAD} \
-		    --snapshots ${NO_IMAGES} "memstick memstickadi memstickserial iso" 2>&1) \
-		    | while read -r LINE; do
-			snapshot_update_status "${LINE}"
-		done
+		if [ $rc -eq 0 ]; then
+			exec_and_update_status \
+			    ${BUILDER_ROOT}/build.sh ${UPLOAD} --snapshots \
+			    ${IMAGES}
+			rc=$?
+		fi
 	fi
 	IFS=${OIFS}
 
 	if [ -z "${LOOPED_SNAPSHOTS}" ]; then
 		# only one build required, exiting
-		exit
+		exit ${rc}
 	fi
 
 	# Count some sheep or wait until a new commit turns up

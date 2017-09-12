@@ -187,8 +187,8 @@ install_default_kernel() {
 		print_error_pfS
 	fi
 
-	# Lock kernel to avoid user end up removing it for any reason
-	pkg_chroot ${FINAL_CHROOT_DIR} lock -q -y $(get_pkg_name kernel-${KERNEL_NAME})
+	# Set kernel pkg as vital to avoid user end up removing it for any reason
+	pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name kernel-${KERNEL_NAME})
 
 	if [ ! -f $FINAL_CHROOT_DIR/boot/kernel/kernel.gz ]; then
 		echo ">>> ERROR: No kernel installed on $FINAL_CHROOT_DIR and the resulting image will be unusable. STOPPING!" | tee -a ${LOGFILE}
@@ -697,6 +697,10 @@ customize_stagearea_for_image() {
 	pkg_chroot_add ${FINAL_CHROOT_DIR} rc
 	pkg_chroot_add ${FINAL_CHROOT_DIR} base
 
+	# Set base/rc pkgs as vital to avoid user end up removing it for any reason
+	pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name rc)
+	pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name base)
+
 	if [ "${_image_type}" = "iso" -o \
 	     "${_image_type}" = "memstick" -o \
 	     "${_image_type}" = "memstickserial" -o \
@@ -712,7 +716,7 @@ customize_stagearea_for_image() {
 	#      staging server during build phase
 	if [ -n "${USE_PKG_REPO_STAGING}" ]; then
 		_read_cmd="select value from repodata where key='packagesite'"
-		if [ -n "${_IS_RELEASE}" ]; then
+		if [ -n "${_IS_RELEASE}" -o -n "${_IS_RC}" ]; then
 			local _tgt_server="${PKG_REPO_SERVER_RELEASE}"
 		else
 			local _tgt_server="${PKG_REPO_SERVER_DEVEL}"
@@ -1164,6 +1168,8 @@ install_pkg_install_ports() {
 	fi
 	# Make sure required packages are set as non-automatic
 	pkg_chroot ${STAGE_CHROOT_DIR} set -A 0 pkg ${MAIN_PKG} ${custom_package_list}
+	# pkg and MAIN_PKG are vital
+	pkg_chroot ${STAGE_CHROOT_DIR} set -y -v 1 pkg ${MAIN_PKG}
 	# Remove unnecessary packages
 	pkg_chroot ${STAGE_CHROOT_DIR} autoremove
 	echo "Done!"
@@ -1309,7 +1315,7 @@ pkg_repo_rsync() {
 		fi
 	fi
 
-	if [ -n "${DO_NOT_UPLOAD}" ]; then
+	if [ -z "${UPLOAD}" ]; then
 		return
 	fi
 
@@ -1688,7 +1694,7 @@ poudriere_bulk() {
 
 	LOGFILE=${BUILDER_LOGS}/poudriere.log
 
-	if [ -z "${DO_NOT_UPLOAD}" -a -z "${PKG_RSYNC_HOSTNAME}" ]; then
+	if [ -n "${UPLOAD}" -a -z "${PKG_RSYNC_HOSTNAME}" ]; then
 		echo ">>> ERROR: PKG_RSYNC_HOSTNAME is not set"
 		print_error_pfS
 	fi

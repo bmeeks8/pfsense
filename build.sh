@@ -30,18 +30,19 @@ usage() {
 	echo "		--setup - Install required repo and ports builder require to work"
 	echo "		--update-sources - Refetch FreeBSD sources"
 	echo "		--rsync-repos - rsync pkg repos"
+	echo "		--rsync-snapshots - rsync snapshots images and pkg repos"
 	echo "		--clean-builder - clean all builder used data/resources"
 	echo "		--build-kernels - build all configured kernels"
 	echo "		--build-kernel argument - build specified kernel. Example --build-kernel KERNEL_NAME"
 	echo "		--install-extra-kernels argument - Put extra kernel(s) under /kernel image directory. Example --install-extra-kernels KERNEL_NAME_WRAP"
-	echo "		--snapshots - Build snapshots and upload them to RSYNCIP"
+	echo "		--snapshots - Build snapshots"
 	echo "		--poudriere-snapshots - Update poudriere packages and send them to PKG_RSYNC_HOSTNAME"
 	echo "		--setup-poudriere - Install poudriere and create necessary jails and ports tree"
 	echo "		--create-unified-patch - Create a big patch with all changes done on FreeBSD"
 	echo "		--update-poudriere-jails [-a ARCH_LIST] - Update poudriere jails using current patch versions"
 	echo "		--update-poudriere-ports [-a ARCH_LIST]- Update poudriere ports tree"
 	echo "		--update-pkg-repo [-a ARCH_LIST]- Rebuild necessary ports on poudriere and update pkg repo"
-	echo "		--do-not-upload|-u - Do not upload pkgs or snapshots"
+	echo "		--upload|-U - Upload pkgs and/or snapshots"
 	echo "		-V VARNAME - print value of variable VARNAME"
 	exit 1
 }
@@ -53,7 +54,7 @@ unset _SKIP_REBUILD_PRESTAGE
 unset _USE_OLD_DATESTRING
 unset pfPORTTOBUILD
 unset IMAGETYPE
-unset DO_NOT_UPLOAD
+unset UPLOAD
 unset SNAPSHOTS
 unset POUDRIERE_SNAPSHOTS
 unset ARCH_LIST
@@ -82,6 +83,10 @@ while test "$1" != ""; do
 			;;
 		--rsync-repos)
 			BUILDACTION="rsync_repos"
+			export DO_NOT_SIGN_PKG_REPO=YES
+			;;
+		--rsync-snapshots)
+			BUILDACTION="rsync_snapshots"
 			export DO_NOT_SIGN_PKG_REPO=YES
 			;;
 		--build-kernels)
@@ -142,8 +147,8 @@ while test "$1" != ""; do
 		--update-pkg-repo)
 			BUILDACTION="update_pkg_repo"
 			;;
-		--do-not-upload|-u)
-			export DO_NOT_UPLOAD=1
+		--upload|-U)
+			export UPLOAD=1
 			;;
 		all|none|*iso*|*ova*|*memstick*|*memstickserial*|*memstickadi*)
 			BUILDACTION="images"
@@ -170,6 +175,10 @@ done
 
 # Suck in local vars
 . ${BUILDER_TOOLS}/builder_defaults.sh
+
+# Let user define ARCH_LIST in build.conf
+[ -z "${ARCH_LIST}" -a -n "${DEFAULT_ARCH_LIST}" ] \
+	&& ARCH_LIST="${DEFAULT_ARCH_LIST}"
 
 # Suck in script helper functions
 . ${BUILDER_TOOLS}/builder_common.sh
@@ -227,10 +236,16 @@ case $BUILDACTION in
 	;;
 	rsync_repos)
 		unset SKIP_FINAL_RSYNC
+		export UPLOAD=1
 		pkg_repo_rsync "${CORE_PKG_PATH}"
 	;;
+	rsync_snapshots)
+		unset SKIP_FINAL_RSYNC
+		export UPLOAD=1
+		snapshots_scp_files
+	;;
 	update_pkg_repo)
-		if [ -z "${DO_NOT_UPLOAD}" -a ! -f /usr/local/bin/rsync ]; then
+		if [ -n "${UPLOAD}" -a ! -f /usr/local/bin/rsync ]; then
 			echo "ERROR: rsync is not installed, aborting..."
 			exit 1
 		fi
@@ -246,7 +261,7 @@ if [ "${BUILDACTION}" != "images" ]; then
 	exit 0
 fi
 
-if [ -n "${SNAPSHOTS}" -a -z "${DO_NOT_UPLOAD}" ]; then
+if [ -n "${SNAPSHOTS}" -a -n "${UPLOAD}" ]; then
 	_required=" \
 		RSYNCIP \
 		RSYNCUSER \
@@ -423,12 +438,12 @@ if [ -n "${_bg_pids}" ]; then
 fi
 
 if [ -n "${SNAPSHOTS}" ]; then
-	if [ "${IMAGETYPE}" = "none" -a -z "${DO_NOT_UPLOAD}" ]; then
+	if [ "${IMAGETYPE}" = "none" -a -n "${UPLOAD}" ]; then
 		pkg_repo_rsync "${CORE_PKG_PATH}"
 	elif [ "${IMAGETYPE}" != "none" ]; then
 		snapshots_create_sha256
 		# SCP files to snapshot web hosting area
-		if [ -z "${DO_NOT_UPLOAD}" ]; then
+		if [ -n "${UPLOAD}" ]; then
 			snapshots_scp_files
 		fi
 	fi

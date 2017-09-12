@@ -35,14 +35,14 @@ require_once("/usr/local/www/widgets/include/installed_packages.inc");
 require_once("pkg-utils.inc");
 
 function get_pkg_stats() {
-	$package_list = get_pkg_info();
+	$package_list = get_pkg_info('all', true, true);
 	$installed_packages = array_filter($package_list, function($v) {
 		return (isset($v['installed']) || isset($v['broken']));
 	});
 
 	if (empty($installed_packages)) {
-		print_info_box(gettext("No packages installed.") . " " . gettext('Packages can be installed <a href="pkg_mgr.php" class="alert-link">here</a>.'), 'warning', false);
-		exit;
+		print_info_box(gettext("No packages installed."), 'warning', false);
+		return;
 	}
 
 	print("<thead>\n");

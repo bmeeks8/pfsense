@@ -105,7 +105,7 @@ GIT_REPO_BASE=$(git -C ${BUILDER_ROOT} config --get remote.origin.url | sed -e '
 
 # This is used for using svn for retrieving src
 export FREEBSD_REPO_BASE=${FREEBSD_REPO_BASE:-"${GIT_REPO_BASE}/freebsd-src.git"}
-export FREEBSD_BRANCH=${FREEBSD_BRANCH:-"RELENG_2_4_0"}
+export FREEBSD_BRANCH=${FREEBSD_BRANCH:-"RELENG_2_4"}
 export FREEBSD_SRC_DIR=${FREEBSD_SRC_DIR:-"${SCRATCHDIR}/FreeBSD-src"}
 
 export BUILD_KERNELS=${BUILD_KERNELS:-"${PRODUCT_NAME}"}
@@ -326,9 +326,15 @@ export VARIANTIMAGES=""
 export VARIANTUPDATES=""
 
 # Rsync data to send snapshots
-export RSYNCIP=${RSYNCIP:-"nfs1.nyi.netgate.com"}
-export RSYNCUSER=${RSYNCUSER:-"wwwsync"}
-export RSYNCPATH=${RSYNCPATH:-"/storage/files/snapshots/${TARGET}/${PRODUCT_NAME}_${GIT_REPO_BRANCH_OR_TAG}"}
+if [ -n "${_IS_RELEASE}" ]; then
+	export RSYNCIP=${RSYNCIP:-"release-staging.netgate.com"}
+	export RSYNCUSER=${RSYNCUSER:-"wwwsync"}
+	export RSYNCPATH=${RSYNCPATH:-"/staging/ce/images"}
+else
+	export RSYNCIP=${RSYNCIP:-"nfs1.nyi.netgate.com"}
+	export RSYNCUSER=${RSYNCUSER:-"wwwsync"}
+	export RSYNCPATH=${RSYNCPATH:-"/storage/files/snapshots/${TARGET}/${PRODUCT_NAME}_${GIT_REPO_BRANCH_OR_TAG}"}
+fi
 
 export SNAPSHOTSLOGFILE=${SNAPSHOTSLOGFILE:-"${SCRATCHDIR}/snapshots-build.log"}
 export SNAPSHOTSLASTUPDATE=${SNAPSHOTSLASTUPDATE:-"${SCRATCHDIR}/snapshots-lastupdate.log"}

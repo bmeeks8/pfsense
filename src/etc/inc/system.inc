@@ -1532,7 +1532,10 @@ EOD;
 		location / {
 			index  index.php index.html index.htm;
 		}
-
+		location ~ \.inc$ {
+			deny all;
+			return 403;
+		}
 		location ~ \.php$ {
 			try_files \$uri =404; #  This line closes a potential security hole
 			# ensuring users can't execute uploaded files
@@ -2360,7 +2363,7 @@ function system_get_serial() {
 		return $serial;
 	}
 
-	return get_single_sysctl('kern.hostuuid');
+	return "";
 }
 
 function system_get_uniqueid() {
@@ -2459,6 +2462,9 @@ function system_identify_specific_platform() {
 		case 'apu2':
 		case 'APU2':
 			return (array('name' => 'apu2', 'descr' => 'PC Engines APU2'));
+			break;
+		case 'VirtualBox':
+			return (array('name' => 'VirtualBox', 'descr' => 'VirtualBox Virtual Machine'));
 			break;
 		case 'Virtual Machine':
 			if ($maker[0] == "Microsoft Corporation") {

@@ -30,6 +30,10 @@
 ##|*MATCH=index.php*
 ##|-PRIV
 
+// Message to display if the session times out and an AJAX call is made
+$timeoutmessage = gettext("The dashboard web session has timed out.\\n" .
+	"It will not update until you refresh the page and log-in again.");
+
 // Turn on buffering to speed up rendering
 ini_set('output_buffering', 'true');
 
@@ -141,6 +145,9 @@ if ($_POST && $_POST['sequence']) {
 		list($basename, $col, $display, $widget_counter) = explode(':', $widget_seq_data);
 
 		if ($widget_counter != 'next') {
+			if (!is_numeric($widget_counter)) {
+				continue;
+			}
 			$widget_counter_array[$basename][$widget_counter] = true;
 			$widget_sequence .= $widget_sep . $widget_seq_data;
 			$widget_sep = ',';
@@ -279,6 +286,9 @@ if ($user_settings['widgets']['sequence'] != "") {
 		}
 
 		list($basename, $col, $display, $copynum) = $line_items;
+		if (!is_numeric($copynum)) {
+			continue;
+		}
 
 		// be backwards compatible
 		// If the display column information is missing, we will assign a temporary
@@ -648,7 +658,9 @@ events.push(function() {
 		}
 	});
 
-	// --------------------- EXPERIMENTAL centralized widget refresh system ------------------------------
+	// --------------------- Centralized widget refresh system ------------------------------
+	ajaxtimeout = false;
+
 	function make_ajax_call(wd) {
 		ajaxmutex = true;
 
@@ -660,7 +672,15 @@ events.push(function() {
 
 			success: function(data){
 				if (data.length > 0 ) {
-					wd.callback(data);
+					// If the session has timed out, display a pop-up
+					if (data.indexOf("SESSION_TIMEOUT") === -1) {
+						wd.callback(data);
+					} else {
+						if (ajaxtimeout === false) {
+							ajaxtimeout = true;
+							alert("<?=$timeoutmessage?>");
+						}
+					}
 				}
 
 				ajaxmutex = false;

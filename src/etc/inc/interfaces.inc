@@ -4386,7 +4386,7 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 		}
 		$dhcp6cscript .= "esac\n";
 	} else {
-		// Need to get the paramaters from the dhcp6cwithoutRA run
+		// Need to get the parameters from the dhcp6cwithoutRA run
 		$dhcp6cscript .= "dmips=\$(cat \"/tmp/{$wanif}_domain_name_servers\")\n";
 		$dhcp6cscript .= "dmnames=\$(cat \"/tmp/{$wanif}_new_domain_name\")\n";
 		$dhcp6cscript .= "/bin/sleep 1\n";
@@ -5890,7 +5890,8 @@ function get_possible_traffic_source_addresses($include_ipv6_link_local=false) {
 }
 
 function get_interface_ip($interface = "wan") {
-
+	global $config;
+	
 	if (substr($interface, 0, 4) == '_vip') {
 		return get_configured_vip_ipv4($interface);
 	} else if (substr($interface, 0, 5) == '_lloc') {
@@ -6160,7 +6161,7 @@ function is_altq_capable($int) {
 	$capable = array("ae", "age", "alc", "ale", "an", "aue", "axe", "bce",
 			"bfe", "bge", "bridge", "cas", "cpsw", "cxl", "dc", "de",
 			"ed", "em", "ep", "epair", "et", "fxp", "gem", "hme", "hn",
-			"igb", "ix", "jme", "l2tp", "le", "lem", "msk", "mxge", "my",
+			"igb", "jme", "l2tp", "le", "lem", "msk", "mxge", "my",
 			"ndis", "nfe", "ng", "nge", "npe", "nve", "ovpnc", "ovpns",
 			"ppp", "pppoe", "pptp", "re", "rl", "sf", "sge", "sis", "sk",
 			"ste", "stge", "ti", "tun", "txp", "udav", "ural", "vge",

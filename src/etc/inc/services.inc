@@ -3,7 +3,7 @@
  * services.inc
  *
  * part of pfSense (https://www.pfsense.org)
- * Copyright (c) 2004-2016 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2004-2018 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * originally part of m0n0wall (http://m0n0.ch/wall)
@@ -2531,39 +2531,16 @@ function services_dnsupdate_process($int = "", $updatehost = "", $forced = false
 			$hostname .= ".";
 		}
 
-		/*
-		 * write private key file
-		 * this is dumb - public and private keys are the same for
-		 * HMAC-MD5, but nsupdate insists on having both
-		 */
-		$fd = fopen($g['varetc_path'] .
-		    "/K{$i}{$keyname}+157+00000.private", "w");
-		$privkey = <<<EOD
-Private-key-format: v1.2
-Algorithm: 157 (HMAC)
-Key: {$dnsupdate['keydata']}
+		/* write key file */
+		$algorithm = empty($dnsupdate['keyalgorithm']) ? 'hmac-md5' : $dnsupdate['keyalgorithm'];
+		$upkey = <<<EOD
+key "{$keyname}" {
+	algorithm {$algorithm};
+	secret "{$dnsupdate['keydata']}";
+};
 
 EOD;
-		fwrite($fd, $privkey);
-		fclose($fd);
-
-		/* write public key file */
-		if ($dnsupdate['keytype'] == "zone") {
-			$flags = 257;
-			$proto = 3;
-		} else if ($dnsupdate['keytype'] == "host") {
-			$flags = 513;
-			$proto = 3;
-		} else if ($dnsupdate['keytype'] == "user") {
-			$flags = 0;
-			$proto = 2;
-		}
-
-		$fd = fopen($g['varetc_path'] .
-		    "/K{$i}{$keyname}+157+00000.key", "w");
-		fwrite($fd, "{$keyname} IN KEY {$flags} {$proto} 157 " .
-		    "{$dnsupdate['keydata']}\n");
-		fclose($fd);
+		@file_put_contents("{$g['varetc_path']}/nsupdatekey{$i}", $upkey);
 
 		/* generate update instructions */
 		$upinst = "";
@@ -2633,12 +2610,10 @@ EOD;
 			continue;
 		}
 
-		@file_put_contents("{$g['varetc_path']}/nsupdatecmds{$i}",
-		    $upinst);
+		@file_put_contents("{$g['varetc_path']}/nsupdatecmds{$i}", $upinst);
 		unset($upinst);
 		/* invoke nsupdate */
-		$cmd = "/usr/local/bin/nsupdate -k " .
-		    "{$g['varetc_path']}/K{$i}{$keyname}+157+00000.key";
+		$cmd = "/usr/local/bin/nsupdate -k {$g['varetc_path']}/nsupdatekey{$i}";
 
 		if (isset($dnsupdate['usetcp'])) {
 			$cmd .= " -v";

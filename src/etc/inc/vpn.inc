@@ -3,7 +3,7 @@
  * vpn.inc
  *
  * part of pfSense (https://www.pfsense.org)
- * Copyright (c) 2004-2016 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2004-2018 Rubicon Communications, LLC (Netgate)
  * Copyright (c) 2008 Shrew Soft Inc
  * All rights reserved.
  *
@@ -809,7 +809,8 @@ EOD;
 				if (!empty($lanip) && is_ipaddrv4($lanip)) {
 					$lansn = get_interface_subnet("lan");
 					$lansa = gen_subnet($lanip, $lansn);
-					$ipsecconf .= <<<EOD
+					if (!empty($lansa) && !empty($lansn)) {
+						$ipsecconf .= <<<EOD
 
 conn bypasslan
 	leftsubnet = {$lansa}/{$lansn}
@@ -819,6 +820,7 @@ conn bypasslan
 	auto = route
 
 EOD;
+					}
 				}
 			}
 		}

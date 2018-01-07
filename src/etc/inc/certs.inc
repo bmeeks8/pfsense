@@ -3,7 +3,7 @@
  * certs.inc
  *
  * part of pfSense (https://www.pfsense.org)
- * Copyright (c) 2008-2016 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2008-2018 Rubicon Communications, LLC (Netgate)
  * Copyright (c) 2008 Shrew Soft Inc. All rights reserved.
  * All rights reserved.
  *
@@ -1093,7 +1093,7 @@ function cert_add_altname_type($str) {
 	if (!empty($type)) {
 		return "{$type}:" . cert_escape_x509_chars($str);
 	} else {
-		return "";
+		return null;
 	}
 }
 

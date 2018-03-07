@@ -86,15 +86,15 @@ if (file_exists("/root/firmware.tgz")) {
 }
 
 /* Reinstall of packages after reboot has been requested */
-if (file_exists('/conf/needs_package_sync_after_reboot')) {
-	touch('/conf/needs_package_sync');
-	@unlink('/conf/needs_package_sync_after_reboot');
+if (file_exists("{$g['conf_path']}/needs_package_sync_after_reboot")) {
+	touch("{$g['conf_path']}/needs_package_sync");
+	@unlink("{$g['conf_path']}/needs_package_sync_after_reboot");
 }
 
 /* Triggering of the initial setup wizard after reboot has been requested */
-if (file_exists('/conf/trigger_initial_wizard_after_reboot')) {
-	touch('/conf/trigger_initial_wizard');
-	@unlink('/conf/trigger_initial_wizard_after_reboot');
+if (file_exists("{$g['conf_path']}/trigger_initial_wizard_after_reboot")) {
+	touch("{$g['conf_path']}/trigger_initial_wizard");
+	@unlink("{$g['conf_path']}/trigger_initial_wizard_after_reboot");
 }
 
 /* start devd (dhclient now uses it) */
@@ -117,7 +117,7 @@ system_do_shell_commands(1);
 // Only do the alternate interface checks if:
 // 1) The user has not yet run the initial wizard; and
 // 2) The user has not used the console menu to setup interface assignments
-if (file_exists("/conf/trigger_initial_wizard") && !file_exists("/conf/assign_complete")) {
+if (file_exists("{$g['conf_path']}/trigger_initial_wizard") && !file_exists("{$g['conf_path']}/assign_complete")) {
 	check_for_alternate_interfaces();
 }
 
@@ -155,6 +155,7 @@ while (is_interface_mismatch() == true) {
 		system("/sbin/shutdown -h now");
 		exit(0);
 	}
+	reload_interfaces_sync();
 	led_kitt();
 }
 
@@ -247,16 +248,20 @@ setup_gateways_monitor();
 echo "done.\n";
 
 /* set up static routes */
+echo "Setting up static routes...";
 system_routing_configure();
+echo "done.\n";
 
+echo "Setting up DNSs...";
 /* start dnsmasq service */
 services_dnsmasq_configure();
 
 /* start unbound service */
 services_unbound_configure();
+echo "done.\n";
 
 echo "Synchronizing user settings...";
-local_sync_accounts();
+local_reset_accounts();
 echo "done.\n";
 
 if ($realmem > 0 and $realmem < 65) {
@@ -372,10 +377,10 @@ activate_powerd();
 prefer_ipv4_or_ipv6();
 
 /* Resync / Reinstall packages if need be */
-if (file_exists('/conf/needs_package_sync')) {
+if (file_exists("{$g['conf_path']}/needs_package_sync")) {
 	mark_subsystem_dirty('packagelock');
 	if (package_reinstall_all()) {
-		@unlink('/conf/needs_package_sync');
+		@unlink("{$g['conf_path']}/needs_package_sync");
 	}
 	clear_subsystem_dirty('packagelock');
 }

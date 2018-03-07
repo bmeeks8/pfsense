@@ -471,30 +471,37 @@ function gen_requirestatefilter_field(&$section, $value) {
  * RESULT
  *   no return value, section object is added to form if needed
  ******/
-function gen_created_updated_fields(&$form, $created, $updated) {
+function gen_created_updated_fields(&$form, $created, $updated, $tracker = 0) {
 	$has_created_time = (isset($created['time']) && isset($created['username']));
 	$has_updated_time = (isset($updated['time']) && isset($updated['username']));
 
 	if ($has_created_time || $has_updated_time) {
 		$section = new Form_Section('Rule Information');
 
+		if (!empty($tracker)) {
+			$section->addInput(new Form_StaticText(
+				'Tracking ID',
+				htmlspecialchars($tracker)
+			));
+		}
+
 		if ($has_created_time) {
 			$section->addInput(new Form_StaticText(
 				'Created',
-				sprintf(
+				htmlspecialchars(sprintf(
 					gettext('%1$s by %2$s'),
 					date(gettext("n/j/y H:i:s"), $created['time']),
-					$created['username'])
+					$created['username']))
 			));
 		}
 
 		if ($has_updated_time) {
 			$section->addInput(new Form_StaticText(
 				'Updated',
-				sprintf(
+				htmlspecialchars(sprintf(
 					gettext('%1$s by %2$s'),
 					date(gettext("n/j/y H:i:s"), $updated['time']),
-					$updated['username'])
+					$updated['username']))
 			));
 		}
 
@@ -1111,26 +1118,63 @@ function reload_all_sync() {
 	send_event("service restart webgui");
 }
 
-function setup_serial_port($when = "save", $path = "") {
-	global $g, $config;
-	$ttys_file = "{$path}/etc/ttys";
-	$boot_config_file = "{$path}/boot.config";
-	$loader_conf_file = "{$path}/boot/loader.conf";
-	/* serial console - write out /boot.config */
-	if (file_exists($boot_config_file)) {
-		$boot_config = file_get_contents($boot_config_file);
+function load_loader_conf($loader_conf = NULL) {
+
+	if ($loader_conf == NULL) {
+		return (NULL);
+	}
+	if (file_exists($loader_conf)) {
+		$input = file_get_contents($loader_conf);
 	} else {
-		$boot_config = "";
+		$input = "";
 	}
 
-	$serialspeed = (is_numeric($config['system']['serialspeed'])) ? $config['system']['serialspeed'] : "115200";
-	$serial_only = false;
-	$vga_only = false;
+	$input_split = explode("\n", $input);
 
+	/*
+	 * Loop through and only add lines that are not empty and not
+	 * managed by us.
+	 */
+	$data = array();
+	$ignore = array("autoboot_delay", "console", "comconsole_speed",
+	    "boot_multicons", "boot_serial", "hw.usb.no_pf",
+	    "hint.uart.0.flags", "hint.uart.1.flags", "hint.mdio.0.at",
+	    "hint.e6000sw.0", "vm.pmap.pti");
+	foreach ($input_split as $line) {
+		if (empty($line)) {
+			continue;
+		}
+		$found = false;
+		foreach ($ignore as $ignstr) {
+			if (stripos($line, $ignstr) !== false) {
+				$found = true;
+				break;
+			}
+		}
+		if ($found === false) {
+			$data[] = $line;
+		}
+	}
+
+	return ($data);
+}
+
+function setup_loader_settings($path = "", $upgrade = false) {
+	global $g, $config;
+
+	$boot_config_file = "{$path}/boot.config";
+	$loader_conf_file = "{$path}/boot/loader.conf";
+
+	$serialspeed = (is_numeric($config['system']['serialspeed'])) ? $config['system']['serialspeed'] : "115200";
+
+	$vga_only = false;
+	$hdmi_only = false;
+	$serial_only = false;
 	$specific_platform = system_identify_specific_platform();
-	if ($specific_platform['name'] == 'XG-1540' ||
-	    $specific_platform['name'] == 'Turbot Dual-E') {
+	if ($specific_platform['name'] == 'XG-1540') {
 		$vga_only = true;
+	} elseif ($specific_platform['name'] == 'Turbot Dual-E') {
+		$hdmi_only = true;
 	} elseif ($specific_platform['name'] == 'RCC-VE' ||
 	    $specific_platform['name'] == 'RCC' ||
 	    $specific_platform['name'] == 'RCC-DFF' ||
@@ -1138,6 +1182,12 @@ function setup_serial_port($when = "save", $path = "") {
 		$serial_only = true;
 	}
 
+	/* Serial console - write out /boot.config */
+	if (file_exists($boot_config_file)) {
+		$boot_config = file_get_contents($boot_config_file);
+	} else {
+		$boot_config = "";
+	}
 	$boot_config_split = explode("\n", $boot_config);
 	$data = array();
 	foreach ($boot_config_split as $bcs) {
@@ -1158,42 +1208,18 @@ function setup_serial_port($when = "save", $path = "") {
 	} else {
 		safe_write_file($boot_config_file, $data);
 	}
+	unset($data, $boot_config, $boot_config_file, $boot_config_split);
 
-	unset($boot_config, $boot_config_file, $boot_config_split);
-
-	/* serial console - write out /boot/loader.conf */
-	if ($when == "upgrade") {
+	/* Serial console - write out /boot/loader.conf */
+	if ($upgrade) {
 		system("echo \"Reading {$loader_conf_file}...\" >> /conf/upgrade_log.txt");
 	}
 
-	if (file_exists($loader_conf_file)) {
-		$loader_conf = file_get_contents($loader_conf_file);
-	} elseif (file_exists("{$path}/boot/loader.conf.local")) {
-		$loader_conf_file = "{$path}/boot/loader.conf.local";
-		$loader_conf = file_get_contents($loader_conf_file);
-	} else {
-		$loader_conf = "";
-	}
-	$loader_conf_split = explode("\n", $loader_conf);
-
-	$data = array();
-	// Loop through and only add lines that are not empty, and which
-	//  do not contain a console directive.
-	foreach ($loader_conf_split as $bcs) {
-		if (!empty($bcs) &&
-		    (stripos($bcs, "console") === false) &&
-		    (stripos($bcs, "boot_multicons") === false) &&
-		    (stripos($bcs, "boot_serial") === false) &&
-		    (stripos($bcs, "hw.usb.no_pf") === false) &&
-		    (stripos($bcs, "hint.uart.0.flags") === false) &&
-		    (stripos($bcs, "hint.uart.1.flags") === false)) {
-			$data[] = $bcs;
-		}
-	}
-
+	$data = load_loader_conf($loader_conf_file);
 	if ($serial_only === true) {
 		$data[] = 'boot_serial="YES"';
 		$data[] = 'console="comconsole"';
+		$data[] = 'comconsole_speed="' . $serialspeed . '"';
 	} elseif ($vga_only === true) {
 		$data[] = 'console="vidconsole"';
 	} elseif (is_serial_enabled()) {
@@ -1210,8 +1236,8 @@ function setup_serial_port($when = "save", $path = "") {
 			default:
 				$data[] = 'console="comconsole,vidconsole"';
 		}
+		$data[] = 'comconsole_speed="' . $serialspeed . '"';
 	}
-	$data[] = 'comconsole_speed="' . $serialspeed . '"';
 
 	if ($specific_platform['name'] == 'RCC-VE' ||
 	    $specific_platform['name'] == 'RCC' ||
@@ -1220,11 +1246,31 @@ function setup_serial_port($when = "save", $path = "") {
 		$data[] = 'hint.uart.0.flags="0x00"';
 		$data[] = 'hint.uart.1.flags="0x10"';
 	}
+	$data[] = 'autoboot_delay="3"';
 	$data[] = 'hw.usb.no_pf="1"';
+	if (isset($config['system']['pti_disabled'])) {
+		$data[] = 'vm.pmap.pti="0"';
+	}
 
 	safe_write_file($loader_conf_file, $data);
 
-	unset($loader_conf, $loader_conf_split, $loader_config_file);
+	/* Filter loader.conf.local to avoid duplicate settings. */
+	$loader_conf_file = "{$path}/boot/loader.conf.local";
+	$data = load_loader_conf($loader_conf_file);
+	if (empty($data)) {
+		@unlink($loader_conf_file);
+	} else {
+		safe_write_file($loader_conf_file, $data);
+	}
+
+}
+
+function setup_serial_port($when = "save", $path = "") {
+	global $config;
+	$ttys_file = "{$path}/etc/ttys";
+
+	/* Update the loader settings. */
+	setup_loader_settings($path, ($when == "upgrade"));
 
 	$ttys = file_get_contents($ttys_file);
 	$ttys_split = explode("\n", $ttys);

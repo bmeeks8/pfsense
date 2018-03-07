@@ -215,7 +215,7 @@ function carp_sync_xml($sections) {
 	}
 	
 	$rpc_client = new pfsense_xmlrpc_client();
-	$resp = $rpc_client->xmlrpc_method('restore_config_section', $xml);
+	$resp = $rpc_client->xmlrpc_method('restore_config_section', $xml, 900);
 	if ($resp != null) {
 		$url = $rpc_client->getUrl();
 		update_filter_reload_status("XMLRPC sync successfully completed with {$url}.");
@@ -350,6 +350,9 @@ if (is_array($config['hasync'])) {
 	if ($hasync['synchronizecaptiveportal'] != "" and is_array($config['captiveportal'])) {
 		$sections[] = 'captiveportal';
 	}
+	if ($hasync['synchronizecaptiveportal'] != "" and is_array($config['voucher'])) {
+		$sections[] = 'voucher';
+	}
 
 	if (count($sections) <= 0) {
 		log_error("Nothing has been configured to be synched. Skipping....");
@@ -364,8 +367,4 @@ if (is_array($config['hasync'])) {
 	if (!carp_sync_xml($sections)) {
 		return;
 	}
-
-	$rpc_client = new pfsense_xmlrpc_client();
-	$resp = $rpc_client->xmlrpc_method('filter_configure', "", 900);
-	
 }

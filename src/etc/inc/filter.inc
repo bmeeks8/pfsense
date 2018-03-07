@@ -438,6 +438,7 @@ function filter_configure_sync($delete_states_if_needed = true) {
 			break;
 		}
 		if (strstr($_grbg, "DIOCADDALTQ: Device busy") || 
+		    strstr($_grbg, "DIOCADDRULE: Device busy") || 
 		    strstr($_grbg, "DIOCXCOMMIT: Device busy")) {
 			// when busy status is returned retry after a short pause
 			usleep(200000);//try again after 200 ms..unless it still fails after 10x
@@ -664,8 +665,8 @@ function filter_generate_nested_alias_recurse($name, $alias, &$aliasnesting, &$a
 			}
 		} else if (!isset($aliasaddrnesting[$address])) {
 			if (!is_ipaddr($address) && !is_subnet($address) && !((($alias_type == 'port') || ($alias_type == 'url_ports')) && is_port_or_range($address)) && is_hostname($address)) {
+				$use_filterdns = true;
 				if (!isset($filterdns["{$address}{$name}"])) {
-					$use_filterdns = true;
 					$filterdns["{$address}{$name}"] = "pf {$address} {$name}\n";
 				}
 				continue;
@@ -3118,7 +3119,7 @@ function filter_generate_user_rule($rule) {
 }
 
 function filter_rules_generate() {
-	global $config, $g, $FilterIflist, $time_based_rules, $GatewaysList, $tracker;
+	global $config, $g, $FilterIflist, $time_based_rules, $GatewaysList, $tracker, $vlanprio_values;
 
 	$fix_rule_label = 'fix_rule_label';
 	$increment_tracker = 'filter_rule_tracker';
@@ -3332,16 +3333,20 @@ EOD;
 		$saved_tracker += 10;
 		$tracker = $saved_tracker;
 
+		
 		if (isset($config['system']['ipv6allow']) && ($oc['type6'] == "slaac" || $oc['type6'] == "dhcp6")) {
 			// The DHCPv6 client rules ***MUST BE ABOVE BOGONSV6!***  https://redmine.pfsense.org/issues/3395
+			$vlantag = isset($config['interfaces'][$on]['dhcp6vlanenable']) ? "set prio {$vlanprio_values[$config['interfaces'][$on]['dhcp6cvpt']]}" : "";
+					
 			$ipfrules .= <<<EOD
 # allow our DHCPv6 client out to the {$oc['descr']}
 pass in {$log['pass']} quick on \${$oc['descr']} proto udp from fe80::/10 port = 546 to fe80::/10 port = 546 tracker {$increment_tracker($tracker)} label "{$fix_rule_label("allow dhcpv6 client in {$oc['descr']}")}"
 pass in {$log['pass']} quick on \${$oc['descr']} proto udp from any port = 547 to any port = 546 tracker {$increment_tracker($tracker)} label "{$fix_rule_label("allow dhcpv6 client in {$oc['descr']}")}"
-pass out {$log['pass']} quick on \${$oc['descr']} proto udp from any port = 546 to any port = 547 tracker {$increment_tracker($tracker)} label "{$fix_rule_label("allow dhcpv6 client out {$oc['descr']}")}"
+# Add Priority to dhcp6c packets if enabled
+pass out {$log['pass']} quick on \${$oc['descr']} proto udp from any port = 546 to any port = 547 tracker {$increment_tracker($tracker)} label "{$fix_rule_label("allow dhcpv6 client out {$oc['descr']}")}" {$vlantag}
 
 EOD;
-		}
+		} 
 
 		/* XXX: Not static but give a step of 1000 for each interface to at least be able to match rules. */
 		$saved_tracker += 1000;

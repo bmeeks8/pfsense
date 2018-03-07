@@ -270,6 +270,9 @@ function vpn_ipsec_configure($restart = false) {
 			$ikeid = $ph1ent['ikeid'];
 
 			$ep = ipsec_get_phase1_src($ph1ent);
+			/* When automatically guessing, use the first address. */
+			$ep  = explode(',', $ep);
+			$ep  = $ep[0];
 			if (!is_ipaddr($ep)) {
 				log_error(sprintf(gettext("IPsec ERROR: Could not find phase 1 source for connection %s. Omitting from configuration file."), $ph1ent['descr']));
 				continue;
@@ -804,24 +807,37 @@ EOD;
 		}
 
 		if (!isset($config['ipsec']['noshuntlaninterfaces'])) {
+			$bypassnets = array();
 			if ($config['interfaces']['lan']) {
 				$lanip = get_interface_ip("lan");
 				if (!empty($lanip) && is_ipaddrv4($lanip)) {
 					$lansn = get_interface_subnet("lan");
-					$lansa = gen_subnet($lanip, $lansn);
+					$lansa = gen_subnetv4($lanip, $lansn);
 					if (!empty($lansa) && !empty($lansn)) {
-						$ipsecconf .= <<<EOD
+						$bypassnets[] = "{$lansa}/{$lansn}";
+					}
+				}
+				$lanip6 = get_interface_ipv6("lan");
+				if (!empty($lanip6) && is_ipaddrv6($lanip6)) {
+					$lansn6 = get_interface_subnetv6("lan");
+					$lansa6 = gen_subnetv6($lanip6, $lansn6);
+					if (!empty($lansa6) && !empty($lansn6)) {
+						$bypassnets[] = "{$lansa6}/{$lansn6}";
+					}
+				}
+			}
+			if (!empty($bypassnets)) {
+				$bypass = implode(',', $bypassnets);
+				$ipsecconf .= <<<EOD
 
 conn bypasslan
-	leftsubnet = {$lansa}/{$lansn}
-	rightsubnet = {$lansa}/{$lansn}
+	leftsubnet = {$bypass}
+	rightsubnet = {$bypass}
 	authby = never
 	type = passthrough
 	auto = route
 
 EOD;
-					}
-				}
 			}
 		}
 
@@ -953,22 +969,30 @@ EOD;
 				}
 			}
 
-			if (is_array($ph1ent['encryption-algorithm']) && !empty($ph1ent['encryption-algorithm']['name']) && !empty($ph1ent['hash-algorithm'])) {
-				$ealgosp1 = '';
-				$ealg_id = $ph1ent['encryption-algorithm']['name'];
-				$ealg_kl = $ph1ent['encryption-algorithm']['keylen'];
-				if ($ealg_kl) {
-					$ealgosp1 = "ike = {$ealg_id}{$ealg_kl}-{$ph1ent['hash-algorithm']}";
-				} else {
-					$ealgosp1 = "ike = {$ealg_id}-{$ph1ent['hash-algorithm']}";
-				}
+			$ealgosp1 = '';
+			if (is_array($ph1ent['encryption']['item'])) {
+				$ciphers = "";
+				foreach($ph1ent['encryption']['item'] as $p1enc) {
+					if (!is_array($p1enc['encryption-algorithm']) ||
+							empty($p1enc['encryption-algorithm']['name']) ||
+							empty($p1enc['hash-algorithm'])) {
+						continue;
+					}
+					$ciphers .= ",";
+					$ciphers .= $p1enc['encryption-algorithm']['name'];
+					$ealg_kl = $p1enc['encryption-algorithm']['keylen'];
+					if ($ealg_kl) {
+						$ciphers .= "{$ealg_kl}";
+					}
+					$ciphers .= "-{$p1enc['hash-algorithm']}";
 
-				$modp = vpn_ipsec_convert_to_modp($ph1ent['dhgroup']);
-				if (!empty($modp)) {
-					$ealgosp1 .= "-{$modp}";
+					$modp = vpn_ipsec_convert_to_modp($p1enc['dhgroup']);
+					if (!empty($modp)) {
+						$ciphers .= "-{$modp}";
+					}
 				}
-
-				$ealgosp1 .= "!";
+				$ciphers = substr($ciphers, 1);
+				$ealgosp1 = "ike = {$ciphers}!";
 			}
 
 			if ($ph1ent['dpd_delay'] && $ph1ent['dpd_maxfail']) {

@@ -593,9 +593,14 @@ EOD;
 			$skew = 110;
 			if (is_array($config['virtualip']['vip'])) {
 				foreach ($config['virtualip']['vip'] as $vipent) {
+					if ($vipent['mode'] != 'carp') {
+						continue;
+					}
 					if ($vipent['interface'] == $dhcpif) {
-						$carp_nw = gen_subnet($vipent['subnet'], $vipent['subnet_bits']);
-						if (ip_in_subnet($dhcpifconf['failover_peerip'], "{$carp_nw}/{$vipent['subnet_bits']}")) {
+						$carp_nw = gen_subnet($config['interfaces'][$dhcpif]['ipaddr'],
+						    $config['interfaces'][$dhcpif]['subnet']);
+						$carp_nw .= "/{$config['interfaces'][$dhcpif]['subnet']}";
+						if (ip_in_subnet($dhcpifconf['failover_peerip'], $carp_nw)) {
 							/* this is the interface! */
 							if (is_numeric($vipent['advskew']) && (intval($vipent['advskew']) < 20)) {
 								$skew = 0;
@@ -687,6 +692,14 @@ EOPP;
 			} else {
 				$newzone['domain-name'] = $config['system']['domain'];
 			}
+
+			if (empty($dhcpifconf['ddnsclientupdates'])) {
+				$ddnsclientupdates = 'allow';
+			} else {
+				$ddnsclientupdates = $dhcpifconf['ddnsclientupdates'];
+			}
+
+			$dnscfg .= "	{$ddnsclientupdates} client-updates;\n";
 
 			$revsubnet = array_reverse(explode('.',$subnet));
 
@@ -1913,6 +1926,7 @@ function services_dyndns_configure($int = "") {
 			 */
 			$group_int = '';
 			$friendly_group_int = '';
+			$gwgroup_member = false;
 			if (is_array($gwgroups[$dyndns['interface']])) {
 				if (!empty($gwgroups[$dyndns['interface']][0]['vip'])) {
 					$group_int = $gwgroups[$dyndns['interface']][0]['vip'];
@@ -1921,9 +1935,14 @@ function services_dyndns_configure($int = "") {
 					$friendly_group_int =
 					    convert_real_interface_to_friendly_interface_name(
 						$group_int);
+					if (!empty($int)) {
+						$gwgroup_member =
+						    interface_gateway_group_member(get_real_interface($int),
+						    $dyndns['interface']);
+					}
 				}
 			}
-			if ((empty($int)) || ($int == $dyndns['interface']) ||
+			if ((empty($int)) || ($int == $dyndns['interface']) || $gwgroup_member ||
 			    ($int == $group_int) || ($int == $friendly_group_int)) {
 				$dyndns['verboselog'] = isset($dyndns['verboselog']);
 				$dyndns['curl_ipresolve_v4'] = isset($dyndns['curl_ipresolve_v4']);
@@ -2204,18 +2223,18 @@ function services_unbound_configure($restart_dhcp = true) {
 			$wanif = get_real_interface("wan", "inet6");
 			if (platform_booting()) {
 				for ($i=1; $i <= 10; $i++) {
-					if (!file_exists("/tmp/{$wanif}_dhcp6_complete")) { 
+					if (!file_exists("/tmp/{$wanif}_dhcp6_complete")) {
 						log_error(gettext("Unbound start waiting on dhcp6c."));
 						sleep(1);
 					} else {
 						unlink_if_exists("/tmp/{$wanif}_dhcp6_complete");
 						log_error(gettext("dhcp6 init complete. Continuing"));
 						break;
-					}						
+					}
 				}
 			}
 		}
-		
+
 		sync_unbound_service();
 		if (platform_booting()) {
 			log_error(gettext("sync unbound done."));
@@ -2475,6 +2494,7 @@ function services_dnsupdate_process($int = "", $updatehost = "", $forced = false
 		 */
 		$group_int = '';
 		$friendly_group_int = '';
+		$gwgroup_member = false;
 		if (is_array($gwgroups[$dnsupdate['interface']])) {
 			if (!empty($gwgroups[$dnsupdate['interface']][0]['vip'])) {
 				$group_int = $gwgroups[$dnsupdate['interface']][0]['vip'];
@@ -2483,9 +2503,14 @@ function services_dnsupdate_process($int = "", $updatehost = "", $forced = false
 				$friendly_group_int =
 				    convert_real_interface_to_friendly_interface_name(
 					$group_int);
+				if (!empty($int)) {
+					$gwgroup_member =
+					    interface_gateway_group_member(get_real_interface($int),
+					    $dnsupdate['interface']);
+				}
 			}
 		}
-		if (!empty($int) && ($int != $dnsupdate['interface']) &&
+		if (!empty($int) && ($int != $dnsupdate['interface']) && !$gwgroup_member &&
 		    ($int != $group_int) && ($int != $friendly_group_int)) {
 			continue;
 		}
@@ -2496,15 +2521,48 @@ function services_dnsupdate_process($int = "", $updatehost = "", $forced = false
 		/* determine interface name */
 		$if = get_failover_interface($dnsupdate['interface']);
 
+		/* Determine address to update and default binding address */
 		if (isset($dnsupdate['usepublicip'])) {
 			$wanip = dyndnsCheckIP($if);
-			$bindip = get_interface_ip($if);
+			$bindipv4 = get_interface_ip($if);
 		} else {
 			$wanip = get_interface_ip($if);
-			$bindip = $wanip;
+			$bindipv4 = $wanip;
+		}
+		$wanipv6 = get_interface_ipv6($if);
+		$bindipv6 = $wanipv6;
+
+		/* Handle non-default interface bindings */
+		if ($dnsupdate['updatesource'] == "none") {
+			/* When empty, the directive will be omitted. */
+			$bindipv4 = "";
+			$bindipv6 = "";
+		} elseif (!empty($dnsupdate['updatesource'])) {
+			/* Find the alternate binding address */
+			$bindipv4 = get_interface_ip($dnsupdate['updatesource']);
+			$bindipv6 = get_interface_ipv6($dnsupdate['updatesource']);
 		}
 
-		$wanipv6 = get_interface_ipv6($if);
+		/* Handle IPv4/IPv6 selection for the update source interface/VIP */
+		switch ($dnsupdate['updatesourcefamily']) {
+			case "inet":
+				$bindip = $bindipv4;
+				break;
+			case "inet6":
+				$bindip = $bindipv6;
+				break;
+			case "":
+			default:
+				/* Try IPv4 first, if that is empty, try IPv6. */
+				/* Only specify the address if it's present, otherwise omit. */
+				if (!empty($bindipv4)) {
+					$bindip = $bindipv4;
+				} elseif (!empty($bindipv6)) {
+					$bindip = $bindipv6;
+				}
+				break;
+		}
+
 		$cacheFile = $g['conf_path'] .
 		    "/dyndns_{$dnsupdate['interface']}_rfc2136_" .
 		    escapeshellarg($dnsupdate['host']) .
@@ -2573,7 +2631,9 @@ EOD;
 				    "{$dnsupdate['host']}. A\n";
 				$upinst .= "update add {$dnsupdate['host']}. " .
 				    "{$dnsupdate['ttl']} A {$wanip}\n";
-				$upinst .= "local {$bindip}\n";
+				if (!empty($bindip)) {
+					$upinst .= "local {$bindip}\n";
+				}
 				$need_update = true;
 			} else {
 				log_error(sprintf(gettext(

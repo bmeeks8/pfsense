@@ -5478,18 +5478,6 @@ function upgrade_173_to_174() {
 	}
 }
 
-/*
- * Special function that is called independent of current config version. It's
- * a workaround to have config_upgrade running on older versions after next
- * config version was already taken by newer pfSense.
- *
- * XXX Change the way we handle config version to make it based on product
- *     version
- */
-function additional_config_upgrade() {
-	global $config;
-}
-
 /* IPsec Phase1 now supports multiple authentication ciphers to be specified from the webgui.
  * This is usefull for mobile users using different OS's supporting different ciphers.
  */
@@ -5543,4 +5531,42 @@ function upgrade_177_to_178() {
 /* Placeholder for a factory update. */
 function upgrade_178_to_179() {
 }
+
+function upgrade_179_to_180() {
+	global $config, $g;
+
+	/* Change default to 400000 to make sure bogonsv6 works */
+	if (empty($config['system']['maximumtableentries'])) {
+		$config['system']['maximumtableentries'] =
+		    $g['minimumtableentries_bogonsv6'];
+	}
+}
+
+/*
+ * Automatically enable retrieving captive portal bandwidth limits from RADIUS for each captive portal
+ */
+function upgrade_180_to_181() {
+	global $config;
+
+	if (is_array($config['captiveportal'])) {
+		foreach ($config['captiveportal'] as $cpzone => $cpcfg) {
+			if ($cpcfg['auth_method'] == "radius") {
+				$config['captiveportal'][$cpzone]['radiusperuserbw'] = true;
+			}
+		}
+	}
+}
+
+/*
+ * Special function that is called independent of current config version. It's
+ * a workaround to have config_upgrade running on older versions after next
+ * config version was already taken by newer pfSense.
+ *
+ * XXX Change the way we handle config version to make it based on product
+ *     version
+ */
+function additional_config_upgrade() {
+	global $config;
+}
+
 ?>

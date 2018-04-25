@@ -2525,30 +2525,18 @@ function interfaces_vips_configure($interface = "") {
 		$carp_setuped = false;
 		$anyproxyarp = false;
 		foreach ($config['virtualip']['vip'] as $vip) {
+			if ($interface <> "" && $vip['interface'] <> $interface) {
+				continue;
+			}
 			switch ($vip['mode']) {
 				case "proxyarp":
 					/* nothing it is handled on interface_proxyarp_configure() */
-					if (($interface <> "" && $vip['interface'] <> $interface) ||
-					    !isset($config['interfaces'][$vip['interface']]['enable'])) {
-						continue;
-					}
 					$anyproxyarp = true;
 					break;
 				case "ipalias":
-					$iface = $vip['interface'];
-					if (substr($iface, 0, 4) == "_vip")
-						$iface = get_configured_vip_interface($vip['interface']);
-					if (($interface <> "" && $iface <> $interface) ||
-					    !isset($config['interfaces'][$iface]['enable'])) {
-						continue;
-					}
 					interface_ipalias_configure($vip);
 					break;
 				case "carp":
-					if (($interface <> "" && $vip['interface'] <> $interface) ||
-					    !isset($config['interfaces'][$vip['interface']]['enable'])) {
-						continue;
-					}
 					if ($carp_setuped == false) {
 						$carp_setuped = true;
 					}
@@ -2575,11 +2563,8 @@ function interface_ipalias_configure(&$vip) {
 	$realif = get_real_interface("_vip{$vip['uniqid']}");
 	if ($realif != "lo0") {
 		$if = convert_real_interface_to_friendly_interface_name($realif);
-		if (!isset($config['interfaces'][$if])) {
-			return;
-		}
-
-		if (!isset($config['interfaces'][$if]['enable'])) {
+		if (!isset($config['interfaces'][$if]) ||
+		    !isset($config['interfaces'][$if]['enable'])) {
 			return;
 		}
 	}
@@ -2610,11 +2595,16 @@ function interface_carp_configure(&$vip) {
 		return;
 	}
 
-	/* NOTE: Maybe its useless nowadays */
 	$realif = get_real_interface($vip['interface']);
 	if (!does_interface_exist($realif)) {
 		file_notice("CARP", sprintf(gettext("Interface specified for the virtual IP address %s does not exist. Skipping this VIP."), $vip['subnet']), "Firewall: Virtual IP", "");
 		return;
+	}
+	if ($realif != "lo0") {
+		if (!isset($config['interfaces'][$vip['interface']]) ||
+		    !isset($config['interfaces'][$vip['interface']]['enable'])) {
+			return;
+		}
 	}
 
 	$vip_password = $vip['password'];
@@ -5100,6 +5090,14 @@ function convert_friendly_interface_to_friendly_descr($interface) {
 			} else if (substr($interface, 0, 5) == '_lloc') {
 				return get_interface_linklocal($interface);
 			} else {
+				if (is_array($config['ifgroups']['ifgroupentry'])) {
+					foreach ($config['ifgroups']['ifgroupentry'] as $ifgen) {
+						if ($ifgen['ifname'] === $interface) {
+							return $ifgen['ifname'];
+						}
+					}
+				}
+
 				/* if list */
 				$ifdescrs = get_configured_interface_with_descr(true);
 				foreach ($ifdescrs as $if => $ifname) {
@@ -6688,6 +6686,47 @@ function build_ppps_link_list() {
 		}
 	}
 	return($linklist);
+}
+
+function create_interface_list() {
+	global $config;
+
+	$iflist = array();
+
+	// add group interfaces
+	if (is_array($config['ifgroups']['ifgroupentry'])) {
+		foreach ($config['ifgroups']['ifgroupentry'] as $ifgen) {
+			if (have_ruleint_access($ifgen['ifname'])) {
+				$iflist[$ifgen['ifname']] = $ifgen['ifname'];
+			}
+		}
+	}
+
+	foreach (get_configured_interface_with_descr() as $ifent => $ifdesc) {
+		if (have_ruleint_access($ifent)) {
+			$iflist[$ifent] = $ifdesc;
+		}
+	}
+
+	if ($config['l2tp']['mode'] == "server" && have_ruleint_access("l2tp")) {
+		$iflist['l2tp'] = gettext('L2TP VPN');
+	}
+
+	if (is_pppoe_server_enabled() && have_ruleint_access("pppoe")) {
+		$iflist['pppoe'] = gettext("PPPoE Server");
+	}
+
+	// add ipsec interfaces
+	if (ipsec_enabled() && have_ruleint_access("enc0")) {
+		$iflist["enc0"] = gettext("IPsec");
+	}
+
+	// add openvpn/tun interfaces
+	if ($config['openvpn']["openvpn-server"] || $config['openvpn']["openvpn-client"]) {
+		$iflist["openvpn"] = gettext("OpenVPN");
+	}
+
+	return($iflist);
 }
 
 ?>

@@ -38,7 +38,7 @@ function updatecopyright() {
 
 	if (file_exists($idfile)) {
 		if (function_exists('curl_version')) {
-			$post = ['uid' => file_get_contents($idfile), 'language' => '0', 'edition' => 'community'];
+			$post = ['uid' => file_get_contents($idfile), 'language' => '0', 'edition' => 'community', 'version' => '1'];
 			$url = $FQDN;
 
 			$ch = curl_init();
@@ -71,11 +71,5 @@ function updatecopyright() {
 // Retrieve the copyright data from Netgate.com if the support data file does not exist,
 // or if it is more than a day old
 if (!file_exists($copyrightfile) || ( time()-filemtime($copyrightfile) > $refreshinterval)) {
-	if (file_exists($copyrightfile)) {
-		unlink($copyrightfile);
-	}
-
 	updateCopyright();
 }
-
-

@@ -116,6 +116,15 @@ function &get_reference_to_me_in_config(&$mypath) {
 
 	$ptr =& $config['shaper'];
 	foreach ($mypath as $indeks) {
+		if (!is_array($ptr)) {
+			$ptr = array();
+		}
+		if (!is_array($ptr['queue'])) {
+			$ptr['queue'] = array();
+		}
+		if (!is_array($ptr['queue'][$indeks])) {
+			$ptr['queue'][$indeks] = array();
+		}
 		$ptr =& $ptr['queue'][$indeks];
 	}
 
@@ -621,16 +630,16 @@ class altq_root_queue {
 
 		switch ($this->GetScheduler()) {
 			case "PRIQ":
-				$q = new priq_queue();
+				$__tmp_q = new priq_queue(); $q =& $__tmp_q;
 				break;
 			case "HFSC":
-				$q = new hfsc_queue();
+				$__tmp_q = new hfsc_queue(); $q =& $__tmp_q;
 				break;
 			case "CBQ":
-				$q = new cbq_queue();
+				$__tmp_q = new cbq_queue(); $q =& $__tmp_q;
 				break;
 			case "FAIRQ":
-				$q = new fairq_queue();
+				$__tmp_q = new fairq_queue(); $q =& $__tmp_q;
 				break;
 			default:
 				/* XXX: but should not happen anyway */
@@ -1827,7 +1836,7 @@ class hfsc_queue extends priq_queue {
 		if (!is_array($this->subqueues)) {
 			$this->subqueues = array();
 		}
-		$q = new hfsc_queue();
+		$__tmp_q = new hfsc_queue(); $q =& $__tmp_q;
 		$q->SetInterface($this->GetInterface());
 		$q->SetParent($this);
 		$q->ReadConfig($qname);
@@ -2627,7 +2636,7 @@ class cbq_queue extends priq_queue {
 		if (!is_array($this->subqueues)) {
 			$this->subqueues = array();
 		}
-		$q = new cbq_queue();
+		$__tmp_q = new cbq_queue(); $q =& $__tmp_q;
 		$q->SetInterface($this->GetInterface());
 		$q->SetParent($this);
 		$q->ReadConfig($qname);
@@ -3490,13 +3499,18 @@ class dnpipe_class extends dummynet_class {
 			$this->subqueues = array();
 		}
 
-		$q = new dnqueue_class();
+		$__tmp_q = new dnqueue_class(); $q =& $__tmp_q;
 		$q->SetLink($path);
 		$q->SetEnabled("on");
 		$q->SetPipe($this->GetQname());
 		$q->SetParent($this);
 		$q->ReadConfig($queue);
 		$q->validate_input($queue, $input_errors);
+
+		if (!is_array($input_errors)) {
+			$input_errors = array();
+		}
+
 		if (count($input_errors)) {
 			log_error(sprintf(gettext('SHAPER: Could not create queue %1$s on interface %2$s because: %3$s'), $q->GetQname(), $interface, print_r($input_errors, true)));
 			return $q;
@@ -4511,7 +4525,7 @@ function read_altq_config() {
 		$int = $conf['interface'];
 		$root = new altq_root_queue();
 		$root->SetInterface($int);
-		$altq_list_queues[$root->GetInterface()] = &$root;
+		$altq_list_queues[$root->GetInterface()] = $root;
 		$root->ReadConfig($conf);
 		array_push($path, $key);
 		$root->SetLink($path);
@@ -4555,7 +4569,7 @@ function read_dummynet_config() {
 		}
 		$root = new dnpipe_class();
 		$root->ReadConfig($conf);
-		$dummynet_pipe_list[$root->GetQname()] = &$root;
+		$dummynet_pipe_list[$root->GetQname()] = $root;
 		array_push($path, $key);
 		$root->SetLink($path);
 		if (is_array($conf['queue'])) {

@@ -74,7 +74,7 @@ $g = array(
 	"disablecrashreporter" => false,
 	"crashreporterurl" => "https://crashreporter.pfsense.org/crash_reporter.php",
 	"debug" => false,
-	"latest_config" => "18.1",
+	"latest_config" => "18.2",
 	"minimum_ram_warning" => "101",
 	"minimum_ram_warning_text" => "128 MB",
 	"wan_interface_name" => "wan",
@@ -89,7 +89,8 @@ $g = array(
 	"default_timezone" => "Etc/UTC",
 	"language" => "en_US",
 	"default_config_backup_count" => 30,
-	"minimumtableentries_bogonsv6" => 400000
+	"minimumtableentries_bogonsv6" => 400000,
+	"alternativemetaports" => array("vmware", "php72")
 );
 
 /* IP TOS flags */

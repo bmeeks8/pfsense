@@ -32,6 +32,10 @@
 
 require_once("guiconfig.inc");
 
+if(!is_array($config['igmpproxy'])){
+	$config['igmpproxy'] = array();
+}
+
 if (!is_array($config['igmpproxy']['igmpentry'])) {
 	$config['igmpproxy']['igmpentry'] = array();
 }
@@ -139,7 +143,7 @@ foreach ($a_igmpproxy as $igmpentry):
 	$addresses = implode(", ", array_slice(explode(" ", $igmpentry['address']), 0, 10));
 	print($addresses);
 
-	if (count($addresses) < 10) {
+	if (!is_array($igmpentry['address']) || count($igmpentry['address']) < 10) {
 		print(' ');
 	} else {
 		print('...');

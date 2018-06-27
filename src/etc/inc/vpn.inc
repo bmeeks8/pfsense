@@ -308,9 +308,13 @@ function vpn_ipsec_configure($restart = false) {
 			}
 			$rgmap[$ph1ent['remote-gateway']] = $rg;
 
+			$is_vti = false;
 			if (is_array($a_phase2)) {
 				/* step through each phase2 entry */
 				foreach ($a_phase2 as $ph2ent) {
+					if ($ph2ent['mode'] == 'vti') {
+						$is_vti = true;
+					}
 					if (isset($ph2ent['disabled'])) {
 						continue;
 					}
@@ -371,6 +375,9 @@ function vpn_ipsec_configure($restart = false) {
 						}
 					}
 				}
+			}
+			if ($is_vti) {
+				interface_ipsec_vti_configure($ph1ent);
 			}
 		}
 		@file_put_contents("{$g['vardb_path']}/ipsecpinghosts", $ipsecpinghosts);
@@ -1182,6 +1189,7 @@ EOD;
 			$rightsubnet_spec = array();
 			$leftsubnet_spec = array();
 			$reqids = array();
+			$vtireq = array();
 			$ealgoAHsp2arr = array();
 			$ealgoESPsp2arr = array();
 			if (is_array($a_phase2) && count($a_phase2)) {
@@ -1200,6 +1208,7 @@ EOD;
 
 					if (($ph2ent['mode'] == 'tunnel') or ($ph2ent['mode'] == 'tunnel6')) {
 						$tunneltype = "type = tunnel";
+						$installpolicy = "installpolicy = yes";
 
 						$localid_type = $ph2ent['localid']['type'];
 						$leftsubnet_data = ipsec_idinfo_to_cidr($ph2ent['localid'], false, $ph2ent['mode']);
@@ -1240,8 +1249,21 @@ EOD;
 						} else if (!empty($a_client['pool_address'])) {
 							$rightsubnet_spec[] = "{$a_client['pool_address']}/{$a_client['pool_netbits']}";
 						}
+					} elseif ($ph2ent['mode'] == 'vti') {
+						$tunneltype = "";
+						$installpolicy = "installpolicy = no";
+						$passive = 'start';
+
+						$localid_type = $ph2ent['localid']['type'];
+						$leftsubnet_data = ipsec_idinfo_to_cidr($ph2ent['localid'], false, $ph2ent['mode']);
+						$leftsubnet_spec[] = $leftsubnet_data;
+
+						$tmpsubnet = ipsec_idinfo_to_cidr($ph2ent['remoteid'], false, $ph2ent['mode']);
+						$rightsubnet_spec[] = $tmpsubnet;
+						$vtireq[] = $ph2ent['reqid'];
 					} else {
 						$tunneltype = "type = transport";
+						$installpolicy = "installpolicy = yes";
 
 						if ((($ph1ent['authentication_method'] == "xauth_psk_server") ||
 						    ($ph1ent['authentication_method'] == "pre_shared_key")) &&
@@ -1335,6 +1357,9 @@ EOD;
 					}
 
 					$reqids[] = $ph2ent['reqid'];
+					if ($ph2ent['mode'] != 'vti') {
+						$vtireq[] = null;
+					}
 
 					if (!empty($ph2ent['lifetime'])) {
 						if ($ipseclifetime == 0 || intval($ipseclifetime) > intval($ph2ent['lifetime'])) {
@@ -1353,7 +1378,7 @@ EOD;
 	{$mobike}
 	{$tfc}
 	{$rekeyline}
-	installpolicy = yes
+	{$installpolicy}
 	{$tunneltype}
 	{$dpdline}
 	auto = {$passive}
@@ -1404,6 +1429,9 @@ EOD;
 						//if (!empty($reqids[$idx])) {
 						//	$ipsecfin .= "\treqid = " . $reqids[$idx] . "\n";
 						//}
+						if (!empty($vtireq[$idx])) {
+							$ipsecfin .= "\treqid = {$ph1ent['ikeid']}00{$idx}\n";
+						}
 						$ipsecfin .= $ipsecconnect;
 						$ipsecfin .= "\trightsubnet = {$rsubnet}\n";
 						$ipsecfin .= "\tleftsubnet = " . $leftsubnet_spec[$idx] . "\n";
@@ -1416,11 +1444,14 @@ EOD;
 					$ipsecfin = "\nconn con-mobile\n";
 				}
 				else {
-					$ipsecfin = "\nconn con{$ph1ent['ikeid']}\n";
+					$ipsecfin = "\nconn con{$ph1ent['ikeid']}000\n";
 				}
 				//if (!empty($reqids[$idx])) {
 				//	$ipsecfin .= "\treqid = " . $reqids[0] . "\n";
 				//}
+				if (!empty($vtireq)) {
+					$ipsecfin .= "\treqid = {$ph1ent['ikeid']}000\n";
+				}
 				$ipsecfin .= $ipsecconnect;
 				if (!isset($ph1ent['mobile']) && !empty($rightsubnet_spec)) {
 					$tempsubnets = array();
@@ -1467,7 +1498,7 @@ EOD;
 						continue;
 					}
 
-					if (strlen($mkent['pool_address'] < 1) || !is_ipaddr($mkent['pool_address'])) {
+					if (strlen($mkent['pool_address']) < 1 || !is_ipaddr($mkent['pool_address'])) {
 						continue;
 					}
 
@@ -1475,6 +1506,10 @@ EOD;
 					$ipsecfin .= "\talso = con-mobile\n";
 					$ipsecfin .= "\teap_identity = %identity\n";
 					$ipsecfin .= "\trightsourceip = {$mkent['pool_address']}/{$mkent['pool_netbits']}\n";
+
+					if (isset($mkent['dns_address']) && strlen($mkent['dns_address']) > 0 && is_ipaddr($mkent['dns_address'])) {
+						$ipsecfin .= "\trightdns = {$mkent['dns_address']}\n";
+					}
 
 					if ($mkent['ident_type'] == "none") {
 						$ipsecfin .= "\trightid = \"{$mkent['ident']}\"\n";

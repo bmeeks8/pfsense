@@ -1224,8 +1224,11 @@ function get_meta_pkg_name() {
 	/* XXX: Use pkg annotation */
 	if (is_pkg_installed($g['product_name'])) {
 		return $g['product_name'];
-	} else if (is_pkg_installed($g['product_name'] . '-vmware')) {
-		return $g['product_name'] . '-vmware';
+	}
+	foreach ($g['alternativemetaports'] as $suffix) {
+		if (is_pkg_installed($g['product_name'] . '-' . $suffix)) {
+			return $g['product_name'] . '-' . $suffix;
+		}
 	}
 	return false;
 }
@@ -1451,7 +1454,7 @@ function update_repos() {
 				// Gather some information about the system so the proper repo can be returned
 				$nid = file_get_contents($idfile);
 				$serial = system_get_serial();
-				$arch = php_uname(“p”);
+				$arch = php_uname('p');
 
 				$base_pkg = get_base_pkg_name();
 
@@ -1468,7 +1471,7 @@ function update_repos() {
 				$version = $pkg_info['installed_version'];
 				$locale = $config['system']['language'];
 				// Architecture comes from the last word in the uname output
-				$arch = array_pop(explode(' ', php_uname(“p”)));
+				$arch = array_pop(explode(' ', php_uname('p')));
 
 				$post = ['uid' => $nid,
 						 'language' => $locale,

@@ -106,7 +106,7 @@ GIT_REPO_BASE=$(git -C ${BUILDER_ROOT} config --get remote.origin.url | sed -e '
 
 # This is used for using svn for retrieving src
 export FREEBSD_REPO_BASE=${FREEBSD_REPO_BASE:-"${GIT_REPO_BASE}/freebsd-src.git"}
-export FREEBSD_BRANCH=${FREEBSD_BRANCH:-"RELENG_2_4"}
+export FREEBSD_BRANCH=${FREEBSD_BRANCH:-"RELENG_2_4_4"}
 export FREEBSD_SRC_DIR=${FREEBSD_SRC_DIR:-"${SCRATCHDIR}/FreeBSD-src"}
 
 export BUILD_KERNELS=${BUILD_KERNELS:-"${PRODUCT_NAME}"}
@@ -203,8 +203,6 @@ if [ -z "${BUILTDATESTRING}" ]; then
 fi
 echo "$BUILTDATESTRING" > $BUILTDATESTRINGFILE
 
-STAGING_HOSTNAME=${STAGING_HOSTNAME:-"release-staging.netgate.com"}
-
 # Poudriere
 export ZFS_TANK=${ZFS_TANK:-"zroot"}
 export ZFS_ROOT=${ZFS_ROOT:-"/poudriere"}
@@ -255,11 +253,18 @@ case "${PRODUCT_VERSION##*-}" in
 		exit 1
 esac
 
+export BUILDER_PKG_DEPENDENCIES="devel/git ftp/curl net/rsync sysutils/screen \
+    sysutils/vmdktool sysutils/py-salt security/sudo www/nginx \
+    emulators/qemu-user-static security/sssd security/pam_ldap \
+    security/pam_mkhomedir archivers/gtar textproc/xmlstarlet"
+
+STAGING_HOSTNAME=${STAGING_HOSTNAME:-"release-staging.nyi.netgate.com"}
+
 # Host to rsync pkg repos from poudriere
-export PKG_RSYNC_HOSTNAME=${PKG_RSYNC_HOSTNAME:-${STAGING_HOSTNAME}}
+export PKG_RSYNC_HOSTNAME=${PKG_RSYNC_HOSTNAME:-"nfs1.nyi.netgate.com"}
 export PKG_RSYNC_USERNAME=${PKG_RSYNC_USERNAME:-"wwwsync"}
 export PKG_RSYNC_SSH_PORT=${PKG_RSYNC_SSH_PORT:-"22"}
-export PKG_RSYNC_DESTDIR=${PKG_RSYNC_DESTDIR:-"/staging/ce/packages"}
+export PKG_RSYNC_DESTDIR=${PKG_RSYNC_DESTDIR:-"/storage/files/release-staging/ce/packages"}
 
 # Final packages server
 if [ -n "${_IS_RELEASE}" -o -n "${_IS_RC}" ]; then
@@ -335,9 +340,9 @@ export VARIANTUPDATES=""
 
 # Rsync data to send snapshots
 if [ -n "${_IS_RELEASE}" -o -n "${SKIP_FINAL_RSYNC}" ]; then
-	export RSYNCIP=${RSYNCIP:-"release-staging.netgate.com"}
+	export RSYNCIP=${RSYNCIP:-"nfs1.nyi.netgate.com"}
 	export RSYNCUSER=${RSYNCUSER:-"wwwsync"}
-	export RSYNCPATH=${RSYNCPATH:-"/staging/ce/images"}
+	export RSYNCPATH=${RSYNCPATH:-"/storage/files/release-staging/ce/images"}
 else
 	export RSYNCIP=${RSYNCIP:-"nfs1.nyi.netgate.com"}
 	export RSYNCUSER=${RSYNCUSER:-"wwwsync"}

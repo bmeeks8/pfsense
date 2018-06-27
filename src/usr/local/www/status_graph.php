@@ -52,6 +52,8 @@ foreach (array('server', 'client') as $mode) {
 	}
 }
 
+$ifdescrs = array_merge($ifdescrs, interface_ipsec_vti_list_all());
+
 if ($_REQUEST['if']) {
 	$curif = $_REQUEST['if'];
 	$found = false;

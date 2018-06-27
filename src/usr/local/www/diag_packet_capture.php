@@ -135,6 +135,8 @@ foreach (array('server' => gettext('OpenVPN Server'), 'client' => gettext('OpenV
 	}
 }
 
+$interfaces = array_merge($interfaces, interface_ipsec_vti_list_all());
+
 if ($_POST) {
 	$host = $_POST['host'];
 	$selectedif = $_POST['interface'];

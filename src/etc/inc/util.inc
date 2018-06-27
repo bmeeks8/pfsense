@@ -2180,7 +2180,7 @@ function is_interface_mismatch() {
 		foreach ($config['interfaces'] as $ifname => $ifcfg) {
 			if (interface_is_vlan($ifcfg['if']) != NULL ||
 			    interface_is_qinq($ifcfg['if']) != NULL ||
-			    preg_match("/^enc|^cua|^tun|^tap|^l2tp|^pptp|^ppp|^ovpn|^gif|^gre|^lagg|^bridge|vlan|_wlan|_\d{0,4}_\d{0,4}$/i", $ifcfg['if'])) {
+			    preg_match("/^enc|^cua|^tun|^tap|^l2tp|^pptp|^ppp|^ovpn|^ipsec|^gif|^gre|^lagg|^bridge|vlan|_wlan|_\d{0,4}_\d{0,4}$/i", $ifcfg['if'])) {
 				// Do not check these interfaces.
 				$i++;
 				continue;
@@ -2426,8 +2426,9 @@ function route_add_or_change($args) {
 
 	/* First, try to add it */
 	$_gb = exec(escapeshellcmd("/sbin/route add " . $args), $output, $rc);
-
+		
 	if (isset($config['system']['route-debug'])) {
+		$add_change = 'add';
 		$mt = microtime();
 		log_error("ROUTING debug: $mt - ADD RC={$rc} - $args");
 	}
@@ -2438,9 +2439,13 @@ function route_add_or_change($args) {
 		    $output, $rc);
 
 		if (isset($config['system']['route-debug'])) {
+			$add_change = 'change';
 			$mt = microtime();
 			log_error("ROUTING debug: $mt - CHG RC={$rc} - $args");
 		}
+	}
+	if (isset($config['system']['route-debug'])) {
+		file_put_contents("/dev/console", "\n[".getmypid()."] ROUTE: {$add_change} {$args} result: {$rc}");
 	}
 
 	return ($rc == 0);

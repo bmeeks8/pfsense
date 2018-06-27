@@ -169,6 +169,12 @@ if (is_array($config['openvpn'])) {
 	}
 }
 
+global $ipsec_descrs;
+$ipsec_descrs = interface_ipsec_vti_list_all();
+foreach ($ipsec_descrs as $ifname => $ifdescr) {
+	$portlist[$ifname] = array('descr' => $ifdescr);
+}
+
 
 $ifdescrs = interface_assign_description_fast($portlist,$friendlyifnames);
 

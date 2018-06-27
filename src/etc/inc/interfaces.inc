@@ -950,10 +950,15 @@ function interface_lagg_configure($lagg) {
 		if (!does_interface_exist($member)) {
 			continue;
 		}
+
 		/* make sure the parent interface is up */
 		pfSense_interface_mtu($member, $lagg_mtu);
 		interfaces_bring_up($member);
 		hardware_offloading_applyflags($member);
+
+		// Ensure there are no nulls in these values. It upsets escapeshellarg()
+		$laggif = str_replace("\0", "", $laggif);
+		$member = str_replace("\0", "", $member);
 		mwexec("/sbin/ifconfig " . escapeshellarg($laggif) . " laggport " . escapeshellarg($member));
 	}
 
@@ -1207,6 +1212,157 @@ function interface_gif_configure(&$gif, $gifkey = "") {
 	return $gifif;
 }
 
+/* Build a list of IPsec interfaces */
+function interface_ipsec_vti_list_p1($ph1ent) {
+	global $config;
+	$iface_list = array();
+
+	if (empty($ph1ent) || !is_array($ph1ent) || !is_array($config['ipsec']['phase2'])) {
+		return $iface_list;
+	}
+
+	$vtisubnet_spec = ipsec_vti($ph1ent, true);
+	if ((!$vtisubnet_spec || !is_array($vtisubnet_spec))) {
+		return $iface_list;
+	}
+
+	/* With IKEv1 or v2+Split, each P2 gets its own conn/reqid/interface */
+	if (!isset($ph1ent['mobile']) && ($keyexchange == 'ikev1' || isset($ph1ent['splitconn']))) {
+		foreach ($vtisubnet_spec as $idx => $vtisub) {
+			$iface_list["ipsec{$ph1ent['ikeid']}00{$idx}"] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr'] . " / " . $vtisub['descr']);
+		}
+	} else {
+		/* For IKEv2, only create one interface with additional addresses as aliases */
+		$iface_list["ipsec{$ph1ent['ikeid']}000"] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr']);
+	}
+	return $iface_list;
+}
+function interface_ipsec_vti_list_all() {
+	global $config;
+	$iface_list = array();
+	if (is_array($config['ipsec']) && is_array($config['ipsec']['phase1']) && is_array($config['ipsec']['phase2'])) {
+		foreach ($config['ipsec']['phase1'] as $ph1ent) {
+			if ($ph1ent['disabled']) {
+				continue;
+			}
+			$iface_list = array_merge($iface_list, interface_ipsec_vti_list_p1($ph1ent));
+		}
+	}
+	return $iface_list;
+}
+
+function interface_ipsec_vti_configure($ph1ent) {
+	global $config;
+
+	if (empty($ph1ent) || !is_array($ph1ent) || !is_array($config['ipsec']['phase2'])) {
+		return false;
+	}
+
+	$vtisubnet_spec = ipsec_vti($ph1ent, true);
+	if ((!$vtisubnet_spec || !is_array($vtisubnet_spec))) {
+		return false;
+	}
+
+	$left_spec = ipsec_get_phase1_src($ph1ent);
+	$right_spec = $ph1ent['remote-gateway'];
+
+	$iface_addrs = array();
+
+	/* With IKEv1 or v2+Split, each P2 gets its own conn/reqid/interface */
+	if (!isset($ph1ent['mobile']) && ($keyexchange == 'ikev1' || isset($ph1ent['splitconn']))) {
+		/* Form a single interface for each P2 entry */
+		foreach ($vtisubnet_spec as $idx => $vtisub) {
+			$ipsecifnum = "{$ph1ent['ikeid']}00{$idx}";
+			if (!is_array($iface_addrs[$ipsecifnum])) {
+				$iface_addrs[$ipsecifnum] = array();
+			}
+			$vtisub['alias'] = "";
+			$iface_addrs[$ipsecifnum][] = $vtisub;
+		}
+	} else {
+		/* For IKEv2, only create one interface with additional addresses as aliases */
+		$ipsecifnum = "{$ph1ent['ikeid']}000";
+		if (!is_array($iface_addrs[$ipsecifnum])) {
+			$iface_addrs[$ipsecifnum] = array();
+		}
+		$have_v4 = false;
+		$have_v6 = false;
+		foreach ($vtisubnet_spec as $vtisub) {
+			// Alias stuff
+			$vtisub['alias'] = "";
+			if (is_ipaddrv6($vtisub['left'])) {
+				if ($have_v6) {
+					$vtisub['alias'] = " alias";
+				}
+				$have_v6 = true;
+			} else {
+				if ($have_v4) {
+					$vtisub['alias'] = " alias";
+				}
+				$have_v4 = true;
+			}
+			$iface_addrs[$ipsecifnum][] = $vtisub;
+		}
+	}
+
+	foreach ($iface_addrs as $ipsecifnum => $addrs) {
+		$ipsecif = "ipsec{$ipsecifnum}";
+		if (!is_array($addrs)) {
+			continue;
+		}
+		// Create IPsec interface
+		if (platform_booting() || !does_interface_exist($ipsecif)) {
+			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " destroy", false);
+			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " create reqid " . escapeshellarg($ipsecifnum), false);
+		} else {
+			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " create reqid " . escapeshellarg($ipsecifnum), false);
+		}
+
+		/* Apply the outer tunnel addresses to the interface */
+		$inet = is_ipaddrv6($left_spec) ? "inet6" : "inet";
+		mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " {$inet} tunnel " . escapeshellarg($left_spec) . " " . escapeshellarg($right_spec) . " up", false);
+
+		/* Loop through all of the addresses for this interface and apply them as needed */
+		foreach ($addrs as $addr) {
+			// apply interface addresses
+			if (is_ipaddrv6($addr['left'])) {
+				$inet = "inet6";
+				$gwtype = "v6";
+			} else {
+				$inet = "inet";
+				$gwtype = "";
+			}
+
+			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " {$inet} " . escapeshellarg($addr['left']) . " " . escapeshellarg($addr['right']) . $addr['alias'], false);
+			/* If alias is empty, this is the first address on the interface and should be used as the gateway. */
+			if (empty($addr['alias'])) {
+				file_put_contents("/tmp/{$ipsecif}_router{$gwtype}", $addr['right']);
+			}
+		}
+		if (!platform_booting()) {
+			system_routing_configure(convert_real_interface_to_friendly_interface_name($ipsecif));
+		}
+	}
+}
+
+function interfaces_ipsec_vti_configure() {
+	global $config;
+	if (platform_booting()) {
+		echo gettext("Configuring IPsec VTI interfaces...");
+	}
+	if (is_array($config['ipsec']) && is_array($config['ipsec']['phase1']) && is_array($config['ipsec']['phase2'])) {
+		foreach ($config['ipsec']['phase1'] as $ph1ent) {
+			if ($ph1ent['disabled']) {
+				continue;
+			}
+			interface_ipsec_vti_configure($ph1ent);
+		}
+	}
+	if (platform_booting()) {
+		echo gettext("done.") . "\n";
+	}
+}
+
 function interfaces_configure() {
 	global $config, $g;
 
@@ -1223,6 +1379,9 @@ function interfaces_configure() {
 	interfaces_vlan_configure();
 
 	interfaces_qinq_configure();
+
+	/* set up IPsec VTI interfaces */
+	interfaces_ipsec_vti_configure();
 
 	$iflist = get_configured_interface_with_descr();
 	$delayed_list = array();
@@ -1245,6 +1404,8 @@ function interfaces_configure() {
 			$delayed_list[$if] = $ifname;
 		} else if (strstr($realif, "ovpn")) {
 			//echo "Delaying OpenVPN interface configuration...done.\n";
+			continue;
+		} else if (strstr($realif, "ipsec")) {
 			continue;
 		} else if (!empty($config['interfaces'][$if]['ipaddrv6']) && $config['interfaces'][$if]['ipaddrv6'] == "track6") {
 			$track6_list[$if] = $ifname;
@@ -1578,7 +1739,7 @@ function interface_bring_down($interface = "wan", $destroy = false, $ifacecfg = 
 	}
 
 	if ($destroy == true) {
-		if (preg_match("/^[a-z0-9]+^tun|^ovpn|^gif|^gre|^lagg|^bridge|vlan|_stf$/i", $realif)) {
+		if (preg_match("/^[a-z0-9]+^tun|^ovpn|^ipsec|^gif|^gre|^lagg|^bridge|vlan|_stf$/i", $realif)) {
 			pfSense_interface_destroy($realif);
 		}
 	}
@@ -1597,9 +1758,12 @@ function interfaces_carp_set_maintenancemode($carp_maintenancemode) {
 	}
 
 	$viparr = &$config['virtualip']['vip'];
-	foreach ($viparr as $vip) {
-		if ($vip['mode'] == "carp") {
-			interface_carp_configure($vip);
+
+	if (is_array($viparr)) {
+		foreach ($viparr as $vip) {
+			if ($vip['mode'] == "carp") {
+				interface_carp_configure($vip);
+			}
 		}
 	}
 }
@@ -1985,17 +2149,10 @@ default:
 
 EOD;
 	$setdefaultgw = false;
-	$founddefaultgw = false;
-	if (is_array($config['gateways']['gateway_item'])) {
-		foreach ($config['gateways']['gateway_item'] as $gateway) {
-			if ($interface == $gateway['interface'] && isset($gateway['defaultgw'])) {
-				$setdefaultgw = true;
-				break;
-			} else if (isset($gateway['defaultgw']) && !empty($gateway['interface'])) {
-				$founddefaultgw = true;
-				break;
-			}
-		}
+	$defgw4 = lookup_gateway_or_group_by_name($config['gateways']['defaultgw4']);
+//	$defgw6 = lookup_gateway_or_group_by_name($config['gateways']['defaultgw6']);
+	if ($defgw4['interface'] == $interface) {
+		$setdefaultgw = true;
 	}
 
 /* Omit this, we maintain the default route by other means, and it causes problems with
@@ -2003,13 +2160,13 @@ EOD;
  * re-enabling this for now to fix issue with missing default gateway with PPPoE in some
  * edge case. redmine #6495 open to address.
  */
-	if (($interface == "wan" && $founddefaultgw == false) || $setdefaultgw == true) {
-		$setdefaultgw = true;
+	if ($setdefaultgw == true) {
 		$mpdconf .= <<<EOD
 	set iface route default
 
 EOD;
 	}
+
 	$mpdconf .= <<<EOD
 	set iface {$ondemand} on-demand
 	set iface idle {$ppp['idletimeout']}
@@ -2283,13 +2440,13 @@ EOD;
 			interface_setup_pppoe_reset_file($ppp['if']);
 		}
 	}
-	/* wait for upto 10 seconds for the interface to appear (ppp(oe)) */
+	/* wait for upto 30 seconds for the interface to appear (ppp(oe)) */
 	$i = 0;
-	while ($i < 3) {
-		sleep(10);
+	while ($i < 10) {
 		if (does_interface_exist($ppp['if'], true)) {
 			break;
 		}
+		sleep(3);
 		$i++;
 	}
 
@@ -3394,6 +3551,17 @@ function interface_virtual_create($interface) {
 			}
 			unset($client);
 		}
+	} else if (substr($interface, 0, 5) == "ipsec") {
+		if (is_array($config['ipsec']) && is_array($config['ipsec']['phase1']) && is_array($config['ipsec']['phase2'])) {
+			foreach ($config['ipsec']['phase1'] as $ph1ent) {
+				if ($ph1ent['disabled']) {
+					continue;
+				}
+				if ($interface == "ipsec{$ph1ent['ikeid']}") {
+					interface_ipsec_vti_configure($ph1ent);
+				}
+			}
+		}
 	} else if (substr($interface, 0, 4) == "lagg") {
 		interfaces_lagg_configure($interface);
 	} else if (substr($interface, 0, 6) == "bridge") {
@@ -3484,7 +3652,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 	// Need code to handle MLPPP if we ever use $realhwif for MLPPP handling
 	$realhwif = $realhwif_array[0];
 
-	if (!platform_booting() && !(substr($realif, 0, 4) == "ovpn")) {
+	if (!platform_booting() && !(substr($realif, 0, 4) == "ovpn") && !(substr($realif, 0, 5) == "ipsec")) {
 		/* remove all IPv4 and IPv6 addresses */
 		$tmpifaces = pfSense_getall_interface_addresses($realif);
 		if (is_array($tmpifaces)) {
@@ -3517,7 +3685,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 	}
 
 	/* Need to check that the interface exists or not in the case where its coming back from disabled state see #3270 */
-	if (!platform_booting() && (in_array(substr($realif, 0, 3), array("gre", "gif")) || !does_interface_exist($interface_to_check))) {
+	if (!platform_booting() && (in_array(substr($realif, 0, 3), array("gre", "gif", "ips")) || !does_interface_exist($interface_to_check))) {
 		interface_virtual_create($interface_to_check);
 	}
 
@@ -3685,7 +3853,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			break;
 		default:
 			/* XXX: Kludge for now related to #3280 */
-			if (!in_array($tunnelif, array("gif", "gre", "ovp"))) {
+			if (!in_array($tunnelif, array("gif", "gre", "ovp", "ips"))) {
 				if (is_ipaddrv4($wancfg['ipaddr']) && $wancfg['subnet'] <> "") {
 					pfSense_interface_setaddress($realif, "{$wancfg['ipaddr']}/{$wancfg['subnet']}");
 				}
@@ -3717,7 +3885,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			break;
 		default:
 			/* XXX: Kludge for now related to #3280 */
-			if (!in_array($tunnelif, array("gif", "gre", "ovp"))) {
+			if (!in_array($tunnelif, array("gif", "gre", "ovp", "ips"))) {
 				if (is_ipaddrv6($wancfg['ipaddrv6']) && $wancfg['subnetv6'] <> "") {
 					//pfSense_interface_setaddress($realif, "{$wancfg['ipaddrv6']}/{$wancfg['subnetv6']}");
 					// FIXME: Add IPv6 Support to the pfSense module
@@ -3748,7 +3916,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			}
 		}
 
-		if ($linkupevent == false || substr($realif, 0, 4) == "ovpn") {
+		if (($linkupevent == false) || (substr($realif, 0, 4) == "ovpn") || (substr($realif, 0, 5) == "ipsec")) {
 			unset($bridgetmp);
 			$bridgetmp = link_interface_to_bridge($interface);
 			if (!empty($bridgetmp)) {
@@ -4731,10 +4899,11 @@ function interface_dhcp_configure($interface = "wan") {
 
 	$dhclientconf .= <<<EOD
 interface "{$realif}" {
-timeout 60;
-retry 15;
-select-timeout 0;
-initial-interval 1;
+	supersede interface-mtu 0;
+	timeout 60;
+	retry 15;
+	select-timeout 0;
+	initial-interval 1;
 	{$dhclientconf_hostname}
 	script "/usr/local/sbin/pfSense-dhclient-script";
 EOD;
@@ -5918,6 +6087,17 @@ function get_possible_traffic_source_addresses($include_ipv6_link_local=false) {
 			}
 		}
 	}
+	if (is_array($config['ipsec']) && is_array($config['ipsec']['phase1']) && is_array($config['ipsec']['phase2'])) {
+		foreach ($config['ipsec']['phase1'] as $ph1ent) {
+			if ($ph1ent['disabled']) {
+				continue;
+			}
+			if (ipsec_vti($ph1ent)) {
+				$sourceips_key = "ipsec{$ph1ent['ikeid']}";
+				$sourceips[$sourceips_key] = gettext("IPsec VTI") . ": " . htmlspecialchars($ph1ent['descr']);
+			}
+		}
+	}
 	return $sourceips;
 }
 
@@ -6113,7 +6293,11 @@ function get_interfaces_with_gateway() {
 				if (substr($ifname['if'], 0, 4) == "ovpn" ||
 				    !empty($ifname['gateway'])) {
 					$ints[$ifdescr] = $ifdescr;
+				} elseif (substr($ifname['if'], 0, 5) == "ipsec" ||
+				    !empty($ifname['gateway'])) {
+					$ints[$ifdescr] = $ifdescr;
 				}
+
 				break;
 		}
 	}
@@ -6135,7 +6319,8 @@ function interface_has_gateway($friendly) {
 				return true;
 			break;
 			default:
-				if (substr($ifname['if'], 0, 4) == "ovpn") {
+				if ((substr($ifname['if'], 0, 4) == "ovpn") ||
+				    (substr($ifname['if'], 0, 5) == "ipsec")) {
 					return true;
 				}
 				$tunnelif = substr($ifname['if'], 0, 3);
@@ -6168,7 +6353,8 @@ function interface_has_gatewayv6($friendly) {
 				return true;
 				break;
 			default:
-				if (substr($ifname['if'], 0, 4) == "ovpn") {
+				if ((substr($ifname['if'], 0, 4) == "ovpn") ||
+				    (substr($ifname['if'], 0, 5) == "ipsec")) {
 					return true;
 				}
 				$tunnelif = substr($ifname['if'], 0, 3);
@@ -6504,7 +6690,7 @@ function get_failover_interface($interface, $family = "all") {
 	}
 
 	/* compare against gateway groups */
-	$a_groups = return_gateway_groups_array();
+	$a_groups = return_gateway_groups_array(true);
 	if (is_array($a_groups[$interface])) {
 		/* we found a gateway group, fetch the interface or vip */
 		if (!empty($a_groups[$interface][0]['vip'])) {

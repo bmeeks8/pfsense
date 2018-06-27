@@ -37,6 +37,10 @@ require_once("shaper.inc");
 require_once("ipsec.inc");
 require_once("vpn.inc");
 
+if(!is_array($config['ipsec'])){
+	$config['ipsec'] = array();
+}
+
 if (!is_array($config['ipsec']['phase1'])) {
 	$config['ipsec']['phase1'] = array();
 }
@@ -461,7 +465,7 @@ $i = 0; foreach ($a_phase1 as $ph1ent):
 											<td id="<?=$fr_d?>" onclick="fr_toggle('<?=$j?>', '<?=$fr_prefix?>')">
 												<?=$ph2ent['mode']?>
 											</td>
-<?php if (($ph2ent['mode'] == "tunnel") or ($ph2ent['mode'] == "tunnel6")): ?>
+<?php if (($ph2ent['mode'] == "tunnel") or ($ph2ent['mode'] == "tunnel6") or ($ph2ent['mode'] == "vti")): ?>
 											<td id="<?=$fr_d?>" onclick="fr_toggle('<?=$j?>', '<?=$fr_prefix?>')">
 												<?=ipsec_idinfo_to_text($ph2ent['localid']); ?>
 											</td>

@@ -41,11 +41,16 @@ function is_dyndns_username($uname) {
 
 require_once("guiconfig.inc");
 
+if (!is_array($config['dyndnses'])) {
+	$config['dyndnses'] = array();
+}
+
 if (!is_array($config['dyndnses']['dyndns'])) {
 	$config['dyndnses']['dyndns'] = array();
 }
 
 $a_dyndns = &$config['dyndnses']['dyndns'];
+
 $id = $_REQUEST['id'];
 
 if (isset($id) && isset($a_dyndns[$id])) {

@@ -87,7 +87,7 @@ $reserved_table_names = array(
 	"bogonsv6",
 	"negate_networks",
 	"snort2c",
-	"sshlockout",
+	"sshguard",
 	"tonatsubnets",
 	"virusprot",
 	"vpn_networks",
@@ -257,9 +257,11 @@ function do_input_validation($postdata, $reqdfields, $reqdfieldsn, &$input_error
 		}
 	}
 
-	for ($i = 0; $i < count($reqdfields); $i++) {
-		if ($postdata[$reqdfields[$i]] == "") {
-			$input_errors[] = sprintf(gettext("The field %s is required."), $reqdfieldsn[$i]);
+	if (is_array($reqdfields)) {
+		for ($i = 0; $i < count($reqdfields); $i++) {
+			if ($postdata[$reqdfields[$i]] == "") {
+				$input_errors[] = sprintf(gettext("The field %s is required."), $reqdfieldsn[$i]);
+			}
 		}
 	}
 }
@@ -1294,6 +1296,39 @@ if (isset($config['system']['timezone']) &&
 	$timezone = $g['default_timezone'];
 } else {
 	$timezone = "Etc/UTC";
+}
+
+/* Remove files we do not want to see in a crash report */
+function cleanup_crash_file_list() {
+	$files = glob("/var/crash/*");
+	if (!is_array($files) || empty($files)) {
+		return array();
+	}
+
+	$exclude_patterns = array(
+		'.*.last',
+		'bounds',
+		'minfree'
+	);
+
+	foreach ($files as $idx => $fb) {
+		if (preg_match('/' . implode('|', $exclude_patterns) . '/', basename($fb)) == 1) {
+			unset($files[$idx]);
+		}
+	}
+
+	return $files;
+}
+
+function system_has_crash_data() {
+	/* Test if there are any crash data files present */
+	return count(cleanup_crash_file_list()) > 0;
+}
+
+function system_has_php_errors() {
+	/* Check if the PHP error log is empty. Cast to int in case the file
+	 * does not exist and filesize() returns false. */
+	return (int) @filesize("/tmp/PHP_errors.log") > 0;
 }
 
 date_default_timezone_set($timezone);

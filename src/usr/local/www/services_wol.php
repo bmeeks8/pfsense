@@ -132,6 +132,11 @@ if ($savemsg) {
 	print_info_box($savemsg, $class);
 }
 
+$selected_if = (empty($if) ? 'lan' : $if);
+if (!isset(get_configured_interface_list(false)[$selected_if])) {
+	$selected_if = null;
+}
+
 $form = new Form(false);
 
 $section = new Form_Section('Wake-on-LAN');
@@ -139,7 +144,7 @@ $section = new Form_Section('Wake-on-LAN');
 $section->addInput(new Form_Select(
 	'if',
 	'*Interface',
-	(link_interface_to_bridge($if) ? null : $if),
+	$selected_if,
 	get_configured_interface_with_descr()
 ))->setHelp('Choose which interface the host to be woken up is connected to.');
 
@@ -167,8 +172,25 @@ print $form;
 		<h2 class="panel-title"><?=gettext("Wake-on-LAN Devices");?></h2>
 	</div>
 
+<?php
+	// Add top buttons if more than 24 entries in the table
+	if (is_array($a_wol) && (count($a_wol) > 24)) {
+?>
+	<div class="panel-footer">
+		<a class="btn btn-success" href="services_wol_edit.php">
+			<i class="fa fa-plus icon-embed-btn"></i>
+			<?=gettext("Add");?>
+		</a>
+
+		<a href="services_wol.php?wakeall=true" role="button" class="btn btn-primary">
+			<i class="fa fa-power-off icon-embed-btn"></i>
+			<?=gettext("Wake All Devices")?>
+		</a>
+	</div>
+<?php } ?>
+
 	<div class="panel-body">
-		<p><?=gettext("Click the MAC address to wake up an individual device.")?></p>
+		<p class="text-danger" style="margin-left: 8px;margin-bottom:0px;"><?=gettext("Click the MAC address to wake up an individual device.")?></p>
 		<div class="table-responsive">
 			<table class="table table-striped table-hover table-rowdblclickedit">
 				<thead>

@@ -82,7 +82,7 @@ function stop_dpinger($gwname = '') {
 		}
 
 		if (isvalidpid($process['pidfile'])) {
-			killbypid($process['pidfile']);
+			killbypid($process['pidfile'], 3);
 		} else {
 			@unlink($process['pidfile']);
 		}
@@ -544,6 +544,34 @@ function return_gateways_status_text($byname = false, $brief = false) {
 	return $output;
 }
 
+function compare_gateway_order_configured($a, $b) {
+	/* XXX WAN always has precedence */
+	if ($a['friendlyiface'] == "wan") {
+		return -1;
+	} elseif ($b['friendlyiface'] == "wan") {
+		return 1;
+	}
+
+	if ($a['attribute'] === $b['attribute']) {
+		if ($a['attribute'] === 'system') {
+			$res = (($a['name'] < $b['name'])) ? -1 : 1;
+			return $res;
+		}
+		return 0;
+	}
+	if ($a['attribute'] === 'system' || $b['attribute'] === 'system') {
+		$res = (($b['attribute'] === 'system')) ? -1 : 1;
+		return $res;
+	}
+	$res = ($a['attribute'] < $b['attribute']) ? -1 : 1;
+	return $res;
+}
+
+function order_gateways_as_configured($gateways_arr) {
+	uasort($gateways_arr, 'compare_gateway_order_configured');
+	return $gateways_arr;
+}
+
 /* Return all configured gateways on the system
    $disabled = true - include gateways that are disabled
    $localhost = true - include "Null" entries for localhost IP addresses
@@ -567,6 +595,10 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 	/* Process/add all the configured gateways. */
 	if (is_array($config['gateways']) && is_array($config['gateways']['gateway_item'])) {
 		foreach ($config['gateways']['gateway_item'] as $gateway) {
+			if (!is_array($gateway) || empty($gateway)) {
+				continue;
+			}
+			
 			/* Increment it here to do not skip items */
 			$i++;
 			if (isset($gateway['defaultgw'])) {
@@ -986,11 +1018,13 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 		$gwlo4['interface'] = "lo0";
 		$gwlo4['ipprotocol'] = "inet";
 		$gwlo4['gateway'] = "127.0.0.1";
+		$gwlo4['attribute'] = "system";
 		$gwlo6 = array();
 		$gwlo6['name'] = "Null6";
 		$gwlo6['interface'] = "lo0";
 		$gwlo6['ipprotocol'] = "inet6";
 		$gwlo6['gateway'] = "::1";
+		$gwlo6['attribute'] = "system";
 		$gateways_arr['Null4'] = $gwlo4;
 		$gateways_arr['Null6'] = $gwlo6;
 	}
@@ -1013,7 +1047,7 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 			}
 		}
 	}
-	return($gateways_arr);
+	return order_gateways_as_configured($gateways_arr);
 }
 
 function fixup_default_gateway($ipprotocol, $gateways_status, $gateways_arr) {
@@ -1022,93 +1056,78 @@ function fixup_default_gateway($ipprotocol, $gateways_status, $gateways_arr) {
 	 * NOTE: The code below is meant to replace the default gateway when it goes down.
 	 *	This facilitates services running on pfSense itself and are not handled by a PBR to continue working.
 	 */
-	$upgw = '';
-	$dfltgwname = '';
-	$dfltgwdown = false;
-	$dfltgwfound = false;
+	$set_dfltgwname = '';
 
 	if ($ipprotocol == 'inet') {
 		$gwdefault = $config['gateways']['defaultgw4'];
 	} else {
 		$gwdefault = $config['gateways']['defaultgw6'];
 	}
+	if ($gwdefault == "-") {
+		// 'none', dont set the default gateway, useful if routes are managed by frr/bgp/ospf or similar
+		return;
+	}
 	if (isset($gateways_arr[$gwdefault])) {
 		// the configured gateway is a regular one. (not a gwgroup) use it as is..
-		$dfltgwname = $gwdefault;
+		$set_dfltgwname = $gwdefault;
+	} elseif (empty($gwdefault)) {
+		// 'automatic' mode, pick the first one thats 'up' or 'unmonitored' which is always considered up
+		$gateways_arr = order_gateways_as_configured($gateways_arr);
+		$fallback = "";
+		foreach($gateways_arr as $gwname => $gwsttng) {
+			if ($gwsttng['ipprotocol'] != $ipprotocol) {
+				continue;
+			}
+			
+			if ((isset($gwsttng['monitor_disable']) || isset($gwsttng['action_disable']) || $gateways_status[$gwname]['status'] == "none")) {
+				$set_dfltgwname = $gwname;
+				break;
+			}
+			if (empty($fallback) && $gwsttng['interface'] != 'lo0') {
+				$fallback = $gwname;
+			}
+		}
+		if (empty($set_dfltgwname)) {
+			log_error(sprintf("Gateway, none 'available' for %s, use the first one configured. '%s'", $ipprotocol, $fallback));
+			$set_dfltgwname = $fallback;
+		}
 	} else {
-		// either a gwgroup is selected or gateway switching is used.
+		// a gwgroup is selected
 		// find the best available gateway given options available..
-		if (!empty($gwdefault)) {
-			if (isset($gateways_status[$gwdefault])) {
-				$dfltgwfound = true;
-				$dfltgwname = $gwdefault;
-				if (!isset($gateways_arr['monitor_disable']) && !isset($gateways_arr['action_disable']) &&
-						$gateways_status[$gwdefault]['status'] != "none") {
-					$dfltgwdown = true;
-				}
-			} else {
-				$dfltgwfound = true;
-
-				$viplist = get_configured_vip_list();
-				if (is_array($config['gateways']['gateway_group'])) {
-	 				foreach ($config['gateways']['gateway_group'] as $group) {
-						if ($group['name'] == $gwdefault) {
-							$gwgroup = get_gwgroup_members_inner($group, $gateways_status, $gateways_arr, $viplist);
-						}
-					}
-				}
-
-				if (is_array($gwgroup)) {
-					if (count($gwgroup) > 0) {
-						$currentdefaultgwip = getcurrentdefaultgatewayip($ipprotocol);
-						$found_current = false;
-						foreach($gwgroup as $gwgroupitem) {
-							if ($gwgroupitem['gwip'] == $currentdefaultgwip) {
-								$dfltgwname = $gwgroupitem['gw'];
-								$found_current = true;
-								log_error("Keep current gateway, its already part of the group members.");
-								break;
-							}
-						}
-						if (!$found_current) {
-							$dfltgwname = $gwgroup[0]['gw'];
-							log_error(sprintf("Gateway, switch to: %s", $dfltgwname));
-						}
-					} else {
-						log_error("Gateway, NONE AVAILABLE");
-						$dfltgwdown = true;
-					}
+		$gwg_members = array();
+		$viplist = get_configured_vip_list();
+		if (is_array($config['gateways']['gateway_group'])) {
+			foreach ($config['gateways']['gateway_group'] as $group) {
+				if ($group['name'] == $gwdefault) {
+					// finds the gw members of the best available tier for this group.
+					$gwg_members = get_gwgroup_members_inner($group, $gateways_status, $gateways_arr, $viplist);
 				}
 			}
 		}
-		if ($dfltgwdown) {
-			foreach ($gateways_arr as $gwname => $gwsttng) {
-				/* Keep a record of the last up gateway */
-				/* XXX: Blacklist lan for now since it might cause issues to those who have a gateway set for it */
-				if (empty($upgw) && ($gwsttng['ipprotocol'] == $ipprotocol) &&
-						(isset($gwsttng['monitor_disable']) ||
-						isset($gwsttng['action_disable']) ||
-						$gateways_status[$gwname]['status'] == "none"
-						) &&
-						$gwsttng[$gwname]['friendlyiface'] != "lan") {
-					$upgw = $gwname;
-				}
-				if ($dfltgwdown == true && !empty($upgw)) {
+
+		if (count($gwg_members) > 0) {
+			$currentdefaultgwip = getcurrentdefaultgatewayip($ipprotocol);
+			$found_current = false;
+			foreach($gwg_members as $gwgroupitem) {
+				if ($gwgroupitem['gwip'] == $currentdefaultgwip) {
+					$set_dfltgwname = $gwgroupitem['gw'];
+					$found_current = true;
+					if (isset($config['system']['gw-debug'])) {
+						log_error("Keep current gateway, its already part of the group members.");
+					}
 					break;
 				}
 			}
-		}
-		if ($dfltgwfound == false) {
-			$gwname = convert_friendly_interface_to_friendly_descr("wan");
-			if (!empty($gateways_status[$gwname]) && stristr($gateways_status[$gwname]['status'], "down")) {
-				$dfltgwdown = true;
+			if (!$found_current) {
+				$set_dfltgwname = $gwg_members[0]['gw'];
+				log_error(sprintf("Gateway, switch to: %s", $set_dfltgwname));
 			}
+		} else {
+			log_error("Gateway, NONE AVAILABLE");
 		}
 	}
-	if ($dfltgwdown == true && !empty($upgw)) {
-		setdefaultgateway($gateways_arr[$upgw]);
-	} else if (!empty($dfltgwname)) {
-		setdefaultgateway($gateways_arr[$dfltgwname]);
+	if (!empty($set_dfltgwname) && isset($gateways_arr[$set_dfltgwname])) {
+		setdefaultgateway($gateways_arr[$set_dfltgwname]);
 	}
 }
 
@@ -1117,7 +1136,7 @@ function getcurrentdefaultgatewayip($ipprotocol) {
 }
 
 function setdefaultgateway($gw) {
-	global $g;
+	global $g, $config;
 	if (isset($config['system']['route-debug'])) {
 		file_put_contents("/dev/console", "\n[".getmypid()."] SET DEF GW: {$gw['name']}");
 	}
@@ -1208,7 +1227,7 @@ function get_gwgroup_members_inner($group, $gateways_status, $gateways_arr, $vip
 			$statuschanged = false;
 			$pluginparams = array();
 			$pluginparams['type'] = 'gateway';
-			$pluginparams['name'] = ${gwname};
+			$pluginparams['name'] = $gwname;
 			if ($gwdown == true) {
 				if (!file_exists("/tmp/.down.{$gwname}")) {
 					touch("/tmp/.down.{$gwname}");
@@ -1245,7 +1264,7 @@ function get_gwgroup_members_inner($group, $gateways_status, $gateways_arr, $vip
 	$tiers_count = count($tiers);
 	if ($tiers_count == 0) {
 		/* Oh dear, we have no members! Engage Plan B */
-		if (!platform_booting()) {
+		if (isset($config['system']['gw-debug']) && (!platform_booting())) {
 			$msg = sprintf(gettext('Gateways status could not be determined, considering all as up/active. (Group: %s)'), $group['name']);
 			log_error($msg);
 			notify_via_growl($msg);
@@ -1370,7 +1389,7 @@ function dhclient_update_gateway_groups_defaultroute($interface = "wan") {
 
 function lookup_gateway_or_group_by_name($gwname) {
 	global $config;
-	
+
 	$gateways_arr = return_gateways_array();
 	foreach ($gateways_arr as $gw) {
 		if ($gw['name'] == $gwname) {
@@ -1429,15 +1448,20 @@ function lookup_gateway_interface_by_name($name) {
 	return (false);
 }
 
-function get_interface_gateway($interface, &$dynamic = false) {
-	global $config, $g;
-
+function get_root_interface($interface) {
 	if (substr($interface, 0, 4) == '_vip') {
 		$interface = get_configured_vip_interface($interface);
 		if (substr($interface, 0, 4) == '_vip') {
 			$interface = get_configured_vip_interface($interface);
 		}
 	}
+	return $interface;
+}
+
+function get_interface_gateway($interface, &$dynamic = false) {
+	global $config, $g;
+	
+	$interface = get_root_interface($interface);
 
 	$gw = NULL;
 	$gwcfg = $config['interfaces'][$interface];
@@ -1470,12 +1494,7 @@ function get_interface_gateway($interface, &$dynamic = false) {
 function get_interface_gateway_v6($interface, &$dynamic = false) {
 	global $config, $g;
 
-	if (substr($interface, 0, 4) == '_vip') {
-		$interface = get_configured_vip_interface($interface);
-		if (substr($interface, 0, 4) == '_vip') {
-			$interface = get_configured_vip_interface($interface);
-		}
-	}
+	$interface = get_root_interface($interface);
 
 	$gw = NULL;
 	$gwcfg = $config['interfaces'][$interface];
@@ -1953,6 +1972,12 @@ function validate_gateway($gateway_settings, $id = "", $parent_ip = "", $parent_
 function save_gateway($gateway_settings, $realid = "") {
 	global $config;
 
+	if (!is_array($config['gateways'])) {
+		$config['gateways'] = array();
+	}
+	if (!is_array($config['gateways']['gateway_item'])) {
+		$config['gateways']['gateway_item'] = array();
+	}
 	$a_gateway_item = &$config['gateways']['gateway_item'];
 	$reloadif = "";
 	$gateway = array();

@@ -205,6 +205,13 @@ if ($_POST['save']) {
 		}
 	}
 
+	/* To prevent infinite loops make sure the alias name does not equal the value. */
+	for($i = 0; isset($_POST['address' . $i]); $i++) {
+			if($_POST['address' . $i] == $_POST['name']){
+				$input_errors[] = gettext("Alias value cannot be the same as the alias name: `" . $_POST['name'] . " and " . $_POST['address' . $i] . "`");
+			}
+	}
+
 	$alias = array();
 	$address = array();
 	$final_address_details = array();
@@ -212,7 +219,7 @@ if ($_POST['save']) {
 	$alias['type'] = $_POST['type'];
 
 	if (preg_match("/urltable/i", $_POST['type'])) {
-		$address = "";
+		$address = array();
 
 		/* item is a url table type */
 		if ($_POST['address0']) {

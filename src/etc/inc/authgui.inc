@@ -65,10 +65,7 @@ if (!isAllowedPage($_SERVER['REQUEST_URI'])) {
 		require_once("functions.inc");
 		pfSenseHeader("/{$page}");
 
-		$username = empty($_SESSION["Username"]) ? "(system)" : $_SESSION['Username'];
-		if (!empty($_SERVER['REMOTE_ADDR'])) {
-			$username .= '@' . $_SERVER['REMOTE_ADDR'];
-		}
+		$username = get_config_user();
 		log_error("{$username} attempted to access {$_SERVER['SCRIPT_NAME']} but does not have access to that page. Redirecting to {$page}.");
 
 		exit;
@@ -156,9 +153,7 @@ function display_error_form($http_code, $desc) {
 			<footer id="3">
 			<div id="footertext">
 					<p class="text-muted">
-						<a target="_blank" href="https://www.pfsense.org/?gui=bootstrap">pfSense</a> is &copy;
-						2004 - 2018 by <a href="https://pfsense.org/license" class="tblnk">Rubicon Communications, LLC (Netgate)</a>. All Rights Reserved.
-						[<a href="/license.php" class="tblnk">view license</a>]
+						<?=print_credit()?>
 					</p>
 				</div>
 			</footer>
@@ -363,9 +358,7 @@ function display_login_form() {
 	        <footer id="3">
 	            <div id="footertext">
 					<p class="text-muted">
-						<a target="_blank" href="https://www.pfsense.org/?gui=bootstrap">pfSense</a> is &copy;
-						2004 - 2018 by <a href="https://pfsense.org/license" class="tblnk">Rubicon Communications, LLC (Netgate)</a>. All Rights Reserved.
-						[<a href="/license.php" class="tblnk">view license</a>]
+						<?=print_credit()?>
 					</p>
 	            </div>
 	        </footer>

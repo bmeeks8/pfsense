@@ -107,9 +107,11 @@ if ($ph2found === true) {
 	$pconfig['localid_type'] = "lan";
 	$pconfig['remoteid_type'] = "network";
 	$pconfig['proto'] = "esp";
-	$pconfig['ealgos'] = explode(",", "aes");
-	$pconfig['halgos'] = explode(",", "hmac_sha1");
-	$pconfig['pfsgroup'] = "0";
+	$pconfig['ealgos'] = explode(",", "aes,aes128gcm");
+	$pconfig['keylen_aes'] = 128;
+	$pconfig['keylen_aes128gcm'] = 128;
+	$pconfig['halgos'] = explode(",", "hmac_sha256");
+	$pconfig['pfsgroup'] = "14";
 	$pconfig['lifetime'] = "3600";
 	$pconfig['uniqid'] = uniqid();
 
@@ -131,6 +133,10 @@ if (!empty($_REQUEST['dup'])) {
 if ($_POST['save']) {
 
 	unset($input_errors);
+
+	/* Check if the user is switching away from VTI */
+	$vti_switched = ($ph2found && ($pconfig['mode'] == "vti") && ($_POST['mode'] != "vti"));
+
 	$pconfig = $_POST;
 
 	if (!isset($_POST['ikeid'])) {
@@ -166,6 +172,11 @@ if ($_POST['save']) {
 					$input_errors[] = gettext("An IPv6 local address was specified but the mode is not set to tunnel6");
 				}
 				break;
+			default:
+				if (($pconfig['mode'] == "vti") && !is_ipaddr($pconfig['localid_address'])) {
+					$input_errors[] = gettext("VTI requires a valid local network or IP address for its endpoint address, it cannot use a network macro for a different interface (e.g. LAN).");
+				}
+
 		}
 		/* Check if the localid_type is an interface, to confirm if it has a valid subnet. */
 		if (is_array($config['interfaces'][$pconfig['localid_type']])) {
@@ -232,6 +243,10 @@ if ($_POST['save']) {
 	/* Validate enabled phase2's are not duplicates */
 	if (isset($pconfig['mobile'])) {
 		/* User is adding phase 2 for mobile phase1 */
+		if ($pconfig['mode'] == "vti") {
+			$input_errors[] = gettext("VTI is not compatible with mobile IPsec.");
+		}
+
 		foreach ($a_phase2 as $key => $name) {
 			if (isset($name['mobile']) && $name['uniqid'] != $pconfig['uniqid']) {
 				/* check duplicate localids only for mobile clents */
@@ -290,7 +305,14 @@ if ($_POST['save']) {
 		}
 		foreach ($a_phase1 as $phase1) {
 			if ($phase1['ikeid'] == $pconfig['ikeid']) {
-				/* This is the P1 for this entry, validate its remote-gateway and local interface isn't within tunnel */
+				/* This is the P1 for this entry */
+				if ($vti_switched) {
+					/* Determine what this P2 interface would be */
+					if (is_interface_ipsec_vti_assigned($a_phase2[$p2index])) {
+						$input_errors[] = gettext("Cannot switch away from VTI while the interface is assigned. Remove the interface assignment before switching away from VTI.");
+					}
+				}
+				/* validate its remote-gateway and local interface isn't within tunnel */
 				$entered_local = array();
 				$entered_local['type'] = $pconfig['localid_type'];
 				if (isset($pconfig['localid_address'])) {
@@ -356,6 +378,9 @@ if ($_POST['save']) {
 	if (($_POST['lifetime'] && !is_numericint($_POST['lifetime']))) {
 		$input_errors[] = gettext("The P2 lifetime must be an integer.");
 	}
+	if (($pconfig['mode'] == "vti") && $pconfig['disabled']) {
+		$input_errors[] = gettext("Cannot disable a VTI Phase 2 while the interface is assigned. Remove the interface assignment before disabling this P2.");
+	}
 
 	if (!$input_errors) {
 
@@ -407,6 +432,12 @@ if ($_POST['save']) {
 		exit;
 	}
 }
+
+$localid_help_tunnel  = "Local network component of this IPsec security association.";
+$localid_help_vti     = "Local point-to-point IPsec interface tunnel network address.";
+$localid_help_mobile  = "Network reachable by mobile IPsec clients.";
+$remoteid_help_tunnel = "Remote network component of this IPsec security association.";
+$remoteid_help_vti    = "Remote point-to-point IPsec interface tunnel network address.";
 
 if ($pconfig['mobile']) {
 	$pgtitle = array(gettext("VPN"), gettext("IPsec"), gettext("Mobile Clients"), gettext("Edit Phase 2"));
@@ -538,6 +569,7 @@ $group->add(new Form_IpAddress(
 	$pconfig['localid_address']
 ))->setHelp('Address')->addMask('localid_netbits', $pconfig['localid_netbits'], 128, 0);
 
+$group->setHelp('%s', '<span id="opt_localid_help"></span>');
 $section->add($group);
 
 $group = new Form_Group('NAT/BINAT translation');
@@ -584,6 +616,7 @@ if (!isset($pconfig['mobile'])) {
 		$pconfig['remoteid_address']
 	))->setHelp('Address')->addMask('remoteid_netbits', $pconfig['remoteid_netbits'], 128, 0);
 
+	$group->setHelp('%s', '<span id="opt_remoteid_help"></span>');
 	$section->add($group);
 }
 
@@ -665,17 +698,15 @@ foreach ($p2_halgos as $algo => $algoname) {
 $section->add($group);
 
 $sm = (!isset($pconfig['mobile']) || !isset($a_client['pfs_group']));
+$helpstr = $sm ? '':'Set globally in mobile client options. ';
+$helpstr .= 'Note: Groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.';
 
 $section->addInput(new Form_Select(
 	'pfsgroup',
 	'PFS key group',
 	$pconfig['pfsgroup'],
 	$sm ? $p2_pfskeygroups:array()
-));
-
-$helpstr = $sm ? '':'Set globally in mobile client options. ';
-$helpstr .= 'Note: Groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.';
-$section->setHelp($helpstr);
+))->setHelp($helpstr);
 
 $section->addInput(new Form_Input(
 	'lifetime',
@@ -751,17 +782,24 @@ events.push(function() {
 		if ((value == 'tunnel') || (value == 'tunnel6')) {
 			hideClass('opt_localid', false);
 			hideClass('opt_natid', false);
+			$('#opt_localid_help').html("<?=$localid_help_mobile?>");
 
 <?php	if (!isset($pconfig['mobile'])): ?>
 			hideClass('opt_remoteid', false);
 			hideClass('opt_natid', false);
+			$('#opt_localid_help').html("<?=$localid_help_tunnel?>");
+			$('#opt_remoteid_help').html("<?=$remoteid_help_tunnel?>");
 <?php	endif; ?>
 		} else if (value == 'vti') {
 			hideClass('opt_localid', false);
 			hideClass('opt_natid', true);
+			$('#localid_type').val('network');
+			typesel_change_local(30);
 			$('#remoteid_type').val('address');
 			disableInput('remoteid_type', true);
 			typesel_change_remote(32);
+			$('#opt_localid_help').html("<?=$localid_help_vti?>");
+			$('#opt_remoteid_help').html("<?=$remoteid_help_vti?>");
 		} else {
 			hideClass('opt_localid', true);
 			hideClass('opt_natid', true);

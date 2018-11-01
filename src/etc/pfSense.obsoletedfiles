@@ -29,6 +29,7 @@
 /etc/inc/m0n0
 /etc/inc/ntlm_sasl_client.inc
 /etc/inc/plain_sasl_client.inc
+/etc/inc/radius.inc
 /etc/inc/regdomain.inc
 /etc/inc/sasl.inc
 /etc/inc/simplepie
@@ -585,6 +586,8 @@
 /usr/local/bin/spawn-fcgi
 /usr/local/bin/tickadj
 /usr/local/bin/verifysig
+/usr/local/captiveportal/radius_accounting.inc
+/usr/local/captiveportal/radius_authentication.inc
 /usr/local/etc/pkg.conf
 /usr/local/info
 /usr/local/lib/engines
@@ -996,6 +999,7 @@
 /usr/local/www/ip_helper.js
 /usr/local/www/javascript
 /usr/local/www/jquery
+/usr/local/www/license.php
 /usr/local/www/load_balancer_relay_action.php
 /usr/local/www/load_balancer_relay_action_edit.php
 /usr/local/www/load_balancer_relay_protocol.php

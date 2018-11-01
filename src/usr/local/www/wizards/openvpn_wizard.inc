@@ -29,6 +29,7 @@ require_once("util.inc");
 $dn_cc = array();
 if (file_exists("/etc/ca_countries")) {
 	$dn_cc_file=file("/etc/ca_countries");
+	$dn_cc[''] = gettext("None");
 	foreach ($dn_cc_file as $line) {
 		if (preg_match('/^(\S*)\s(.*)$/', $line, $matches)) {
 			$dn_cc[$matches[1]] = $matches[1];
@@ -39,7 +40,9 @@ if (file_exists("/etc/ca_countries")) {
 function step1_stepsubmitbeforesave() {
 	global $stepid, $config;
 	if (($_POST['authtype'] != NULL) && ($_POST['authtype'] != $config['ovpnserver']['step1']['type'])) {
-		unset($config['ovpnserver']['step2']);
+		if (isset($config['ovpnserver']['step2'])) {
+			unset($config['ovpnserver']['step2']);
+		}
 	}
 }
 
@@ -53,7 +56,9 @@ function step1_submitphpaction() {
 	} else if ($_POST['authtype'] == "radius") {
 		$stepid = 2;
 		$config['ovpnserver']['step1']['type'] = "radius";
-		unset($config['ovpnserver']['step1']['uselist']);
+		if (isset($config['ovpnserver']['step1']['uselist'])) {
+			unset($config['ovpnserver']['step1']['uselist']);
+		}
 	}
 }
 
@@ -188,7 +193,9 @@ function step6_submitphpaction() {
 
 	if (isset($_POST['next'])) {
 		$_POST['uselist'] = "";
-		unset($config['ovpnserver']['step6']['uselist']);
+		if (isset($config['ovpnserver']['step6']['uselist'])) {
+			unset($config['ovpnserver']['step6']['uselist']);
+		}
 		$stepid++;
 	} else {
 		$config['ovpnserver']['step6']['uselist'] = "on";
@@ -213,20 +220,15 @@ function step7_submitphpaction() {
 		$input_errors[] = "The field 'Descriptive Name' contains invalid characters.";
 	}
 
-	if (empty($_POST['descr']) || empty($_POST['keylength']) || empty($_POST['lifetime']) ||
-	    empty($_POST['country']) || empty($_POST['state']) || empty($_POST['city']) ||
-	    empty($_POST['organization']) || empty($_POST['email'])) {
+	if (empty($_POST['descr']) || empty($_POST['keylength']) || empty($_POST['lifetime'])) {
 		$stepid--;
 		$savemsg = "Please enter all information for the new Certificate Authority.";
-	} elseif (!array_key_exists($_POST['country'], $dn_cc)) {
+	} elseif (!empty($_POST['country']) && !array_key_exists($_POST['country'], $dn_cc)) {
 		$stepid--;
 		$input_errors[] = "Please enter a valid country code.";
 	} elseif (in_array($_POST['descr'], $canames) || in_array($_POST['descr'], $cacns)) {
 		$stepid--;
 		$savemsg = "Please enter a different name for the Certificate Authority. A Certificate Authority with that name already exists.";
-	} elseif (strlen($_POST['country']) != 2) {
-		$stepid--;
-		$savemsg = "Please enter only a two-letter ISO country code";
 	} else {
 		$config['ovpnserver']['step6']['uselist'] = "on";
 		$_POST['uselist'] = "on";
@@ -247,7 +249,9 @@ function step8_submitphpaction() {
 
 	if (isset($_POST['next'])) {
 		$_POST['uselist'] = "";
-		unset($config['ovpnserver']['step9']['uselist']);
+		if (isset($config['ovpnserver']['step9']['uselist'])) {
+			unset($config['ovpnserver']['step9']['uselist']);
+		}
 		$stepid++;
 	} else {
 		$config['ovpnserver']['step9']['uselist'] = "on";
@@ -265,15 +269,13 @@ function step9_stepbeforeformdisplay() {
 		$state = $pconfig['step6']['state'];
 		$city = $pconfig['step6']['city'];
 		$org = $pconfig['step6']['organization'];
-		$email = $pconfig['step6']['email'];
 	} else {
 		$ca = lookup_ca($pconfig['step6']['authcertca']);
-		$cavl = cert_get_subject_array($ca['crt']);
-		$country = $cavl[0]['v'];
-		$state = $cavl[1]['v'];
-		$city = $cavl[2]['v'];
-		$org = $cavl[3]['v'];
-		$email = $cavl[4]['v'];
+		$cavl = cert_get_subject_hash($ca['crt']);
+		$country = $cavl['C'];
+		$state = $cavl['ST'];
+		$city = $cavl['L'];
+		$org = $cavl['O'];
 	}
 	$fields =& $pkg['step'][$stepid]['fields']['field'];
 
@@ -290,9 +292,6 @@ function step9_stepbeforeformdisplay() {
 			break;
 		case 'organization':
 			$fields[$idx]['value'] = $org;
-			break;
-		case 'email':
-			$fields[$idx]['value'] = $email;
 			break;
 		}
 	}
@@ -315,9 +314,7 @@ function step9_submitphpaction() {
 		$input_errors[] = "The field 'Descriptive Name' contains invalid characters.";
 	}
 
-	if (empty($_POST['descr']) || empty($_POST['keylength']) || empty($_POST['lifetime']) ||
-	    empty($_POST['country']) || empty($_POST['state']) || empty($_POST['city']) ||
-	    empty($_POST['organization']) || empty($_POST['email'])) {
+	if (empty($_POST['descr']) || empty($_POST['keylength']) || empty($_POST['lifetime'])) {
 		$stepid--;
 		$savemsg = "Please enter all information for the new certificate.";
 	} elseif (!array_key_exists($_POST['country'], $dn_cc)) {
@@ -326,9 +323,6 @@ function step9_submitphpaction() {
 	} elseif (in_array($_POST['descr'], $certnames) || in_array($_POST['descr'], $certcns)) {
 		$stepid--;
 		$savemsg = "Please enter a different name for the Certificate. A Certificate with that name/common name already exists.";
-	} elseif (strlen($_POST['country']) != 2) {
-		$stepid--;
-		$savemsg = "Please enter only a two-letter ISO country code";
 	} else {
 		$config['ovpnserver']['step9']['uselist'] = "on";
 		$_POST['uselist'] = "on";
@@ -519,13 +513,20 @@ function step12_submitphpaction() {
 		$ca = array();
 		$ca['refid'] = uniqid();
 		$ca['descr'] = $pconfig['step6']['certca'];
-		$dn = array(
-			'countryName' => $pconfig['step6']['country'],
-			'stateOrProvinceName' => cert_escape_x509_chars($pconfig['step6']['state']),
-			'localityName' => cert_escape_x509_chars($pconfig['step6']['city']),
-			'organizationName' => cert_escape_x509_chars($pconfig['step6']['organization']),
-			'emailAddress' => cert_escape_x509_chars($pconfig['step6']['email']),
-			'commonName' => cert_escape_x509_chars($pconfig['step6']['certca']));
+
+		$dn = array('commonName' => cert_escape_x509_chars($pconfig['step6']['certca']));
+		if (!empty($pconfig['step6']['country'])) {
+			$dn['countryName'] = $pconfig['step6']['country'];
+		}
+		if (!empty($pconfig['step6']['state'])) {
+			$dn['stateOrProvinceName'] = cert_escape_x509_chars($pconfig['step6']['state']);
+		}
+		if (!empty($pconfig['step6']['city'])) {
+			$dn['localityName'] = cert_escape_x509_chars($pconfig['step6']['city']);
+		}
+		if (!empty($pconfig['step6']['organization'])) {
+			$dn['organizationName'] = cert_escape_x509_chars($pconfig['step6']['organization']);
+		}
 
 		ca_create($ca, $pconfig['step6']['keylength'], $pconfig['step6']['lifetime'], $dn, "sha256");
 		if (!is_array($config['ca']))
@@ -546,15 +547,23 @@ function step12_submitphpaction() {
 		$cert = array();
 		$cert['refid'] = uniqid();
 		$cert['descr'] = $pconfig['step9']['certname'];
+
 		$dn = array(
-			'countryName' => $pconfig['step9']['country'],
-			'stateOrProvinceName' => cert_escape_x509_chars($pconfig['step9']['state']),
-			'localityName' => cert_escape_x509_chars($pconfig['step9']['city']),
-			'organizationName' => cert_escape_x509_chars($pconfig['step9']['organization']),
-			'emailAddress' => cert_escape_x509_chars($pconfig['step9']['email']),
 			'commonName' => cert_escape_x509_chars($pconfig['step9']['certname']),
 			'subjectAltName' => cert_add_altname_type($pconfig['step9']['certname']),
 			);
+		if (!empty($pconfig['step9']['country'])) {
+			$dn['countryName'] = $pconfig['step9']['country'];
+		}
+		if (!empty($pconfig['step9']['state'])) {
+			$dn['stateOrProvinceName'] = cert_escape_x509_chars($pconfig['step9']['state']);
+		}
+		if (!empty($pconfig['step9']['city'])) {
+			$dn['localityName'] = cert_escape_x509_chars($pconfig['step9']['city']);
+		}
+		if (!empty($pconfig['step9']['organization'])) {
+			$dn['organizationName'] = cert_escape_x509_chars($pconfig['step9']['organization']);
+		}
 
 		cert_create($cert, $ca['refid'], $pconfig['step9']['keylength'], $pconfig['step9']['lifetime'], $dn, 'server', "sha256");
 		if (!is_array($config['cert']))

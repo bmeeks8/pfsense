@@ -1661,6 +1661,12 @@ KEEP_OLD_PACKAGES=yes
 KEEP_OLD_PACKAGES_COUNT=5
 EOF
 
+	if pkg info -e ccache; then
+	cat <<EOF >>/usr/local/etc/poudriere.conf
+CCACHE_DIR=/var/cache/ccache
+EOF
+	fi
+
 	# Create specific items conf
 	[ ! -d /usr/local/etc/poudriere.d ] \
 		&& mkdir -p /usr/local/etc/poudriere.d
@@ -1765,6 +1771,7 @@ poudriere_update_ports() {
 
 poudriere_bulk() {
 	local _archs=$(poudriere_possible_archs)
+	local _makeconf
 
 	LOGFILE=${BUILDER_LOGS}/poudriere.log
 
@@ -1780,9 +1787,9 @@ poudriere_bulk() {
 	[ -d /usr/local/etc/poudriere.d ] || \
 		mkdir -p /usr/local/etc/poudriere.d
 
+	_makeconf=/usr/local/etc/poudriere.d/${POUDRIERE_PORTS_NAME}-make.conf
 	if [ -f "${BUILDER_TOOLS}/conf/pfPorts/make.conf" ]; then
-		cp -f "${BUILDER_TOOLS}/conf/pfPorts/make.conf" \
-			/usr/local/etc/poudriere.d/${POUDRIERE_PORTS_NAME}-make.conf
+		cp -f "${BUILDER_TOOLS}/conf/pfPorts/make.conf" ${_makeconf}
 	fi
 
 	cat <<EOF >>/usr/local/etc/poudriere.d/${POUDRIERE_PORTS_NAME}-make.conf
@@ -1795,6 +1802,30 @@ PFSENSE_DEFAULT_REPO=${PFSENSE_DEFAULT_REPO}
 PRODUCT_NAME=${PRODUCT_NAME}
 REPO_BRANCH_PREFIX=${REPO_BRANCH_PREFIX}
 EOF
+
+	local _value=""
+	for jail_arch in ${_archs}; do
+		eval "_value=\${PKG_REPO_BRANCH_DEVEL_${jail_arch##*.}}"
+		if [ -n "${_value}" ]; then
+			echo "PKG_REPO_BRANCH_DEVEL_${jail_arch##*.}=${_value}" \
+				>> ${_makeconf}
+		fi
+		eval "_value=\${PKG_REPO_BRANCH_RELEASE_${jail_arch##*.}}"
+		if [ -n "${_value}" ]; then
+			echo "PKG_REPO_BRANCH_RELEASE_${jail_arch##*.}=${_value}" \
+				>> ${_makeconf}
+		fi
+		eval "_value=\${PKG_REPO_SERVER_DEVEL_${jail_arch##*.}}"
+		if [ -n "${_value}" ]; then
+			echo "PKG_REPO_SERVER_DEVEL_${jail_arch##*.}=${_value}" \
+				>> ${_makeconf}
+		fi
+		eval "_value=\${PKG_REPO_SERVER_RELEASE_${jail_arch##*.}}"
+		if [ -n "${_value}" ]; then
+			echo "PKG_REPO_SERVER_RELEASE_${jail_arch##*.}=${_value}" \
+				>> ${_makeconf}
+		fi
+	done
 
 	# Change version of pfSense meta ports for snapshots
 	if [ -z "${_IS_RELEASE}" ]; then
@@ -1819,13 +1850,18 @@ EOF
 			continue
 		fi
 
-		if [ -f "${POUDRIERE_BULK}.${jail_arch}" ]; then
-			_ref_bulk="${POUDRIERE_BULK}.${jail_arch}"
-		else
-			_ref_bulk="${POUDRIERE_BULK}"
+		_ref_bulk=${SCRATCHDIR}/poudriere_bulk.${POUDRIERE_BRANCH}.ref.${jail_arch}
+		rm -rf ${_ref_bulk} ${_ref_bulk}.tmp
+		touch ${_ref_bulk}.tmp
+		if [ -f "${POUDRIERE_BULK}.${jail_arch#*.}" ]; then
+			cat "${POUDRIERE_BULK}.${jail_arch#*.}" >> ${_ref_bulk}.tmp
 		fi
+		if [ -f "${POUDRIERE_BULK}" ]; then
+			cat "${POUDRIERE_BULK}" >> ${_ref_bulk}.tmp
+		fi
+		cat ${_ref_bulk}.tmp | sort -u > ${_ref_bulk}
 
-		_bulk=${SCRATCHDIR}/poudriere_bulk.${POUDRIERE_BRANCH}
+		_bulk=${SCRATCHDIR}/poudriere_bulk.${POUDRIERE_BRANCH}.${jail_arch}
 		sed -e "s,%%PRODUCT_NAME%%,${PRODUCT_NAME},g" ${_ref_bulk} > ${_bulk}
 
 		local _exclude_bulk="${POUDRIERE_BULK}.exclude.${jail_arch}"

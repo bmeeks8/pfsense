@@ -227,6 +227,12 @@ function gen_webguicss_field(&$section, $value) {
 		$csslist
 	))->setHelp('Choose an alternative css file (if installed) to change the appearance of the webConfigurator. css files are located in /usr/local/www/css/%s', '<span id="csstxt"></span>');
 }
+function validate_webguicss_field(&$input_errors, $value) {
+	$csslist = get_css_files();
+	if (!isset($csslist[$value])) {
+		$input_errors[] = gettext("The submitted Theme could not be found. Pick a different theme.");
+	}
+}
 
 /****f* pfsense-utils/gen_webguifixedmenu_field
  * NAME
@@ -245,6 +251,12 @@ function gen_webguifixedmenu_field(&$section, $value) {
 		$value,
 		["" => gettext("Scrolls with page"), "fixed" => gettext("Fixed (Remains visible at top of page)")]
 	))->setHelp("The fixed option is intended for large screens only.");
+}
+function validate_webguifixedmenu_field(&$input_errors, $value) {
+	$valid_values = array("", "fixed");
+	if (!in_array($value, $valid_values)) {
+		$input_errors[] = gettext("The submitted Top Navigation value is invalid.");
+	}
 }
 
 /****f* pfsense-utils/gen_webguihostnamemenu_field
@@ -265,6 +277,12 @@ function gen_webguihostnamemenu_field(&$section, $value) {
 		["" => gettext("Default (No hostname)"), "hostonly" => gettext("Hostname only"), "fqdn" => gettext("Fully Qualified Domain Name")]
 	))->setHelp("Replaces the Help menu title in the Navbar with the system hostname or FQDN.");
 }
+function validate_webguihostnamemenu_field(&$input_errors, $value) {
+	$valid_values = array("", "hostonly", "fqdn");
+	if (!in_array($value, $valid_values)) {
+		$input_errors[] = gettext("The submitted Hostname in Menu value is invalid.");
+	}
+}
 
 /****f* pfsense-utils/gen_dashboardcolumns_field
  * NAME
@@ -277,7 +295,7 @@ function gen_webguihostnamemenu_field(&$section, $value) {
  ******/
 function gen_dashboardcolumns_field(&$section, $value) {
 
-	if (($value < 1) || ($value > 6)) {
+	if (((int) $value < 1) || ((int) $value > 6)) {
 		$value = 2;
 	}
 
@@ -288,6 +306,11 @@ function gen_dashboardcolumns_field(&$section, $value) {
 		$value,
 		['min' => 1, 'max' => 6]
 	));
+}
+function validate_dashboardcolumns_field(&$input_errors, $value) {
+	if (!is_numericint($value) || ((int) $value < 1) || ((int) $value > 6)) {
+		$input_errors[] = gettext("The submitted Dashboard Columns value is invalid.");
+	}
 }
 
 /****f* pfsense-utils/gen_interfacessort_field
@@ -911,10 +934,29 @@ function restore_config_section($section_name, $new_contents) {
 	if ($section_xml === -1) {
 		return false;
 	}
+
+	/* Save current pkg repo to re-add on new config */
+	unset($pkg_repo_conf_path);
+	if ($section_name == "system" &&
+	    isset($config['system']['pkg_repo_conf_path'])) {
+		$pkg_repo_conf_path = $config['system']['pkg_repo_conf_path'];
+	}
+
 	$config[$section_name] = &$section_xml;
 	if (file_exists("{$g['tmp_path']}/config.cache")) {
 		unlink("{$g['tmp_path']}/config.cache");
 	}
+
+	/* Restore previously pkg repo configured */
+	if ($section_name == "system") {
+		if (isset($pkg_repo_conf_path)) {
+			$config['system']['pkg_repo_conf_path'] =
+			    $pkg_repo_conf_path;
+		} elseif (isset($config['system']['pkg_repo_conf_path'])) {
+			unset($config['system']['pkg_repo_conf_path']);
+		}
+	}
+
 	write_config(sprintf(gettext("Restored %s of config file (maybe from CARP partner)"), $section_name));
 	disable_security_checks();
 	return true;
@@ -1139,7 +1181,7 @@ function load_loader_conf($loader_conf = NULL, $local = false) {
 	/* These values should be removed from loader.conf and loader.conf.local
 	 * As they will be replaced when necessary. */
 	$remove = array("hw.usb.no_pf", "hint.mdio.0.at", "hint.e6000sw.0",
-	    "vm.pmap.pti");
+	    "hw.e6000sw.default_disabled", "vm.pmap.pti");
 	if (!$local) {
 		/* These values should only be filtered in loader.conf, not .local */
 		$remove = array_merge($remove,
@@ -1151,8 +1193,15 @@ function load_loader_conf($loader_conf = NULL, $local = false) {
 		if (empty($line)) {
 			continue;
 		}
+		$skip = false;
 		list($name, $value) = explode('=', $line, 2);
-		if (!in_array(trim($name), $remove)) {
+		foreach($remove as $rid => $rkey) {
+			if (strncasecmp(trim($name), $rkey, strlen($rkey)) == 0) {
+				$skip = true;
+				break;
+			}
+		}
+		if (!$skip) {
 			$data[] = $line;
 		}
 	}
@@ -1216,7 +1265,7 @@ function setup_loader_settings($path = "", $upgrade = false) {
 		system("echo \"Reading {$loader_conf_file}...\" >> /conf/upgrade_log.txt");
 	}
 
-	$data = load_loader_conf($loader_conf_file);
+	$data = load_loader_conf($loader_conf_file, false);
 	if ($serial_only === true) {
 		$data[] = 'boot_serial="YES"';
 		$data[] = 'console="comconsole"';
@@ -2745,8 +2794,12 @@ function get_country_name($country_code) {
 function filter_rules_sort() {
 	global $config;
 
+	init_config_arr(array('filter', 'rule'));
 	/* mark each rule with the sequence number (to retain the order while sorting) */
 	for ($i = 0; isset($config['filter']['rule'][$i]); $i++) {
+		if (!is_array($config['filter']['rule'][$i])) {
+			$config['filter']['rule'][$i] = array();
+		}
 		$config['filter']['rule'][$i]['seq'] = $i;
 	}
 
@@ -3085,7 +3138,7 @@ function calculate_ipv6_delegation_length($if) {
 		case "6rd":
 			$rd6cfg = $config['interfaces'][$if];
 			$rd6plen = explode("/", $rd6cfg['prefix-6rd']);
-			$pdlen = (64 - ($rd6plen[1] + (32 - $rd6cfg['prefix-6rd-v4plen'])));
+			$pdlen = (64 - ((int) $rd6plen[1] + (32 - (int) $rd6cfg['prefix-6rd-v4plen'])));
 			break;
 		case "dhcp6":
 			$dhcp6cfg = $config['interfaces'][$if];
@@ -3360,4 +3413,36 @@ function addrtolower($ip) {
 function compare_by_name($a, $b) {
 	return strcasecmp($a['name'], $b['name']);
 }
+
+/****f* pfsense-utils/getarraybyref
+ * NAME
+ *   getarraybyref
+ * INPUTS
+ *   $array the array of which a items array needs to be found. 
+ *   $args.. the sub-items to be retrieved/created
+ * RESULT
+ *   returns the array that was retrieved from configuration, its created if it does not exist
+ * NOTES
+ *   Used by haproxy / acme / others.?. . 
+ *   can be used like this:  $a_certificates = getarraybyref($config, 'installedpackages', 'acme', 'certificates', 'item');
+ ******/
+function &getarraybyref(&$array) {
+	if (!isset($array)) {
+		return false;
+	}
+	if (!is_array($array)) {
+		$array = array();
+	}
+	$item = &$array;
+	$arg = func_get_args();
+	for($i = 1; $i < count($arg); $i++) {
+		$itemindex = $arg[$i];
+		if (!is_array($item[$itemindex])) {
+			$item[$itemindex] = array();
+		}
+		$item = &$item[$itemindex];
+	}
+	return $item;
+}
+
 ?>

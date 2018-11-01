@@ -32,11 +32,11 @@ require_once("certs.inc");
 require_once("pfsense-utils.inc");
 
 $ca_methods = array(
-	"existing" => gettext("Import an existing Certificate Authority"),
 	"internal" => gettext("Create an internal Certificate Authority"),
+	"existing" => gettext("Import an existing Certificate Authority"),
 	"intermediate" => gettext("Create an intermediate Certificate Authority"));
 
-$ca_keylens = array("512", "1024", "2048", "3072", "4096", "7680", "8192", "15360", "16384");
+$ca_keylens = array("1024", "2048", "3072", "4096", "6144", "7680", "8192", "15360", "16384");
 global $openssl_digest_algs;
 
 if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
@@ -101,6 +101,7 @@ if ($act == "edit") {
 		pfSenseHeader("system_camanager.php");
 		exit;
 	}
+	$pconfig['method'] = 'existing';
 	$pconfig['descr']  = $a_ca[$id]['descr'];
 	$pconfig['refid']  = $a_ca[$id]['refid'];
 	$pconfig['cert']   = base64_decode($a_ca[$id]['crt']);
@@ -187,33 +188,21 @@ if ($_POST['save']) {
 	}
 	if ($pconfig['method'] == "internal") {
 		$reqdfields = explode(" ",
-			"descr keylen lifetime dn_country dn_state dn_city ".
-			"dn_organization dn_email dn_commonname");
+			"descr keylen lifetime dn_commonname");
 		$reqdfieldsn = array(
 			gettext("Descriptive name"),
 			gettext("Key length"),
 			gettext("Lifetime"),
-			gettext("Distinguished name Country Code"),
-			gettext("Distinguished name State or Province"),
-			gettext("Distinguished name City"),
-			gettext("Distinguished name Organization"),
-			gettext("Distinguished name Email Address"),
 			gettext("Distinguished name Common Name"));
 	}
 	if ($pconfig['method'] == "intermediate") {
 		$reqdfields = explode(" ",
-			"descr caref keylen lifetime dn_country dn_state dn_city ".
-			"dn_organization dn_email dn_commonname");
+			"descr caref keylen lifetime dn_commonname");
 		$reqdfieldsn = array(
 			gettext("Descriptive name"),
 			gettext("Signing Certificate Authority"),
 			gettext("Key length"),
 			gettext("Lifetime"),
-			gettext("Distinguished name Country Code"),
-			gettext("Distinguished name State or Province"),
-			gettext("Distinguished name City"),
-			gettext("Distinguished name Organization"),
-			gettext("Distinguished name Email Address"),
 			gettext("Distinguished name Common Name"));
 	}
 
@@ -222,14 +211,6 @@ if ($_POST['save']) {
 		/* Make sure we do not have invalid characters in the fields for the certificate */
 		if (preg_match("/[\?\>\<\&\/\\\"\']/", $_POST['descr'])) {
 			array_push($input_errors, gettext("The field 'Descriptive Name' contains invalid characters."));
-		}
-
-		for ($i = 0; $i < count($reqdfields); $i++) {
-			if ($reqdfields[$i] == 'dn_email') {
-				if (preg_match("/[\!\#\$\%\^\(\)\~\?\>\<\&\/\\\,\"\']/", $_POST["dn_email"])) {
-					array_push($input_errors, gettext("The field 'Distinguished name Email Address' contains invalid characters."));
-				}
-			}
 		}
 		if (!in_array($_POST["keylen"], $ca_keylens)) {
 			array_push($input_errors, gettext("Please select a valid Key Length."));
@@ -267,13 +248,19 @@ if ($_POST['save']) {
 			if ($pconfig['method'] == "existing") {
 				ca_import($ca, $pconfig['cert'], $pconfig['key'], $pconfig['serial']);
 			} else if ($pconfig['method'] == "internal") {
-				$dn = array(
-					'countryName' => $pconfig['dn_country'],
-					'stateOrProvinceName' => cert_escape_x509_chars($pconfig['dn_state']),
-					'localityName' => cert_escape_x509_chars($pconfig['dn_city']),
-					'organizationName' => cert_escape_x509_chars($pconfig['dn_organization']),
-					'emailAddress' => cert_escape_x509_chars($pconfig['dn_email']),
-					'commonName' => cert_escape_x509_chars($pconfig['dn_commonname']));
+				$dn = array('commonName' => cert_escape_x509_chars($pconfig['dn_commonname']));
+				if (!empty($pconfig['dn_country'])) {
+					$dn['countryName'] = $pconfig['dn_country'];
+				}
+				if (!empty($pconfig['dn_state'])) {
+					$dn['stateOrProvinceName'] = cert_escape_x509_chars($pconfig['dn_state']);
+				}
+				if (!empty($pconfig['dn_city'])) {
+					$dn['localityName'] = cert_escape_x509_chars($pconfig['dn_city']);
+				}
+				if (!empty($pconfig['dn_organization'])) {
+					$dn['organizationName'] = cert_escape_x509_chars($pconfig['dn_organization']);
+				}
 				if (!empty($pconfig['dn_organizationalunit'])) {
 					$dn['organizationalUnitName'] = cert_escape_x509_chars($pconfig['dn_organizationalunit']);
 				}
@@ -286,13 +273,19 @@ if ($_POST['save']) {
 					}
 				}
 			} else if ($pconfig['method'] == "intermediate") {
-				$dn = array(
-					'countryName' => $pconfig['dn_country'],
-					'stateOrProvinceName' => cert_escape_x509_chars($pconfig['dn_state']),
-					'localityName' => cert_escape_x509_chars($pconfig['dn_city']),
-					'organizationName' => cert_escape_x509_chars($pconfig['dn_organization']),
-					'emailAddress' => cert_escape_x509_chars($pconfig['dn_email']),
-					'commonName' => cert_escape_x509_chars($pconfig['dn_commonname']));
+				$dn = array('commonName' => cert_escape_x509_chars($pconfig['dn_commonname']));
+				if (!empty($pconfig['dn_country'])) {
+					$dn['countryName'] = $pconfig['dn_country'];
+				}
+				if (!empty($pconfig['dn_state'])) {
+					$dn['stateOrProvinceName'] = cert_escape_x509_chars($pconfig['dn_state']);
+				}
+				if (!empty($pconfig['dn_city'])) {
+					$dn['localityName'] = cert_escape_x509_chars($pconfig['dn_city']);
+				}
+				if (!empty($pconfig['dn_organization'])) {
+					$dn['organizationName'] = cert_escape_x509_chars($pconfig['dn_organization']);
+				}
 				if (!empty($pconfig['dn_organizationalunit'])) {
 					$dn['organizationalUnitName'] = cert_escape_x509_chars($pconfig['dn_organizationalunit']);
 				}
@@ -342,6 +335,7 @@ if ($savemsg) {
 $dn_cc = array();
 if (file_exists("/etc/ca_countries")) {
 	$dn_cc_file=file("/etc/ca_countries");
+	$dn_cc[''] = gettext("None");
 	foreach ($dn_cc_file as $line) {
 		if (preg_match('/^(\S*)\s(.*)$/', $line, $matches)) {
 			$dn_cc[$matches[1]] = $matches[1];
@@ -578,16 +572,29 @@ $section->addInput(new Form_Input(
 	$pconfig['lifetime']
 ));
 
+$section->addInput(new Form_Input(
+	'dn_commonname',
+	'*Common Name',
+	'text',
+	$pconfig['dn_commonname'],
+	['placeholder' => 'e.g. internal-ca']
+));
+
+$section->addInput(new Form_StaticText(
+	null,
+	gettext('The following certificate authority subject components are optional and may be left blank.')
+));
+
 $section->addInput(new Form_Select(
 	'dn_country',
-	'*Country Code',
+	'Country Code',
 	$pconfig['dn_country'],
 	$dn_cc
 ));
 
 $section->addInput(new Form_Input(
 	'dn_state',
-	'*State or Province',
+	'State or Province',
 	'text',
 	$pconfig['dn_state'],
 	['placeholder' => 'e.g. Texas']
@@ -595,7 +602,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'dn_city',
-	'*City',
+	'City',
 	'text',
 	$pconfig['dn_city'],
 	['placeholder' => 'e.g. Austin']
@@ -603,7 +610,7 @@ $section->addInput(new Form_Input(
 
 $section->addInput(new Form_Input(
 	'dn_organization',
-	'*Organization',
+	'Organization',
 	'text',
 	$pconfig['dn_organization'],
 	['placeholder' => 'e.g. My Company Inc']
@@ -615,22 +622,6 @@ $section->addInput(new Form_Input(
 	'text',
 	$pconfig['dn_organizationalunit'],
 	['placeholder' => 'e.g. My Department Name (optional)']
-));
-
-$section->addInput(new Form_Input(
-	'dn_email',
-	'*Email Address',
-	'email',
-	$pconfig['dn_email'],
-	['placeholder' => 'e.g. admin@mycompany.com']
-));
-
-$section->addInput(new Form_Input(
-	'dn_commonname',
-	'*Common Name',
-	'text',
-	$pconfig['dn_commonname'],
-	['placeholder' => 'e.g. internal-ca']
 ));
 
 $form->add($section);

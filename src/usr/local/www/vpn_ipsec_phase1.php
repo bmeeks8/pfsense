@@ -37,6 +37,14 @@ require_once("ipsec.inc");
 require_once("vpn.inc");
 require_once("filter.inc");
 
+if ($_REQUEST['generatekey']) {
+	$keyoutput = "";
+	$keystatus = "";
+	exec("/bin/dd status=none if=/dev/random bs=4096 count=1 | /usr/bin/openssl sha224 | /usr/bin/cut -f2 -d' '", $keyoutput, $keystatus);
+	print json_encode(['pskey' => $keyoutput[0]]);
+	exit;
+}
+
 if (!is_array($config['ipsec'])) {
 	$config['ipsec'] = array();
 }
@@ -170,9 +178,9 @@ if (isset($p1index) && $a_phase1[$p1index]) {
 // default value for new P1 and failsafe to always have at least 1 encryption item for the Form_ListItem
 if (!is_array($pconfig['encryption']['item']) || count($pconfig['encryption']['item']) == 0) {
 	$item = array();
-	$item['encryption-algorithm'] = array('name' => "aes");
-	$item['hash-algorithm'] = "sha1";
-	$item['dhgroup'] = "2";
+	$item['encryption-algorithm'] = array('name' => "aes", 'keylen' => 128);
+	$item['hash-algorithm'] = "sha256";
+	$item['dhgroup'] = "14";
 	$pconfig['encryption']['item'][] = $item;
 }
 
@@ -441,6 +449,9 @@ if ($_POST['save']) {
 				}
 			}
 		}
+	}
+	if (is_array($old_ph1ent) && ipsec_vti($old_ph1ent) && $pconfig['disabled']) {
+		$input_errors[] = gettext("Cannot disable a Phase 1 with a child Phase 2 while the interface is assigned. Remove the interface assignment before disabling this P2.");
 	}
 
 	if (!$input_errors) {
@@ -791,7 +802,7 @@ $section->addInput(new Form_Input(
 	'*Pre-Shared Key',
 	'text',
 	$pconfig['pskey']
-))->setHelp('Enter the Pre-Shared Key string.');
+))->setHelp('Enter the Pre-Shared Key string. This key must match on both peers. %1$sThis key should be long and random to protect the tunnel and its contents. A weak Pre-Shared Key can lead to a tunnel compromise.%1$s', '<br/>');
 
 $section->addInput(new Form_Select(
 	'certref',
@@ -854,7 +865,7 @@ foreach($pconfig['encryption']['item'] as $key => $p1enc) {
 	$section->add($group);
 	$counter += 1;
 }
-$section->setHelp('Note: Blowfish, 3DES, CAST128, MD5, SHA1, and DH groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.');
+$section->addInput(new Form_StaticText('', ''))->setHelp('Note: Blowfish, 3DES, CAST128, MD5, SHA1, and DH groups 1, 2, 22, 23, and 24 provide weak security and should be avoided.');
 $form->add($section);
 
 $btnaddopt = new Form_Button(
@@ -1225,6 +1236,19 @@ foreach($pconfig['encryption']['item'] as $key => $p1enc) {
 	// ---------- On initial page load ------------------------------------------------------------
 
 	hideInput('ikeid', true);
+
+	var generateButton = $('<a class="btn btn-xs btn-warning"><i class="fa fa-refresh icon-embed-btn"></i><?=gettext("Generate new Pre-Shared Key");?></a>');
+	generateButton.on('click', function() {
+		$.ajax({
+			type: 'get',
+			url: 'vpn_ipsec_phase1.php?generatekey=true',
+			dataType: 'json',
+			success: function(data) {
+				$('#pskey').val(data.pskey.replace(/\\n/g, '\n'));
+			}
+		});
+	});
+	generateButton.appendTo($('#pskey + .help-block')[0]);
 });
 //]]>
 </script>

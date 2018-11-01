@@ -268,6 +268,21 @@ function interface_is_qinq($if = NULL) {
 	return (NULL);
 }
 
+function interface_is_lagg($if = NULL) {
+	global $config;
+
+	if (!isset($config['laggs']['lagg']) || !is_array($config['laggs']['lagg'])) {
+		return (NULL);
+	}
+
+	foreach ($config['laggs']['lagg'] as $lagg) {
+		if ($lagg['laggif'] == $if) {
+			return ($lagg);
+		}
+	}
+	return (NULL);
+}
+
 function vlan_inuse($vlan) {
 	global $config;
 
@@ -288,7 +303,7 @@ function vlan_inuse($vlan) {
 function interface_is_vlan($if = NULL) {
 	global $config;
 
-	if ($if == NULL || empty($if)) {
+	if ($if == NULL || empty($if) || is_array($if)) {
 		return (NULL);
 	}
 
@@ -320,12 +335,30 @@ function interface_is_vlan($if = NULL) {
 }
 
 function vlan_interface($vlan = NULL) {
-
 	if ($vlan == NULL || !is_array($vlan) || !isset($vlan['if']) ||
 	    !isset($vlan['tag']) || !vlan_valid_tag($vlan['tag'])) {
 		return (NULL);
 	}
 	return ("{$vlan['if']}.{$vlan['tag']}");
+}
+
+function interface_set_macaddr($interface, $mac_addr) {
+	if (empty($mac_addr) || !is_macaddr($mac_addr)) {
+		return;
+	}
+
+	$current_mac = get_interface_mac($interface);
+
+	/*
+	 * Don't try to reapply the MAC if it's already applied.
+	 * When ifconfig link is used, it cycles the interface down/up, which
+	 * triggers the interface config again, which attempts to apply the
+	 * MAC again, which cycles the link again...
+	 */
+	if ($mac_addr != $current_mac) {
+		mwexec("/sbin/ifconfig " . escapeshellarg($interface) .
+		    " link " . escapeshellarg($mac_addr));
+	}
 }
 
 function interfaces_vlan_configure($realif = "") {
@@ -719,7 +752,7 @@ function interface_bridge_configure(&$bridge, $checkmember = 0) {
 
 function interface_bridge_configure_stp($bridge) {
 	if (isset($bridge['enablestp'])) {
-		$bridgeif = $bridge['bridgeif'];
+		$bridgeif = trim($bridge['bridgeif']);
 		/* configure spanning tree proto */
 		mwexec("/sbin/ifconfig {$bridgeif} proto " . escapeshellarg($bridge['proto']));
 
@@ -777,7 +810,7 @@ function interface_bridge_configure_stp($bridge) {
 }
 
 function interface_bridge_configure_advanced($bridge) {
-	$bridgeif = $bridge['bridgeif'];
+	$bridgeif = trim($bridge['bridgeif']);
 
 	if ($bridge['maxaddr'] <> "") {
 		mwexec("/sbin/ifconfig {$bridgeif} maxaddr " . escapeshellarg($bridge['maxaddr']));
@@ -837,7 +870,7 @@ function interface_bridge_configure_advanced($bridge) {
 }
 
 function interface_bridge_configure_ip6linklocal($bridge) {
-	$bridgeif = $bridge['bridgeif'];
+	$bridgeif = trim($bridge['bridgeif']);
 
 	$members = explode(',', $bridge['members']);
 	if (!count($members)) {
@@ -1227,7 +1260,7 @@ function interface_ipsec_vti_list_p1($ph1ent) {
 	}
 
 	/* With IKEv1 or v2+Split, each P2 gets its own conn/reqid/interface */
-	if (!isset($ph1ent['mobile']) && ($keyexchange == 'ikev1' || isset($ph1ent['splitconn']))) {
+	if (!isset($ph1ent['mobile']) && ($ph1ent['iketype'] == 'ikev1' || isset($ph1ent['splitconn']))) {
 		foreach ($vtisubnet_spec as $idx => $vtisub) {
 			$iface_list["ipsec{$ph1ent['ikeid']}00{$idx}"] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr'] . " / " . $vtisub['descr']);
 		}
@@ -1251,6 +1284,27 @@ function interface_ipsec_vti_list_all() {
 	return $iface_list;
 }
 
+function is_interface_ipsec_vti_assigned($phase2) {
+	$phase1 = ipsec_get_phase1($phase2['ikeid']);
+	$vti_interface = null;
+	$vtisubnet_spec = ipsec_vti($phase1, true);
+	if (($vtisubnet_spec && is_array($vtisubnet_spec))) {
+		/* With IKEv1 or v2+Split, each P2 gets its own conn/reqid/interface */
+		if (!isset($phase1['mobile']) && ($phase1['iketype'] == 'ikev1' || isset($phase1['splitconn']))) {
+			foreach ($vtisubnet_spec as $idx => $vtisub) {
+				/* Is this for this P2? */
+				if (($vtisub['left'] == ipsec_idinfo_to_cidr($phase2['localid'], true, $phase2['mode'])) &&
+				    ($vtisub['right'] == ipsec_idinfo_to_cidr($phase2['remoteid'], false, $phase2['mode']))) {
+					$vti_interface = "ipsec{$phase1['ikeid']}00{$idx}";
+				}
+			}
+		} else {
+			$vti_interface = "ipsec{$phase1['ikeid']}000";
+		}
+	}
+	/* Check if this interface is assigned */
+	return (does_interface_exist($vti_interface) && (convert_real_interface_to_friendly_interface_name($vti_interface) != null));
+}
 function interface_ipsec_vti_configure($ph1ent) {
 	global $config;
 
@@ -1269,7 +1323,7 @@ function interface_ipsec_vti_configure($ph1ent) {
 	$iface_addrs = array();
 
 	/* With IKEv1 or v2+Split, each P2 gets its own conn/reqid/interface */
-	if (!isset($ph1ent['mobile']) && ($keyexchange == 'ikev1' || isset($ph1ent['splitconn']))) {
+	if (!isset($ph1ent['mobile']) && ($ph1ent['iketype'] == 'ikev1' || isset($ph1ent['splitconn']))) {
 		/* Form a single interface for each P2 entry */
 		foreach ($vtisubnet_spec as $idx => $vtisub) {
 			$ipsecifnum = "{$ph1ent['ikeid']}00{$idx}";
@@ -2072,7 +2126,8 @@ function interface_ppps_configure($interface) {
 		}
 	}
 
-	if (is_array($ports) && count($ports) > 1) {
+	if (isset($ppp['pppoe-multilink-over-singlelink']) ||
+	    (is_array($ports) && count($ports) > 1)) {
 		$multilink = "enable";
 	} else {
 		$multilink = "disable";
@@ -2180,6 +2235,29 @@ EOD;
 EOD;
 	}
 
+	if (isset($ppp['mtu-override']) &&
+	    !isset($ppp['pppoe-multilink-over-singlelink'])) {
+		/* Find the smaller MTU set on ports */
+		$mtu = $defaultmtu;
+		foreach ($ports as $pid => $port) {
+			if (empty($mtus[$pid])) {
+				$mtus[$pid] = $defaultmtu;
+			}
+			if ($type == "pppoe") {
+				if ($mtus[$pid] > (get_interface_mtu($port) - 8)) {
+					$mtus[$pid] = get_interface_mtu($port) - 8;
+				}
+			}
+			if ($mtu > $mtus[$pid]) {
+				$mtu = $mtus[$pid];
+			}
+		}
+		$mpdconf .= <<<EOD
+	set iface mtu {$mtu} override
+
+EOD;
+	}
+
 	if (isset($ppp['tcpmssfix'])) {
 		$tcpmss = "disable";
 	} else {
@@ -2273,7 +2351,9 @@ EOD;
 				$mtus[$pid] = get_interface_mtu($port) - 8;
 			}
 		}
-		if (! ($type == "pppoe" && $mtus[$pid] > 1492) ) {
+		if (!isset($ppp['pppoe-multilink-over-singlelink']) &&
+		    !isset($ppp['mtu-override']) &&
+		    !($type == "pppoe" && $mtus[$pid] > 1492)) {
 			// N.B. MTU for PPPoE with MTU > 1492 is set using pppoe max-payload - see below
 			$mpdconf .= <<<EOD
 	set link mtu {$mtus[$pid]}
@@ -2281,7 +2361,9 @@ EOD;
 EOD;
 		}
 
-		if (!empty($mrus[$pid])) {
+		if (!isset($ppp['pppoe-multilink-over-singlelink']) &&
+		    !isset($ppp['mtu-override']) &&
+		    !empty($mrus[$pid])) {
 			$mpdconf .= <<<EOD
 	set link mru {$mrus[$pid]}
 
@@ -2682,7 +2764,7 @@ function interfaces_vips_configure($interface = "") {
 		$carp_setuped = false;
 		$anyproxyarp = false;
 		foreach ($config['virtualip']['vip'] as $vip) {
-			if ($interface <> "" && $vip['interface'] <> $interface) {
+			if ($interface <> "" && get_root_interface($vip['interface']) <> $interface) {
 				continue;
 			}
 			switch ($vip['mode']) {
@@ -3652,6 +3734,17 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 	// Need code to handle MLPPP if we ever use $realhwif for MLPPP handling
 	$realhwif = $realhwif_array[0];
 
+	$mac_if_cfg = $wancfg;
+	if (interface_is_vlan($realif)) {
+		$mac_if = convert_real_interface_to_friendly_interface_name(
+		    $realhwif);
+		if (is_array($config['interfaces'][$mac_if])) {
+			$mac_if_cfg = $config['interfaces'][$mac_if];
+		} else {
+			$mac_if = $interface;
+		}
+	}
+
 	if (!platform_booting() && !(substr($realif, 0, 4) == "ovpn") && !(substr($realif, 0, 5) == "ipsec")) {
 		/* remove all IPv4 and IPv6 addresses */
 		$tmpifaces = pfSense_getall_interface_addresses($realif);
@@ -3704,37 +3797,27 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 
 	$current_mac = get_interface_mac($realhwif);
 	$vendor_mac = get_interface_vendor_mac($realhwif);
-	/*
-	 * Do not change the MAC address if the interface does not store the original
-	 * vendor MAC address.
-	 */
-	if ($vendor_mac != NULL) {
-		/* Get the vendor MAC.  Use source dependent upon whether or not booting. */
-		if (platform_booting()) {
-			$vendor_mac = $current_mac;
-		}
-		$mac_addr = $wancfg['spoofmac'] ?: $vendor_mac;
+
+	if ($current_mac != "ff:ff:ff:ff:ff:ff") {
+		$mac_addr = $mac_if_cfg['spoofmac'] ?: $vendor_mac;
+
+		interface_set_macaddr($realhwif, $mac_addr);
+	} else {
 		/*
-		 * Don't try to reapply the MAC if it's already applied.
-		 * When ifconfig link is used, it cycles the interface down/up, which triggers
-		 * the interface config again, which attempts to apply the MAC again,
-		 * which cycles the link again...
-		 */
-		if (!empty($mac_addr) && ($mac_addr != $current_mac)) {
-			mwexec("/sbin/ifconfig " . escapeshellarg($realhwif) .
-				" link " . escapeshellarg($mac_addr));
-		}
-	} elseif ($current_mac == "ff:ff:ff:ff:ff:ff") {
-		/*   this is not a valid mac address.  generate a
-		 *   temporary mac address so the machine can get online.
+		 * this is not a valid mac address.  generate a
+		 * temporary mac address so the machine can get online.
 		 */
 		echo gettext("Generating new MAC address.");
 		$random_mac = generate_random_mac_address();
-		mwexec("/sbin/ifconfig " . escapeshellarg($realhwif) .
-			" link " . escapeshellarg($random_mac));
-		$wancfg['spoofmac'] = $random_mac;
-		write_config(sprintf(gettext('The invalid MAC address (ff:ff:ff:ff:ff:ff) on interface %1$s has been automatically replaced with %2$s'), $realif, $random_mac));
-		file_notice("MAC Address altered", sprintf(gettext('The invalid MAC address (ff:ff:ff:ff:ff:ff) on interface %1$s has been automatically replaced with %2$s'), $realif, $random_mac), "Interfaces");
+		interface_set_macaddr($realhwif, $random_mac);
+		$config['interfaces'][$mac_if]['spoofmac'] = $random_mac;
+		write_config(sprintf(gettext('The invalid MAC address ' .
+		    '(ff:ff:ff:ff:ff:ff) on interface %1$s has been ' .
+		    'automatically replaced with %2$s'), $mac_if, $random_mac));
+		file_notice("MAC Address altered", sprintf(gettext('The ' .
+		    'invalid MAC address (ff:ff:ff:ff:ff:ff) on interface ' .
+		    '%1$s has been automatically replaced with %2$s'), $mac_if,
+		    $random_mac), "Interfaces");
 	}
 
 	/* media */
@@ -4869,11 +4952,16 @@ function DHCP6_Config_File_Substitutions($wancfg, $wanif, $dhcp6cconf) {
 
 
 function interface_dhcp_configure($interface = "wan") {
-	global $config, $g;
+	global $config, $g, $vlanprio_values;
 
 	$ifcfg = $config['interfaces'][$interface];
 	if (empty($ifcfg)) {
 		$ifcfg = array();
+	}
+
+	$dhclientconf_vlantag = "";
+	if (isset($ifcfg['dhcpvlanenable']) && isset($ifcfg['dhcpcvpt'])) {
+		$dhclientconf_vlantag = "vlan-pcp {$vlanprio_values[$ifcfg['dhcpcvpt']]};\n";
 	}
 
 	/* generate dhclient_wan.conf */
@@ -4904,6 +4992,7 @@ interface "{$realif}" {
 	retry 15;
 	select-timeout 0;
 	initial-interval 1;
+	{$dhclientconf_vlantag}
 	{$dhclientconf_hostname}
 	script "/usr/local/sbin/pfSense-dhclient-script";
 EOD;
@@ -5004,6 +5093,7 @@ function DHCP_Config_File_Advanced($interface, $ifcfg, $realif) {
 
 	$dhclientconf  = "interface \"{$realif}\" {\n";
 	$dhclientconf .= "\n";
+	$dhclientconf .= "\tsupersede interface-mtu 0;\n";
 	$dhclientconf .= "# DHCP Protocol Timing Values\n";
 	$dhclientconf .= "{$adv_dhcp_pt_timeout}";
 	$dhclientconf .= "{$adv_dhcp_pt_retry}";
@@ -5354,6 +5444,14 @@ function get_parent_interface($interface, $avoidrecurse = false) {
 		$vlan = interface_is_vlan($realif);
 		if ($vlan != NULL) {
 			$parents[0] = $vlan['if'];
+		}
+	}
+
+	if (empty($parents)) {
+		/* Handle LAGGs. */
+		$lagg = interface_is_lagg($realif);
+		if ($lagg != NULL && isset($lagg['members'])) {
+			$parents = explode(",", $lagg['members']);
 		}
 	}
 
@@ -6542,10 +6640,25 @@ function get_interface_mac($interface) {
 }
 
 function get_interface_vendor_mac($interface) {
+	global $config, $g;
+
 	$macinfo = pfSense_get_interface_addresses($interface);
-	if (isset($macinfo["hwaddr"]) && $macinfo["hwaddr"] != "00:00:00:00:00:00") {
+	if (isset($macinfo["hwaddr"]) && $macinfo["hwaddr"] !=
+	    "00:00:00:00:00:00") {
 		return ($macinfo["hwaddr"]);
 	}
+
+	$hwaddr_file = "{$g['tmp_path']}/{$interface}_hwaddr";
+	if (file_exists($hwaddr_file)) {
+		$macaddr = trim(file_get_contents($hwaddr_file));
+		if (is_macaddr($macaddr)) {
+			return ($macaddr);
+		}
+	} elseif (is_macaddr($macinfo['macaddr'])) {
+		/* Save original macaddress to be restored when necessary */
+		@file_put_contents($hwaddr_file, $macinfo['macaddr']);
+	}
+
 	return (NULL);
 }
 

@@ -908,8 +908,11 @@ foreach ($pkg['fields']['field'] as $pkga) {
 			$onchange = (isset($pkga['onchange']) ? "{$pkga['onchange']}" : '');
 
 			$source_url = $pkga['source'];
-			eval("\$pkg_source_txt = &$source_url;");
-
+			try{
+				@eval("\$pkg_source_txt = &$source_url;");
+			} catch (\Throwable | \Error | \Exception $e) {
+				//do nothing
+			}
 			#check if show disable option is present on xml
 			if (!is_array($pkg_source_txt)) {
 				$pkg_source_txt = array();
@@ -1098,6 +1101,11 @@ foreach ($pkg['fields']['field'] as $pkga) {
 			// Use xml tag <typealiases> to filter type aliases
 			$size = ($pkga['size'] ? "size=\"{$pkga['size']}\"" : '');
 			$fieldname = $pkga['fieldname'];
+
+			if (!is_array($config['aliases'])) {
+				$config['aliases'] = array();
+			}
+			
 			$a_aliases = &$config['aliases']['alias'];
 			$addrisfirst = 0;
 			$aliasesaddr = "";

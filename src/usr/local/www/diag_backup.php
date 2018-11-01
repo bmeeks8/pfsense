@@ -205,6 +205,12 @@ if ($_POST) {
 				if ($_POST['backuparea'] !== "rrddata" && !$_POST['donotbackuprrd']) {
 					$rrd_data_xml = rrd_data_xml();
 					$closing_tag = "</" . $g['xml_rootobj'] . ">";
+
+					/* If the config on disk had rrddata tags already, remove that section first.
+					 * See https://redmine.pfsense.org/issues/8994 */
+					$data = preg_replace("/<rrddata>.*<\\/rrddata>/", "", $data);
+					$data = preg_replace("/<rrddata\\/>/", "", $data);
+
 					$data = str_replace($closing_tag, $rrd_data_xml . $closing_tag, $data);
 				}
 
@@ -261,6 +267,13 @@ if ($_POST) {
 						$data = str_replace("m0n0wall", "pfsense", $data);
 						$m0n0wall_upgrade = true;
 					}
+
+					/* If the config on disk had empty rrddata tags, remove them to
+					 * avoid an XML parsing error.
+					 * See https://redmine.pfsense.org/issues/8994 */
+					$data = preg_replace("/<rrddata><\\/rrddata>/", "", $data);
+					$data = preg_replace("/<rrddata\\/>/", "", $data);
+
 					if ($_POST['restorearea']) {
 						/* restore a specific area of the configuration */
 						if (!stristr($data, "<" . $_POST['restorearea'] . ">")) {
@@ -287,14 +300,36 @@ if ($_POST) {
 							/* restore the entire configuration */
 							file_put_contents($_FILES['conffile']['tmp_name'], $data);
 							if (config_install($_FILES['conffile']['tmp_name']) == 0) {
+								/* Save current pkg repo to re-add on new config */
+								unset($pkg_repo_conf_path);
+								if (isset($config['system']['pkg_repo_conf_path'])) {
+									$pkg_repo_conf_path = $config['system']['pkg_repo_conf_path'];
+								}
+
 								/* this will be picked up by /index.php */
 								mark_subsystem_dirty("restore");
-								touch("/conf/needs_package_sync_after_reboot");
+								touch("/conf/needs_package_sync");
 								/* remove cache, we will force a config reboot */
 								if (file_exists("{$g['tmp_path']}/config.cache")) {
 									unlink("{$g['tmp_path']}/config.cache");
 								}
 								$config = parse_config(true);
+
+								/* Restore previously pkg repo configured */
+								$pkg_repo_restored = false;
+								if (isset($pkg_repo_conf_path)) {
+									$config['system']['pkg_repo_conf_path'] =
+									    $pkg_repo_conf_path;
+									$pkg_repo_restored = true;
+								} elseif (isset($config['system']['pkg_repo_conf_path'])) {
+									unset($config['system']['pkg_repo_conf_path']);
+									$pkg_repo_restored = true;
+								}
+
+								if ($pkg_repo_restored) {
+									write_config(gettext("Removing pkg repository set after restoring full configuration"));
+								}
+
 								if (file_exists("/boot/loader.conf")) {
 									$loaderconf = file_get_contents("/boot/loader.conf");
 									if (strpos($loaderconf, "console=\"comconsole")) {

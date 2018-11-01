@@ -45,7 +45,10 @@ function activate_powerd() {
 			$normal_mode = $config['system']['powerd_normal_mode'];
 		}
 
-		mwexec("/usr/sbin/powerd -b $battery_mode -a $ac_mode -n $normal_mode");
+		mwexec("/usr/sbin/powerd" .
+			" -b " . escapeshellarg($battery_mode) .
+			" -a " . escapeshellarg($ac_mode) .
+			" -n " . escapeshellarg($normal_mode));
 	}
 }
 
@@ -126,6 +129,7 @@ function system_resolvconf_generate($dynupdate = false) {
 		$resolvconf .= "nameserver $dns_ns\n";
 	}
 
+	$ns = array();
 	if (isset($syscfg['dnsallowoverride'])) {
 		/* get dynamically assigned DNS servers (if any) */
 		$ns = array_unique(get_searchdomains());
@@ -134,8 +138,8 @@ function system_resolvconf_generate($dynupdate = false) {
 				$resolvconf .= "search {$searchserver}\n";
 			}
 		}
-	} else {
-		$ns = array();
+	}
+	if (empty($ns)) {
 		// Do not create blank search/domain lines, it can break tools like dig.
 		if ($syscfg['domain']) {
 			$resolvconf .= "search {$syscfg['domain']}\n";
@@ -1059,7 +1063,7 @@ local4.*							{$log_directive}{$g['varlog_path']}/portalauth.log
 local5.*							{$log_directive}{$g['varlog_path']}/nginx.log
 local7.*							{$log_directive}{$g['varlog_path']}/dhcpd.log
 *.notice;kern.debug;lpr.info;mail.crit;daemon.none;news.err;local0.none;local3.none;local4.none;local7.none;security.*;auth.info;authpriv.info;daemon.info	{$log_directive}{$g['varlog_path']}/system.log
-auth.info;authpriv.info 					|exec /usr/local/sbin/sshlockout_pf 15
+auth.info;authpriv.info 					|exec /usr/local/sbin/sshguard
 *.emerg								*
 
 EOD;
@@ -1141,8 +1145,38 @@ EOD;
 		$sighup = false;
 	}
 
+	$sshguard_whitelist = array();
+	if (!empty($config['system']['sshguard_whitelist'])) {
+		$sshguard_whitelist = explode(' ',
+		    $config['system']['sshguard_whitelist']);
+	}
+
+	$sshguard_config = array();
+	$sshguard_config[] = 'BACKEND="/usr/local/libexec/sshg-fw-pf"' . "\n";
+	if (!empty($config['system']['sshguard_threshold'])) {
+		$sshguard_config[] = 'THRESHOLD=' .
+		    $config['system']['sshguard_threshold'] . "\n";
+	}
+	if (!empty($config['system']['sshguard_blocktime'])) {
+		$sshguard_config[] = 'BLOCK_TIME=' .
+		    $config['system']['sshguard_blocktime'] . "\n";
+	}
+	if (!empty($config['system']['sshguard_detection_time'])) {
+		$sshguard_config[] = 'DETECTION_TIME=' .
+		    $config['system']['sshguard_detection_time'] . "\n";
+	}
+	if (!empty($sshguard_whitelist)) {
+		@file_put_contents("/usr/local/etc/sshguard.whitelist",
+		    implode(PHP_EOL, $sshguard_whitelist));
+		$sshguard_config[] =
+		    'WHITELIST_FILE=/usr/local/etc/sshguard.whitelist' . "\n";
+	} else {
+		unlink_if_exists("/usr/local/etc/sshguard.whitelist");
+	}
+	file_put_contents("/usr/local/etc/sshguard.conf", $sshguard_config);
+
 	if (!$sighup) {
-		sigkillbyname("sshlockout_pf", "TERM");
+		sigkillbyname("sshguard", "TERM");
 		if (isvalidpid("{$g['varrun_path']}/syslog.pid")) {
 			sigkillbypid("{$g['varrun_path']}/syslog.pid", "TERM");
 			usleep(100000); // syslogd often doesn't respond to a TERM quickly enough for the starting of syslogd below to be successful
@@ -1185,11 +1219,7 @@ function system_webgui_create_certificate() {
 	$cert_hostname = "{$config['system']['hostname']}-{$cert['refid']}";
 
 	$dn = array(
-		'countryName' => "US",
-		'stateOrProvinceName' => "State",
-		'localityName' => "Locality",
 		'organizationName' => "{$g['product_name']} webConfigurator Self-Signed Certificate",
-		'emailAddress' => "admin@{$config['system']['hostname']}.{$config['system']['domain']}",
 		'commonName' => $cert_hostname,
 		'subjectAltName' => "DNS:{$cert_hostname}");
 	$old_err_level = error_reporting(0); /* otherwise openssl_ functions throw warnings directly to a page screwing menu tab */
@@ -2104,7 +2134,7 @@ function system_reboot_cleanup() {
 			$cpzoneid = $cp['zoneid'];
 			captiveportal_radius_stop_all(7); // Admin-Reboot
 			/* Send Accounting-Off packet to the RADIUS server */
-			captiveportal_send_server_accounting(true);
+			captiveportal_send_server_accounting('off');
 		}
 	}
 	require_once("voucher.inc");
@@ -2330,8 +2360,16 @@ function system_get_serial() {
 			$serial = str_replace(":", "", $if_info['hwaddr']);
 		}
 	} else {
-		$_gb = exec('/bin/kenv smbios.system.serial 2>/dev/null', $output);
-		$serial = $output[0];
+		foreach (array('system', 'planar', 'chassis') as $key) {
+			unset($output);
+			$_gb = exec("/bin/kenv -q smbios.{$key}.serial",
+			    $output);
+			if (!empty($output[0]) && $output[0] != "0123456789" &&
+			    preg_match('/^[\w\d]{10,16}$/', $output[0]) === 1) {
+				$serial = $output[0];
+				break;
+			}
+		}
 	}
 
 	$vm_guest = get_single_sysctl('kern.vm_guest');
@@ -2418,10 +2456,10 @@ function system_identify_specific_platform() {
 			/* Detect specific model */
 			switch ($hw_ncpu) {
 			case '4':
-				$result['model'] = 'SG-2340';
+				$result['model'] = 'MBT-4220';
 				break;
 			case '2':
-				$result['model'] = 'SG-2320';
+				$result['model'] = 'MBT-2220';
 				break;
 			default:
 				$result['model'] = $result['name'];

@@ -412,6 +412,9 @@ if (isset($_POST['apply'])) {
 	}
 
 	if (!$input_errors) {
+		if (!is_array($config['dhcpdv6'])) {
+			$config['dhcpdv6'] = array();
+		}
 		if (!is_array($config['dhcpdv6'][$if])) {
 			$config['dhcpdv6'][$if] = array();
 		}
@@ -923,10 +926,10 @@ $section->addInput(new Form_StaticText(
 ));
 
 $section->addInput(new Form_Checkbox(
-	'shownetboot',
+	'netboot',
 	'Network booting',
 	'Enable Network Booting',
-	$pconfig['shownetboot']
+	$pconfig['netboot']
 ));
 
 $section->addInput(new Form_Input(
@@ -956,12 +959,19 @@ $title = 'Show Additional BOOTP/DHCP Options';
 
 if (!$pconfig['numberoptions']) {
 	$noopts = true;
+	$pconfig['numberoptions'] = array();
 	$pconfig['numberoptions']['item'] = array(0 => array('number' => "", 'value' => ""));
 } else {
 	$noopts = false;
 }
 
 $counter = 0;
+if (!is_array($pconfig['numberoptions'])) {
+	$pconfig['numberoptions'] = array();
+}
+if (!is_array($pconfig['numberoptions']['item'])) {
+	$pconfig['numberoptions']['item'] = array();
+}
 $last = count($pconfig['numberoptions']['item']) - 1;
 
 foreach ($pconfig['numberoptions']['item'] as $item) {
@@ -1222,7 +1232,7 @@ events.push(function() {
 		// On page load decide the initial state based on the data.
 		if (ispageload) {
 <?php
-			if (!$pconfig['shownetboot'] && empty($pconfig['bootfile_url'])) {
+			if (!$pconfig['netboot'] && empty($pconfig['bootfile_url'])) {
 				$showadv = false;
 			} else {
 				$showadv = true;
@@ -1234,7 +1244,7 @@ events.push(function() {
 			showadvnetboot = !showadvnetboot;
 		}
 
-		hideCheckbox('shownetboot', !showadvnetboot);
+		hideCheckbox('netboot', !showadvnetboot);
 		hideInput('bootfile_url', !showadvnetboot);
 
 		if (showadvnetboot) {

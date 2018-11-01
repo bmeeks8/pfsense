@@ -1211,7 +1211,7 @@ if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 		'interface',
 		'*Interface',
 		$pconfig['interface'],
-		create_interface_list(),
+		filter_get_interface_list(),
 		true
 	))->setHelp('Choose the interface(s) for this rule.');
 } else {
@@ -1219,7 +1219,7 @@ if ($if == "FloatingRules" || isset($pconfig['floating'])) {
 		'interface',
 		'*Interface',
 		$pconfig['interface'],
-		create_interface_list()
+		filter_get_interface_list()
 	))->setHelp('Choose the interface from which packets must come to match this rule.');
 }
 
@@ -1631,15 +1631,15 @@ $section->addInput(new Form_Select(
 $gwjson = '[{"name":"", "gateway":"Default", "family":"inet46"}';
 
 foreach (return_gateways_array() as $gwname => $gw) {
-	$gwjson = $gwjson . "," .'{"name":"' . $gwname . '", "gateway":"' .
-	$gw['name'] . (empty($gw['gateway'])? '' : ' - '. $gw['gateway']) . (empty($gw['descr'])? '' : ' - '. $gw['descr']) . '","family":"' .
-	$gw['ipprotocol'] . '"}';
+	$gwjson = $gwjson . "," .'{"name":' . json_encode($gwname) . ', "gateway":' .
+	json_encode($gw['name'] . (empty($gw['gateway'])? '' : ' - '. $gw['gateway']) . (empty($gw['descr'])? '' : ' - '. $gw['descr'])) . ',"family":' .
+	json_encode($gw['ipprotocol']) . '}';
 }
 
 foreach ((array)$a_gatewaygroups as $gwg_name => $gwg_data) {
-	$gwjson = $gwjson . "," .'{"name":"' . $gwg_name . '", "gateway":"' .
-	$gwg_data['name'] . $gwg_name . (empty($gwg_data['descr'])? '' : ' - '. $gwg_data['descr']) . '","family":"' .
-	$gwg_data['ipprotocol'] . '"}';
+	$gwjson = $gwjson . "," .'{"name":' . json_encode($gwg_name) . ', "gateway":' .
+	json_encode($gwg_data['name'] . $gwg_name . (empty($gwg_data['descr'])? '' : ' - '. $gwg_data['descr'])) . ',"family":' .
+	json_encode($gwg_data['ipprotocol']) . '}';
 	$firstgw = false;
 }
 
@@ -1733,6 +1733,9 @@ events.push(function() {
 	// Show advanced additional opts options ======================================================
 	var showadvopts = false;
 
+	// Remove focus on page load
+	document.activeElement.blur()
+	
 	function show_advopts(ispageload) {
 		var text;
 		// On page load decide the initial state based on the data.

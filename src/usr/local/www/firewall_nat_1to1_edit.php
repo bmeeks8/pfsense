@@ -50,10 +50,7 @@ foreach ($ifdisp as $kif => $kdescr) {
 	$specialsrcdst[] = "{$kif}ip";
 }
 
-if (!is_array($config['nat']['onetoone'])) {
-	$config['nat']['onetoone'] = array();
-}
-
+init_config_arr(array('nat', 'onetoone'));
 $a_1to1 = &$config['nat']['onetoone'];
 
 if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
@@ -438,7 +435,7 @@ $section->addInput(new Form_Select(
 	'interface',
 	'*Interface',
 	$pconfig['interface'],
-	create_interface_list()
+	filter_get_interface_list()
 ))->setHelp('Choose which interface this rule applies to. In most cases "WAN" is specified.');
 
 $section->addInput(new Form_IpAddress(

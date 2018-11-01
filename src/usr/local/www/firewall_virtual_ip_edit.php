@@ -35,6 +35,10 @@ require_once("guiconfig.inc");
 require_once("filter.inc");
 require_once("shaper.inc");
 
+if (!is_array($config['virtualip'])) {
+		$config['virtualip'] = array();
+}
+
 if (!is_array($config['virtualip']['vip'])) {
 		$config['virtualip']['vip'] = array();
 }
@@ -487,6 +491,13 @@ events.push(function() {
 		setRequired('password', false);
 		setRequired('vhid', false);
 		setRequired('advbase', false);
+
+		// Make sure the type is selected before allowing address to be selected.
+		if(mode == undefined){
+			disableInput('subnet', true);
+		}else{
+			disableInput('subnet', false);
+		}
 
 		if (mode == 'ipalias') {
 			$('#address_note').html("<?=$ipaliashelp?>");

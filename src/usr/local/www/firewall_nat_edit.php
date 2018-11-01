@@ -46,10 +46,8 @@ foreach ($ifdisp as $kif => $kdescr) {
 	$specialsrcdst[] = "{$kif}ip";
 }
 
-if (!is_array($config['nat']['rule'])) {
-	$config['nat']['rule'] = array();
-}
-
+init_config_arr(array('nat', 'separator'));
+init_config_arr(array('nat', 'rule'));
 $a_nat = &$config['nat']['rule'];
 
 if (isset($_REQUEST['id']) && is_numericint($_REQUEST['id'])) {
@@ -324,7 +322,7 @@ if ($_POST['save']) {
 	}
 
 	if (!$input_errors) {
-		if (!isset($_POST['nordr']) && ($_POST['dstendport'] - $_POST['dstbeginport'] + $_POST['localbeginport']) > 65535) {
+		if (!isset($_POST['nordr']) && ((int) $_POST['dstendport'] - (int) $_POST['dstbeginport'] + (int) $_POST['localbeginport']) > 65535) {
 			$input_errors[] = gettext("The target port range must be an integer between 1 and 65535.");
 		}
 	}
@@ -462,7 +460,7 @@ if ($_POST['save']) {
 			}
 
 			$dstpfrom = $_POST['localbeginport'];
-			$dstpto = $dstpfrom + $_POST['dstendport'] - $_POST['dstbeginport'];
+			$dstpto = (int) $dstpfrom + (int) $_POST['dstendport'] - (int) $_POST['dstbeginport'];
 
 			if ($dstpfrom == $dstpto) {
 				$filterent['destination']['port'] = $dstpfrom;
@@ -674,7 +672,7 @@ $section->addInput(new Form_Select(
 	'interface',
 	'*Interface',
 	$pconfig['interface'],
-	create_interface_list()
+	filter_get_interface_list()
 ))->setHelp('Choose which interface this rule applies to. In most cases "WAN" is specified.');
 
 $protocols = "TCP UDP TCP/UDP ICMP ESP AH GRE IPV6 IGMP PIM OSPF";

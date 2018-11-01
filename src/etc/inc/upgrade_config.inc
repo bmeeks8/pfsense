@@ -463,7 +463,7 @@ function upgrade_025_to_026() {
 	$cron_item['month'] = "*";
 	$cron_item['wday'] = "*";
 	$cron_item['who'] = "root";
-	$cron_item['command'] = "/usr/bin/nice -n20 /usr/local/sbin/expiretable -v -t 3600 sshlockout";
+	$cron_item['command'] = "/usr/bin/nice -n20 /usr/local/sbin/expiretable -v -t 3600 sshguard";
 
 	$config['cron']['item'][] = $cron_item;
 
@@ -5342,6 +5342,12 @@ function upgrade_168_to_169() {
 	unset($config['cron']['rc_update_pkg_metadata']);
 
 	$command = '/usr/bin/nice -n20 /etc/rc.update_pkg_metadata';
+	if (!is_array($config['cron'])) {
+		$config['cron'] = array();
+	}
+	if (!is_array($config['cron']['item'])) {
+		$config['cron']['item'] = array();
+	}
 	if (is_array($config['cron']['item'])) {
 		foreach ($config['cron']['item'] as $entry) {
 			if ($entry['command'] == $command) {
@@ -5483,9 +5489,13 @@ function upgrade_173_to_174() {
  */
 function upgrade_174_to_175() {
 	global $config;
+	init_config_arr(array('ipsec', 'phase1'));
 	if (is_array($config['ipsec']['phase1'])) {
 		$a_phase1 = &$config['ipsec']['phase1'];
 		foreach($a_phase1 as &$phase1) {
+			if (empty($phase1)) {
+				continue;
+			}
 			$item = array();
 			$item['encryption-algorithm'] = $phase1['encryption-algorithm'];
 			$item['hash-algorithm'] = $phase1['hash-algorithm'];
@@ -5645,7 +5655,7 @@ function upgrade_181_to_182() {
 				}
 			}
 		}
-		if (count($newgroup4['item']) > 0) {
+		if (is_array($newgroup4['item']) && count($newgroup4['item']) > 0) {
 			$newname = "Default_Gateway_Group_ipv4";
 			if (gateway_or_gwgroup_exists($newname)) { //make sure we create a new name
 				$id = 2;
@@ -5660,7 +5670,7 @@ function upgrade_181_to_182() {
 			$config['gateways']['gateway_group'][] = $newgroup4;
 			$config['gateways']['defaultgw4'] = $newname;
 		}
-		if (count($newgroup6['item']) > 0) {
+		if (is_array($newgroup6['item']) && count($newgroup6['item']) > 0) {
 			$newname = "Default_Gateway_Group_ipv6";
 			if (gateway_or_gwgroup_exists($newname)) { //make sure we create a new name
 				$id = 2;
@@ -5726,6 +5736,206 @@ function upgrade_182_to_183() {
 				$gwg['trigger'] = "downlosslatency";
 				break;
 		}
+	}
+}
+
+function upgrade_183_to_184() {
+	/* 'none' was kinda confusing and didnt really do none
+	 * now use the new 'automatic' mode if it was set to none. */
+	global $config;
+	if ($config['gateways']['defaultgw4'] === "-") {
+		$config['gateways']['defaultgw4'] = "";
+	}
+	if ($config['gateways']['defaultgw6'] === "-") {
+		$config['gateways']['defaultgw6'] = "";
+	}
+}
+
+// Migrate AutoConfigBackup package settings to integtrated ACB system
+// and remove package
+function upgrade_184_to_185() {
+	global $config;
+
+	if (is_array($config['installedpackages']['autoconfigbackup']['config'][0])) {
+		$acbpkg = &$config['installedpackages']['autoconfigbackup']['config'][0];
+
+		if (!is_array($config['system']['acb'])) {
+			$config['system']['acb'] = array();
+		}
+
+		$acb = &$config['system']['acb'];
+		$acb['enable'] = ($acbpkg['enable_acb'] != 'disabled') ?  'yes':'no';
+		$acb['gold_encryption_password'] = $acbpkg['crypto_password'];
+
+		// If no encryption password has been set up yet, we might as well import the "Gold" password
+		// The user can update it later
+		if (!isset($acb['encryption_password'])) {
+			$acb['encryption_password'] = $acbpkg['crypto_password'];
+		}
+
+		$acb['gold_password'] = $acbpkg['password'];
+		$acb['gold_username'] = $acbpkg['username'];
+
+		unset($config['installedpackages']['autoconfigbackup']['config']);
+	}
+}
+
+function upgrade_185_to_186() {
+	global $config;
+
+	/* FEC LAGG is deprecated, replace with loadbalance */
+	if (!function_exists("file_notice")) {
+		require_once("notices.inc");
+	}
+	if (is_array($config['laggs']) &&
+	    is_array($config['laggs']['lagg'])) {
+		foreach ($config['laggs']['lagg'] as &$lagg) {
+			if ($lagg['proto'] == 'fec') {
+				$lagg['proto'] = 'failover';
+				file_notice("Interfaces", sprintf(gettext("The FEC LAGG protocol is deprecated. The %s LAGG interface has been set to failover."), $lagg['laggif']));
+			}
+		}
+	}
+}
+
+function generate_usermanager_radius_config($cpzone, $counter, $protocol, $ip, $key, $port, $radiussrcip_attribute, $is_accounting=false, $accounting_port=false) {
+	global $config;
+	$pconfig = array();
+	
+	if (!is_array($config['system']['authserver'])) {
+		$config['system']['authserver'] = array();
+	}
+	
+	$pconfig['name'] = "Auto generated from Captive Portal {$cpzone}";
+	if ($counter != 1) {
+		$pconfig['name'] .= " {$counter}";
+	}
+	$pconfig['radius_srvcs'] = "auth";
+	$pconfig['type'] = 'radius';
+	$pconfig['radius_protocol'] = $protocol;
+	$pconfig['host'] = $ip;
+	$pconfig['radius_secret'] = $key;
+	$pconfig['radius_timeout'] = 3;
+	$pconfig['radius_auth_port'] = $port;
+	$pconfig['radius_nasip_attribute'] = $radiussrcip_attribute;
+	
+	if($is_accounting) {
+		$pconfig['radius_srvcs'] = "both";
+		$pconfig['radius_acct_port'] = $accounting_port;
+	}
+	
+	$config['system']['authserver'][] = $pconfig;
+	
+	return 'radius - '.$pconfig['name'];
+}
+
+function upgrade_186_to_187() {
+	global $config;
+	global $g;
+
+	if (is_array($config['captiveportal'])) {
+		foreach ($config['captiveportal'] as $cpzone => $cp) {
+			// we flush any existing sqlite3 db. 
+			// It will be automatically re-generated on next captiveportal_readdb()/captiveportal_writedb()
+			$db_path = "{$g['vardb_path']}/captiveportal{$cpzone}.db";
+			unlink_if_exists($db_path);
+		
+			if ($cp['auth_method'] === 'radius') { // Radius Auth	
+				$auth_servers = array();
+				$auth_servers2 = array();
+				$radiuscounter = 1;
+				
+				if (intval($cp['radiusport']) == 0) {
+					$cp['radiusport'] = 1812;
+				}
+				if (intval($cp['radiusacctport']) == 0) {
+					$cp['radiusacctport'] = 1813;
+				}
+				if (!isset($cp['radiussrcip_attribute'])) {
+					$cp['radiussrcip_attribute'] = 'wan';
+				}
+				$auth_servers[] = generate_usermanager_radius_config($cpzone, $radiuscounter, $cp['radius_protocol'], $cp['radiusip'], $cp['radiuskey'], $cp['radiusport'], $cp['radiussrcip_attribute'], isset($cp['radacct_enable']), $cp['radiusacctport']);
+				  
+				if (!empty($cp['radiusip2'])) {
+					$radiuscounter++;
+					if (intval($cp['radiusport2']) == 0) {
+						$cp['radiusport2'] = 1812;
+					}		
+					$auth_servers[] = generate_usermanager_radius_config($cpzone, $radiuscounter, $cp['radius_protocol'], $cp['radiusip2'], $cp['radiuskey2'], $cp['radiusport2'], $cp['radiussrcip_attribute'], false, 0); 
+				}
+				if (!empty($cp['radiusip3'])) {
+					$radiuscounter++;
+					if (intval($cp['radiusport3']) == 0) {
+						$cp['radiusport3'] = 1812;
+					}
+					$auth_servers2[] = generate_usermanager_radius_config($cpzone, $radiuscounter, $cp['radius_protocol'], $cp['radiusip3'], $cp['radiuskey3'], $cp['radiusport3'], $cp['radiussrcip_attribute'], false, 0); 
+				}
+				if (!empty($cp['radiusip4'])) {
+					$radiuscounter++;
+					if (intval($cp['radiusport4']) == 0) {
+						$cp['radiusport4'] = 1812;
+					}
+					$auth_servers2[] = generate_usermanager_radius_config($cpzone, $radiuscounter, $cp['radius_protocol'], $cp['radiusip4'], $cp['radiuskey4'], $cp['radiusport4'], $cp['radiussrcip_attribute'], false, 0); 
+				}
+				
+				$cp['auth_method'] = 'authserver';
+				$cp['auth_server'] = implode(",", $auth_servers);
+				$cp['auth_server2'] = implode(",", $auth_servers2);
+
+				if (isset($cp['radmac_enable'])) { // RadMac
+					$cp['auth_method'] = 'radmac';
+				}
+				if (isset($cp['radacct_enable'])) { // If accounting was enabled : we select the primary radius server for accounting
+					$cp['radacct_server'] = "Auto generated from Captive Portal {$cpzone}";
+					if ($cp['reauthenticateacct'] === "") {
+						$cp['reauthenticateacct'] = 'none';
+					}
+				}
+			} elseif ($cp['auth_method'] === 'local') { // Local Auth
+				$cp['auth_method'] = 'authserver';
+				$cp['auth_server'] = "Local Auth - Local Database";
+			} 
+			// we don't need to update anything when "none" auth method is selected
+			
+			$config['captiveportal'][$cpzone] = $cp;
+		}
+	}
+}
+
+function upgrade_187_to_188() {
+	global $config;
+
+	$old_cmd = "/usr/bin/nice -n20 /usr/local/sbin/expiretable -v -t 3600 sshlockout";
+	$new_cmd = "/usr/bin/nice -n20 /usr/local/sbin/expiretable -v -t 3600 sshguard";
+	if (!is_array($config['cron'])) {
+		$config['cron'] = array();
+	}
+	if (!is_array($config['cron']['item'])) {
+		$config['cron']['item'] = array();
+	}
+	if (is_array($config['cron']['item'])) {
+		foreach ($config['cron']['item'] as $idx => $entry) {
+			if ($entry['command'] == $old_cmd) {
+				$config['cron']['item'][$idx]['command'] = $new_cmd;
+				break;
+			}
+		}
+	}
+}
+
+function upgrade_188_to_189() {
+	global $config;
+
+	/* Migrate ssh setting to new location */
+	if (isset($config['system']['enablesshd'])) {
+		init_config_arr(array('system', 'ssh'));
+		$config['system']['ssh']['enable'] = "enabled";
+		unset($config['system']['enablesshd']);
+	}
+	/* Remove accidentally duplicated ssh config
+	 * See https://redmine.pfsense.org/issues/8974 */
+	if (isset($config['system']['sshd'])) {
+		unset($config['system']['sshd']);
 	}
 }
 

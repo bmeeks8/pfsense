@@ -28,6 +28,10 @@
 
 require_once("guiconfig.inc");
 
+if (!is_array($config['bridges'])) {
+	$config['bridges'] = array();
+}
+
 if (!is_array($config['bridges']['bridged'])) {
 	$config['bridges']['bridged'] = array();
 }
@@ -340,10 +344,12 @@ if ($_POST['save']) {
 		}
 
 		$bridge['bridgeif'] = $_POST['bridgeif'];
+
 		interface_bridge_configure($bridge);
 		if ($bridge['bridgeif'] == "" || !stristr($bridge['bridgeif'], "bridge")) {
 			$input_errors[] = gettext("Error occurred creating interface, please retry.");
 		} else {
+
 			if (isset($id) && $a_bridges[$id]) {
 				$a_bridges[$id] = $bridge;
 			} else {

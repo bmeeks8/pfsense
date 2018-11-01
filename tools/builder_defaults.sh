@@ -135,7 +135,7 @@ export KERNEL_BUILD_PATH=${KERNEL_BUILD_PATH:-"${SCRATCHDIR}/kernels"}
 # Do not touch builder /usr/obj
 export MAKEOBJDIRPREFIX=${MAKEOBJDIRPREFIX:-"${SCRATCHDIR}/obj"}
 
-export MODULES_OVERRIDE=${MODULES_OVERRIDE:-"aesni amdtemp coretemp cryptodev cpuctl fdescfs dummynet hwpmc i2c if_stf ipdivert ipfw ipmi ix ixv ndis nmdm opensolaris sfxge vmm zfs"}
+export MODULES_OVERRIDE=${MODULES_OVERRIDE:-"aesni amdtemp amdsmn coretemp cryptodev cpuctl drm2 fdescfs dummynet hwpmc i2c if_stf ipdivert ipfw ipmi ix ixv ndis nmdm opensolaris sfxge vmm zfs"}
 
 # gnid
 export GNID_REPO_BASE=${GNID_REPO_BASE:-"${GIT_REPO_BASE}/gnid.git"}
@@ -285,11 +285,11 @@ export PKG_REPO_SERVER_RELEASE=${PKG_REPO_SERVER_RELEASE:-"pkg+https://pkg.pfsen
 export PKG_REPO_SERVER_STAGING=${PKG_REPO_SERVER_STAGING:-"pkg+http://${STAGING_HOSTNAME}/ce/packages"}
 
 if [ -n "${_IS_RELEASE}" -o -n "${_IS_RC}" ]; then
-	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-"${REPO_BRANCH_PREFIX}v2_4_3"}
+	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-"${REPO_BRANCH_PREFIX}v2_4_4"}
 	export PKG_REPO_BRANCH_DEVEL=${PKG_REPO_BRANCH_DEVEL:-${POUDRIERE_BRANCH}}
 	export PKG_REPO_BRANCH_STAGING=${PKG_REPO_BRANCH_STAGING:-${PKG_REPO_BRANCH_RELEASE}}
 else
-	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-"${REPO_BRANCH_PREFIX}v2_4_3"}
+	export PKG_REPO_BRANCH_RELEASE=${PKG_REPO_BRANCH_RELEASE:-"${REPO_BRANCH_PREFIX}v2_4_4"}
 	export PKG_REPO_BRANCH_DEVEL=${PKG_REPO_BRANCH_DEVEL:-${POUDRIERE_BRANCH}}
 	export PKG_REPO_BRANCH_STAGING=${PKG_REPO_BRANCH_STAGING:-${PKG_REPO_BRANCH_DEVEL}}
 fi

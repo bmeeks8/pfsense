@@ -101,19 +101,19 @@ if ($_POST['act'] == "del") {
 
 if ($act == "new") {
 	$pconfig['ncp_enable'] = "enabled";
-	$pconfig['ncp-ciphers'] = "AES-256-GCM,AES-128-GCM";
+	$pconfig['ncp-ciphers'] = "AES-128-GCM";
 	$pconfig['autokey_enable'] = "yes";
 	$pconfig['tlsauth_enable'] = "yes";
 	$pconfig['autotls_enable'] = "yes";
-	$pconfig['dh_length'] = 1024;
+	$pconfig['dh_length'] = 2048;
 	$pconfig['dev_mode'] = "tun";
 	$pconfig['interface'] = "wan";
 	$pconfig['local_port'] = openvpn_port_next('UDP');
 	$pconfig['cert_depth'] = 1;
 	$pconfig['create_gw'] = "both"; // v4only, v6only, or both (default: both)
 	$pconfig['verbosity_level'] = 1; // Default verbosity is 1
-	// OpenVPN Defaults to SHA1
-	$pconfig['digest'] = "SHA1";
+	$pconfig['digest'] = "SHA256";
+	$pconfig['compression'] = "none";
 }
 
 if ($act == "edit") {
@@ -126,7 +126,7 @@ if ($act == "edit") {
 		if (isset($a_server[$id]['ncp-ciphers'])) {
 			$pconfig['ncp-ciphers'] = $a_server[$id]['ncp-ciphers'];
 		} else {
-			$pconfig['ncp-ciphers'] = "AES-256-GCM,AES-128-GCM";
+			$pconfig['ncp-ciphers'] = "AES-128-GCM";
 		}
 		if (isset($a_server[$id]['ncp_enable'])) {
 			$pconfig['ncp_enable'] = $a_server[$id]['ncp_enable'];
@@ -168,8 +168,7 @@ if ($act == "edit") {
 			$pconfig['shared_key'] = base64_decode($a_server[$id]['shared_key']);
 		}
 		$pconfig['crypto'] = $a_server[$id]['crypto'];
-		// OpenVPN Defaults to SHA1 if unset
-		$pconfig['digest'] = !empty($a_server[$id]['digest']) ? $a_server[$id]['digest'] : "SHA1";
+		$pconfig['digest'] = !empty($a_server[$id]['digest']) ? $a_server[$id]['digest'] : "SHA256";
 		$pconfig['engine'] = $a_server[$id]['engine'];
 
 		$pconfig['tunnel_network'] = $a_server[$id]['tunnel_network'];
@@ -963,7 +962,7 @@ if ($act=="new" || $act=="edit"):
 		openvpn_get_digestlist()
 		))->setHelp('The algorithm used to authenticate data channel packets, and control channel packets if a TLS Key is present.%1$s' .
 		    'When an AEAD Encryption Algorithm mode is used, such as AES-GCM, this digest is used for the control channel only, not the data channel.%1$s' .
-		    'Leave this set to SHA1 unless all clients are set to match. SHA1 is the default for OpenVPN. ',
+		    'The server and all clients must have the same setting. While SHA1 is the default for OpenVPN, this algorithm is insecure. ',
 			'<br />');
 
 	$section->addInput(new Form_Select(
@@ -1115,9 +1114,14 @@ if ($act=="new" || $act=="edit"):
 		'Compression',
 		$pconfig['compression'],
 		$openvpn_compression_modes
-		))->setHelp('Compress tunnel packets using the LZO algorithm. ' .
+		))->setHelp('Compress tunnel packets using the LZO algorithm. %1$s' .
+					'Compression can potentially increase throughput but may allow an attacker to extract secrets if they can control ' .
+					'compressed plaintext traversing the VPN (e.g. HTTP). ' .
+					'Before enabling compression, consult information about the VORACLE, CRIME, TIME, and BREACH attacks against TLS ' .
+					'to decide if the use case for this specific VPN is vulnerable to attack. %1$s%1$s' .
 					'Adaptive compression will dynamically disable compression for a period of time if OpenVPN detects that the data in the ' .
-					'packets is not being compressed efficiently.');
+					'packets is not being compressed efficiently.',
+					'<br/>');
 
 	$section->addInput(new Form_Checkbox(
 		'compression_push',
@@ -1724,7 +1728,7 @@ events.push(function() {
 				hideInput('tunnel_network', false);
 				hideCheckbox('serverbridge_dhcp', true);
 				hideInput('serverbridge_interface', true);
-				hideInput('serverbridge_routegateway', true);
+				hideCheckbox('serverbridge_routegateway', true);
 				hideInput('serverbridge_dhcp_start', true);
 				hideInput('serverbridge_dhcp_end', true);
 				setRequired('tunnel_network', true);
@@ -1750,19 +1754,19 @@ events.push(function() {
 					hideCheckbox('serverbridge_dhcp', false);
 					disableInput('serverbridge_dhcp', false);
 					hideInput('serverbridge_interface', false);
-					hideInput('serverbridge_routegateway', false);
+					hideCheckbox('serverbridge_routegateway', false);
 					hideInput('serverbridge_dhcp_start', false);
 					hideInput('serverbridge_dhcp_end', false);
 					hideInput('topology', true);
 
 					if ($('#serverbridge_dhcp').prop('checked')) {
 						disableInput('serverbridge_interface', false);
-						disableInput('serverbridge_routegateway', false);
+						hideCheckbox('serverbridge_routegateway', false);
 						disableInput('serverbridge_dhcp_start', false);
 						disableInput('serverbridge_dhcp_end', false);
 					} else {
 						disableInput('serverbridge_interface', true);
-						disableInput('serverbridge_routegateway', true);
+						hideCheckbox('serverbridge_routegateway', true);
 						disableInput('serverbridge_dhcp_start', true);
 						disableInput('serverbridge_dhcp_end', true);
 					}
@@ -1770,7 +1774,7 @@ events.push(function() {
 					hideInput('topology', true);
 					disableInput('serverbridge_dhcp', true);
 					disableInput('serverbridge_interface', true);
-					disableInput('serverbridge_routegateway', true);
+					hideCheckbox('serverbridge_routegateway', true);
 					disableInput('serverbridge_dhcp_start', true);
 					disableInput('serverbridge_dhcp_end', true);
 				}

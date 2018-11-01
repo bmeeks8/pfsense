@@ -283,6 +283,12 @@ function getAllowedPages($username, &$attributes = array()) {
 		}
 	}
 
+	if (!is_array($allowed_groups)) {
+		$allowed_groups = array('all');
+	} else {
+		$allowed_groups[] = 'all';
+	}
+
 	// build a list of allowed pages
 	if (is_array($config['system']['group']) && is_array($allowed_groups)) {
 		foreach ($config['system']['group'] as $group) {

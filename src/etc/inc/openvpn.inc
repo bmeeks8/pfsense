@@ -83,6 +83,7 @@ $openvpn_dh_lengths = array(
 	2048 => "2048 bit",
 	3072 => "3072 bit",
 	4096 => "4096 bit",
+	6144 => "6144 bit",
 	7680 => "7680 bit",
 	8192 => "8192 bit",
 	15360 => "15360 bit",
@@ -122,11 +123,13 @@ $openvpn_client_modes = array(
 
 global $openvpn_compression_modes;
 $openvpn_compression_modes = array(
-	'' => gettext("Omit Preference (Use OpenVPN Default)"),
+	'none' => gettext("Disable Compression, retain compression packet framing [compress]"),
 	'lz4' => gettext("LZ4 Compression [compress lz4]"),
 	'lz4-v2' => gettext("LZ4 Compression v2 [compress lz4-v2]"),
 	'lzo' => gettext("LZO Compression [compress lzo, equivalent to comp-lzo yes for compatibility]"),
-	'stub' => gettext("Enable Compression (stub) [compress]"),
+	'stub' => gettext("Enable Compression (stub) [compress stub]"),
+	'stub-v2' => gettext("Enable Compression (stub v2) [compress stub-v2]"),
+	'' => gettext("Omit Preference (Use OpenVPN Default)"),
 	'noadapt' => gettext("Omit Preference, + Disable Adaptive LZO Compression [Legacy style, comp-noadapt]"),
 	'adaptive' => gettext("Adaptive LZO Compression [Legacy style, comp-lzo adaptive]"),
 	'yes' => gettext("LZO Compression [Legacy style, comp-lzo yes]"),
@@ -981,7 +984,7 @@ function openvpn_reconfigure($mode, $settings) {
 					if ($settings['strictusercn']) {
 						$strictusercn = "true";
 					}
-					$conf .= "auth-user-pass-verify \"/usr/local/sbin/ovpn_auth_verify user " . base64_encode($settings['authmode']) . " {$strictusercn} {$mode_id} {$settings['local_port']}\" via-env\n";
+					$conf .= "plugin /usr/local/lib/openvpn/plugins/openvpn-plugin-auth-script.so /usr/local/sbin/ovpn_auth_verify_async user " . base64_encode($settings['authmode']) . " {$strictusercn} {$mode_id} {$settings['local_port']}\n";
 				}
 				break;
 		}
@@ -1208,10 +1211,13 @@ function openvpn_reconfigure($mode, $settings) {
 
 	$compression = "";
 	switch ($settings['compression']) {
+		case 'none':
+			$settings['compression'] = '';
 		case 'lz4':
 		case 'lz4-v2':
 		case 'lzo':
 		case 'stub':
+		case 'stub-v2':
 			$compression .= "compress {$settings['compression']}";
 			break;
 		case 'noadapt':
@@ -1937,6 +1943,10 @@ function openvpn_create_dirs() {
 		safe_mkdir("{$g['varetc_path']}/openvpn", 0750);
 	}
 	if (!is_dir("{$g['varetc_path']}/openvpn-csc")) {
+		/* If it's a file, remove it */
+		if (file_exists("{$g['varetc_path']}/openvpn-csc")) {
+			unlink_if_exists("{$g['varetc_path']}/openvpn-csc");
+		}
 		safe_mkdir("{$g['varetc_path']}/openvpn-csc", 0750);
 	}
 

@@ -82,7 +82,7 @@ function unbound_optimization() {
 	if (is_array($config['sysctl']) && is_array($config['sysctl']['item'])) {
 		foreach ($config['sysctl']['item'] as $tunable) {
 			if ($tunable['tunable'] == 'kern.ipc.maxsockbuf') {
-				$so = floor(($tunable['value']/1024/1024)-4);
+				$so = floor((intval($tunable['value'])/1024/1024)-4);
 				// Check to ensure that the number is not a negative
 				if ($so >= 4) {
 					// Limit to 32MB, users might set maxsockbuf very high for other reasons.
@@ -170,9 +170,13 @@ function unbound_generate_config_text($unboundcfg = NULL, $cfgsubdir = "") {
 		$private_addr = <<<EOF
 # For DNS Rebinding prevention
 private-address: 10.0.0.0/8
+private-address: ::ffff:a00:0/104
 private-address: 172.16.0.0/12
+private-address: ::ffff:ac10:0/108
 private-address: 169.254.0.0/16
+private-address: ::ffff:a9fe:0/112
 private-address: 192.168.0.0/16
+private-address: ::ffff:c0a8:0/112
 private-address: fd00::/8
 private-address: fe80::/10
 EOF;

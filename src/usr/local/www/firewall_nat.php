@@ -36,10 +36,8 @@ require_once("filter.inc");
 require_once("shaper.inc");
 require_once("itemid.inc");
 
-if (!is_array($config['nat']['rule'])) {
-	$config['nat']['rule'] = array();
-}
-
+init_config_arr(array('nat', 'separator'));
+init_config_arr(array('nat', 'rule'));
 $a_nat = &$config['nat']['rule'];
 
 /* update rule order, POST[rule] is an array of ordered IDs */
@@ -59,6 +57,11 @@ if (array_key_exists('order-store', $_REQUEST) && have_natpfruleint_access($nate
 
 		if ($_POST['separator']) {
 			$idx = 0;
+
+			if (!is_array($config['nat']['separator'])) {
+				$config['nat']['separator'] = array();
+			}
+
 			foreach ($_POST['separator'] as $separator) {
 				$config['nat']['separator']['sep' . $idx++] = $separator;
 			}
@@ -218,7 +221,7 @@ $columns_in_table = 13;
 			<table id="ruletable" class="table table-striped table-hover table-condensed">
 				<thead>
 					<tr>
-						<th><!-- Checkbox --></th>
+						<th style="padding-left:10px;">  <input type="checkbox" id="selectAll" name="selectAll" /></th>
 						<th><!-- Icon --></th>
 						<th><!-- Rule type --></th>
 						<th><?=gettext("Interface")?></th>
@@ -532,6 +535,13 @@ events.push(function() {
 		} else {
 			return undefined;
 		}
+	});
+
+	$('#selectAll').click(function() {
+		var checkedStatus = this.checked;
+		$('#ruletable tbody tr').find('td:first :checkbox').each(function() {
+		$(this).prop('checked', checkedStatus);
+		});
 	});
 });
 //]]>

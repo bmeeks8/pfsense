@@ -2,13 +2,11 @@
 benchmarks/%%PRODUCT_NAME%%-pkg-iperf
 benchmarks/iperf
 benchmarks/iperf3
-databases/php56-mysql
-databases/php56-mysqli
-databases/php56-pdo_mysql
-databases/php56-pgsql
+databases/php72-mysqli
+databases/php72-pdo_mysql
+databases/php72-pgsql
 devel/aws-sdk-php
 devel/gdb
-devel/pecl-xdebug
 dns/%%PRODUCT_NAME%%-pkg-bind9
 dns/dnstop
 editors/nano
@@ -33,10 +31,12 @@ net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-agent
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-agent22
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-agent32
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-agent34
+net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-agent4
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-proxy
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-proxy22
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-proxy32
 net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-proxy34
+net-mgmt/%%PRODUCT_NAME%%-pkg-zabbix-proxy4
 net-mgmt/dhcp_probe
 net-mgmt/iprange
 net-mgmt/net-snmp
@@ -53,8 +53,8 @@ net/%%PRODUCT_NAME%%-pkg-haproxy
 net/%%PRODUCT_NAME%%-pkg-haproxy-devel
 net/%%PRODUCT_NAME%%-pkg-mtr-nox11
 net/%%PRODUCT_NAME%%-pkg-ntopng
-net/%%PRODUCT_NAME%%-pkg-pfBlockerNG@all
-net/%%PRODUCT_NAME%%-pkg-pfBlockerNG-devel@all
+net/%%PRODUCT_NAME%%-pkg-pfBlockerNG
+net/%%PRODUCT_NAME%%-pkg-pfBlockerNG-devel
 net/%%PRODUCT_NAME%%-pkg-routed
 net/%%PRODUCT_NAME%%-pkg-siproxd
 net/bird
@@ -64,7 +64,7 @@ net/py-speedtest-cli
 net/trafshow
 net/trafshow3
 net/vnstat
-security/%%PRODUCT_NAME%%-pkg-acme@all
+security/%%PRODUCT_NAME%%-pkg-acme
 security/%%PRODUCT_NAME%%-pkg-nmap
 security/%%PRODUCT_NAME%%-pkg-openvpn-client-export
 security/%%PRODUCT_NAME%%-pkg-snort
@@ -72,10 +72,8 @@ security/%%PRODUCT_NAME%%-pkg-stunnel
 security/%%PRODUCT_NAME%%-pkg-sudo
 security/%%PRODUCT_NAME%%-pkg-suricata
 security/%%PRODUCT_NAME%%-pkg-tinc
-security/%%PRODUCT_NAME%%@all
+security/%%PRODUCT_NAME%%
 sysutils/%%PRODUCT_NAME%%-builder
-sysutils/%%PRODUCT_NAME%%-pkg-AutoConfigBackup
-sysutils/%%PRODUCT_NAME%%-pkg-AutoConfigBackup2
 sysutils/%%PRODUCT_NAME%%-pkg-Backup
 sysutils/%%PRODUCT_NAME%%-pkg-Cron
 sysutils/%%PRODUCT_NAME%%-pkg-LCDproc
@@ -87,6 +85,7 @@ sysutils/%%PRODUCT_NAME%%-pkg-Shellcmd
 sysutils/%%PRODUCT_NAME%%-pkg-System_Patches
 sysutils/%%PRODUCT_NAME%%-pkg-apcupsd
 sysutils/%%PRODUCT_NAME%%-pkg-blinkled
+sysutils/%%PRODUCT_NAME%%-pkg-filer
 sysutils/%%PRODUCT_NAME%%-pkg-gwled
 sysutils/%%PRODUCT_NAME%%-pkg-nut
 sysutils/%%PRODUCT_NAME%%-pkg-syslog-ng
@@ -103,3 +102,4 @@ www/%%PRODUCT_NAME%%-pkg-Lightsquid
 www/%%PRODUCT_NAME%%-pkg-squid
 www/%%PRODUCT_NAME%%-pkg-squidGuard
 www/pound
+www/squid

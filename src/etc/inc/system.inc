@@ -1190,14 +1190,10 @@ EOD;
 function system_webgui_create_certificate() {
 	global $config, $g;
 
-	if (!is_array($config['ca'])) {
-		$config['ca'] = array();
-	}
-	$a_ca =& $config['ca'];
-	if (!is_array($config['cert'])) {
-		$config['cert'] = array();
-	}
-	$a_cert =& $config['cert'];
+	init_config_arr(array('ca'));
+	$a_ca = &$config['ca'];
+	init_config_arr(array('cert'));
+	$a_cert = &$config['cert'];
 	log_error(gettext("Creating SSL Certificate for this host"));
 
 	$cert = array();
@@ -1287,7 +1283,7 @@ function system_webgui_start() {
 	return $res;
 }
 
-function get_dns_nameservers() {
+function get_dns_nameservers($add_v6_brackets = false) {
 	global $config;
 
 	$dns_nameservers = array();
@@ -1318,14 +1314,20 @@ function get_dns_nameservers() {
 		}
 		foreach ($ns as $nameserver) {
 			if ($nameserver) {
-				$dns_nameservers[] = "$nameserver";
+				if ($add_v6_brackets && is_ipaddrv6($nameserver)) {
+					$nameserver = "[{$nameserver}]";
+				}
+				$dns_nameservers[] = $nameserver;
 			}
 		}
 	}
 	if (is_array($syscfg['dnsserver'])) {
 		foreach ($syscfg['dnsserver'] as $sys_dnsserver) {
 			if ($sys_dnsserver && (!in_array($sys_dnsserver, $ns))) {
-				$dns_nameservers[] = "$sys_dnsserver";
+				if ($add_v6_brackets && is_ipaddrv6($sys_dnsserver)) {
+					$sys_dnsserver = "[{$sys_dnsserver}]";
+				}
+				$dns_nameservers[] = $sys_dnsserver;
 			}
 		}
 	}
@@ -1476,7 +1478,7 @@ EOD;
 		    (cert_get_ocspstaple($cert_temp['crt']) == true)) {
 			$nginx_config .= "\t\tssl_stapling on;\n";
 			$nginx_config .= "\t\tssl_stapling_verify on;\n";
-			$nginx_config .= "\t\tresolver " . implode(" ", get_dns_nameservers()) . " valid=300s;\n";
+			$nginx_config .= "\t\tresolver " . implode(" ", get_dns_nameservers(true)) . " valid=300s;\n";
 			$nginx_config .= "\t\tresolver_timeout 5s;\n";
 		}
 	} else {

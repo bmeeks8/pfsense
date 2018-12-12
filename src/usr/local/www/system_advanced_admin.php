@@ -66,7 +66,8 @@ $pconfig['sshguard_blocktime'] = $config['system']['sshguard_blocktime'] ?? '';
 $pconfig['sshguard_detection_time'] = $config['system']['sshguard_detection_time'] ?? '';
 $pconfig['sshguard_whitelist'] = $config['system']['sshguard_whitelist'] ?? '';
 
-$a_cert =& $config['cert'];
+init_config_arr(array('cert'));
+$a_cert = &$config['cert'];
 $certs_available = false;
 
 if (is_array($a_cert) && count($a_cert)) {
@@ -659,7 +660,7 @@ while ($counter < $numaddrs) {
 
 $section->addInput(new Form_Button(
 	'addrow',
-	'Add whitelist',
+	'Add address',
 	null,
 	'fa-plus'
 ))->addClass('btn-success addbtn');

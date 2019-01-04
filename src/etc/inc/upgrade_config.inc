@@ -3,7 +3,7 @@
  * upgrade_config.inc
  *
  * part of pfSense (https://www.pfsense.org)
- * Copyright (c) 2004-2018 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2004-2019 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -5918,6 +5918,19 @@ function upgrade_188_to_189() {
 	 * See https://redmine.pfsense.org/issues/8974 */
 	if (isset($config['system']['sshd'])) {
 		unset($config['system']['sshd']);
+	}
+}
+
+/* Older pre-existing IPsec P1 entries may not have had the protocol explicitly
+ * defined. Fill in the default value of 'inet'.
+ * https://redmine.pfsense.org/issues/9207 */
+function upgrade_189_to_190() {
+	global $config;
+	init_config_arr(array('ipsec', 'phase1'));
+	foreach ($config['ipsec']['phase1'] as & $ph1ent) {
+		if (empty($ph1ent['protocol'])) {
+			$ph1ent['protocol'] = 'inet';
+		}
 	}
 }
 

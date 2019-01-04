@@ -3,7 +3,7 @@
  * firewall_aliases_edit.php
  *
  * part of pfSense (https://www.pfsense.org)
- * Copyright (c) 2004-2018 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2004-2019 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * originally based on m0n0wall (http://m0n0.ch/wall)
@@ -167,7 +167,7 @@ if ($_POST['save']) {
 
 	/* Check for reserved keyword names */
 	foreach ($pf_reserved_keywords as $rk) {
-		if ($rk == $_POST['name']) {
+		if (strcasecmp($rk, $_POST['name']) == 0) {
 			$input_errors[] = sprintf(gettext("Cannot use a reserved keyword as an alias name: %s"), $rk);
 		}
 	}

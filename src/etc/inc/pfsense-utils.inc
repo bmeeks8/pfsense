@@ -1182,7 +1182,8 @@ function load_loader_conf($loader_conf = NULL, $local = false) {
 	/* These values should be removed from loader.conf and loader.conf.local
 	 * As they will be replaced when necessary. */
 	$remove = array("hw.usb.no_pf", "hint.mdio.0.at", "hint.e6000sw.0",
-	    "hw.e6000sw.default_disabled", "vm.pmap.pti");
+	    "hw.e6000sw.default_disabled", "vm.pmap.pti",
+	    "net.pf.request_maxcount");
 	if (!$local) {
 		/* These values should only be filtered in loader.conf, not .local */
 		$remove = array_merge($remove,
@@ -1302,6 +1303,13 @@ function setup_loader_settings($path = "", $upgrade = false) {
 	if (isset($config['system']['pti_disabled'])) {
 		$data[] = 'vm.pmap.pti="0"';
 	}
+
+	if (isset($config['system']['maximumtableentries'])) {
+		$maximumtableentries = $config['system']['maximumtableentries'];
+	} else {
+		$maximumtableentries = pfsense_default_table_entries_size();
+	}
+	$data[] = 'net.pf.request_maxcount="' .  $maximumtableentries . '"';
 
 	safe_write_file($loader_conf_file, $data);
 
@@ -2763,7 +2771,7 @@ function xml2array($contents, $get_attributes = 1, $priority = 'tag') {
 	return ($xml_array);
 }
 
-function get_country_name($country_code) {
+function get_country_name($country_code = "ALL") {
 	if ($country_code != "ALL" && strlen($country_code) != 2) {
 		return "";
 	}
@@ -2788,6 +2796,26 @@ function get_country_name($country_code) {
 		}
 	}
 	return "";
+}
+
+/* Return the list of country codes to be used on CAs and certs */
+function get_cert_country_codes() {
+	$countries = get_country_name();
+
+	$country_codes = array();
+	foreach ($countries as $country) {
+		$country_codes[$country['code']] = $country['code'];
+	}
+	ksort($country_codes);
+
+	/* Preserve historical order: None, US, CA, other countries */
+	$first_items[''] = gettext("None");
+	$first_items['US'] = $country_codes['US'];
+	$first_items['CA'] = $country_codes['CA'];
+	unset($country_codes['US']);
+	unset($country_codes['CA']);
+
+	return array_merge($first_items, $country_codes);
 }
 
 /* sort by interface only, retain the original order of rules that apply to

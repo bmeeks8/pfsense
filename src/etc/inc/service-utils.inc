@@ -83,7 +83,7 @@ function start_service($name, $after_sync = false) {
 
 	if (is_array($config['installedpackages']) && is_array($config['installedpackages']['service'])) {
 		foreach ($config['installedpackages']['service'] as $service) {
-			if (strtolower($service['name']) == strtolower($name)) {
+			if (isset($service['name']) && (strtolower($service['name']) == strtolower($name))) {
 				/* Avoid starting twice if this is called just after a
 				 * package sync which starts the service itself. */
 				if ($after_sync && isset($service['starts_on_sync'])) {
@@ -207,7 +207,7 @@ function is_service_running($service, $ps = "") {
 
 	if (is_array($config['installedpackages']['service'])) {
 		foreach ($config['installedpackages']['service'] as $aservice) {
-			if (strtolower($service) == strtolower($aservice['name'])) {
+			if (isset($aservice['name']) && (strtolower($service) == strtolower($aservice['name']))) {
 				if ($aservice['custom_php_service_status_command'] <> "") {
 					eval("\$rc={$aservice['custom_php_service_status_command']};");
 					return $rc;
@@ -391,7 +391,7 @@ function get_services() {
 function find_service_by_name($name) {
 	$services = get_services();
 	foreach ($services as $service) {
-		if ($service["name"] == $name) {
+		if (isset($service["name"]) && ($service["name"] == $name)) {
 			return $service;
 		}
 	}
@@ -401,7 +401,7 @@ function find_service_by_name($name) {
 function find_service_by_openvpn_vpnid($vpnid) {
 	$services = get_services();
 	foreach ($services as $service) {
-		if (($service["name"] == "openvpn") && isset($service["vpnid"]) && ($service["vpnid"] == $vpnid)) {
+		if (isset($service["name"]) && ($service["name"] == "openvpn") && isset($service["vpnid"]) && ($service["vpnid"] == $vpnid)) {
 			return $service;
 		}
 	}
@@ -411,7 +411,7 @@ function find_service_by_openvpn_vpnid($vpnid) {
 function find_service_by_cp_zone($zone) {
 	$services = get_services();
 	foreach ($services as $service) {
-		if (($service["name"] == "captiveportal") && isset($service["zone"]) && ($service["zone"] == $zone)) {
+		if (isset($service["name"]) && ($service["name"] == "captiveportal") && isset($service["zone"]) && ($service["zone"] == $zone)) {
 			return $service;
 		}
 	}
@@ -426,6 +426,9 @@ function service_description_compare($a, $b) {
 }
 
 function service_name_compare($a, $b) {
+	if (!isset($a['name']) || !isset($b['name'])) {
+		return -1;
+	}
 	/* If the names are equal, fall back to sorting by description */
 	if (strtolower($a['name']) == strtolower($b['name'])) {
 		return service_description_compare($a, $b);

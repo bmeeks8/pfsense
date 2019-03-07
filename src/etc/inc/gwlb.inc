@@ -744,7 +744,7 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 							break;
 						default:
 							// unknown ovpn type
-							continue 2;
+							continue 3;
 					}
 					$ovpnid = substr($ifcfg['if'], 5);
 					if (is_array($config['openvpn'][$ovpntype])) {
@@ -886,7 +886,7 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 							break;
 						default:
 							// unknown ovpn type
-							continue 2;
+							continue 3;
 					}
 					$ovpnid = substr($ifcfg['if'], 5);
 					if (is_array($config['openvpn'][$ovpntype])) {

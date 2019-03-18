@@ -76,6 +76,7 @@ if ($_REQUEST['delete']) {
 }
 
 if ($_POST['clearall']) {
+	$entries = array();
 	exec("/sbin/pfctl -t " . escapeshellarg($tablename) . " -T show", $entries);
 	if (is_array($entries)) {
 		foreach ($entries as $entryA) {
@@ -117,6 +118,7 @@ if ($_POST['Download'] && ($bogons || $urltable)) {
 	}
 }
 
+$entries = array();
 exec("/sbin/pfctl -t " . escapeshellarg($tablename) . " -T show", $entries);
 
 include("head.inc");
@@ -125,8 +127,8 @@ if ($savemsg) {
 	print_info_box($savemsg, 'success');
 }
 
-if ($tablename == "webConfiguratorlockout") {
-	$displayname = gettext("webConfigurator Lockout Table");
+if ($tablename == "sshguard") {
+	$displayname = gettext("SSH and GUI Lockout Table");
 } else {
 	$displayname = sprintf(gettext("%s Table"), ucfirst($tablename));
 }

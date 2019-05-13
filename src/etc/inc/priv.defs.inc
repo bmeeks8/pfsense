@@ -525,11 +525,23 @@ $priv_list['page-system-packagemanager-installed']['descr'] = gettext("Allow acc
 $priv_list['page-system-packagemanager-installed']['match'] = array();
 $priv_list['page-system-packagemanager-installed']['match'][] = "pkg_mgr_installed.php*";
 
-$priv_list['page-system-autoconfigbackup'] = array();
-$priv_list['page-system-autoconfigbackup']['name'] = gettext("WebCfg - System: Auto COnfig Backup");
-$priv_list['page-system-autoconfigbackup']['descr'] = gettext("Configure the auto config backup system.");
-$priv_list['page-system-autoconfigbackup']['match'] = array();
-$priv_list['page-system-autoconfigbackup']['match'][] = "autoconfigbackup-settings.php*";
+$priv_list['page-services-acb'] = array();
+$priv_list['page-services-acb']['name'] = gettext("WebCfg - Services: Auto Config Backup: Restore");
+$priv_list['page-services-acb']['descr'] = gettext("Restore from auto config backup.");
+$priv_list['page-services-acb']['match'] = array();
+$priv_list['page-services-acb']['match'][] = "services_acb.php*";
+
+$priv_list['page-services-acb-backup'] = array();
+$priv_list['page-services-acb-backup']['name'] = gettext("WebCfg - Services: Auto Config Backup: Backup Now");
+$priv_list['page-services-acb-backup']['descr'] = gettext("Create a new auto config backup entry.");
+$priv_list['page-services-acb-backup']['match'] = array();
+$priv_list['page-services-acb-backup']['match'][] = "services_acb_backup.php*";
+
+$priv_list['page-services-acb-settings'] = array();
+$priv_list['page-services-acb-settings']['name'] = gettext("WebCfg - Services: Auto Config Backup: Settings");
+$priv_list['page-services-acb-settings']['descr'] = gettext("Configure the auto config backup system.");
+$priv_list['page-services-acb-settings']['match'] = array();
+$priv_list['page-services-acb-settings']['match'][] = "services_acb_settings.php*";
 
 $priv_list['page-services-captiveportal'] = array();
 $priv_list['page-services-captiveportal']['name'] = gettext("WebCfg - Services: Captive Portal");
@@ -1227,18 +1239,21 @@ $priv_list['page-vpn-vpnl2tp-users-edit']['match'][] = "vpn_l2tp_users_edit.php*
 $priv_list['page-openvpn-client'] = array();
 $priv_list['page-openvpn-client']['name'] = gettext("WebCfg - OpenVPN: Clients");
 $priv_list['page-openvpn-client']['descr'] = gettext("Allow access to the 'OpenVPN: Clients' page.");
+$priv_list['page-openvpn-client']['warn'] = "standard-warning-root";
 $priv_list['page-openvpn-client']['match'] = array();
 $priv_list['page-openvpn-client']['match'][] = "vpn_openvpn_client.php*";
 
 $priv_list['page-openvpn-csc'] = array();
 $priv_list['page-openvpn-csc']['name'] = gettext("WebCfg - OpenVPN: Client Specific Override");
 $priv_list['page-openvpn-csc']['descr'] = gettext("Allow access to the 'OpenVPN: Client Specific Override' page.");
+$priv_list['page-openvpn-csc']['warn'] = "standard-warning-root";
 $priv_list['page-openvpn-csc']['match'] = array();
 $priv_list['page-openvpn-csc']['match'][] = "vpn_openvpn_csc.php*";
 
 $priv_list['page-openvpn-server'] = array();
 $priv_list['page-openvpn-server']['name'] = gettext("WebCfg - OpenVPN: Servers");
 $priv_list['page-openvpn-server']['descr'] = gettext("Allow access to the 'OpenVPN: Servers' page.");
+$priv_list['page-openvpn-server']['warn'] = "standard-warning-root";
 $priv_list['page-openvpn-server']['match'] = array();
 $priv_list['page-openvpn-server']['match'][] = "vpn_openvpn_server.php*";
 

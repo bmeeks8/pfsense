@@ -18,6 +18,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+##|+PRIV
+##|*IDENT=page-services-acb
+##|*NAME=Services: Auto Config Backup: Restore
+##|*DESCR=Restore from auto config backup.
+##|*MATCH=services_acb.php*
+##|-PRIV
+
 require("guiconfig.inc");
 require("acb.inc");
 
@@ -371,7 +379,7 @@ if ($_REQUEST['download']) {
 $tab_array[1] = array("Restore", $active, "/services_acb.php");
 
 if ($_REQUEST['download']) {
-	$tab_array[] = array("Revision", true, "/services_acb.php?download={$_REQUEST['download']}");
+	$tab_array[] = array("Revision", true, "/services_acb.php?download=" . htmlspecialchars($_REQUEST['download']));
 }
 
 $tab_array[] = array("Backup now", false, "/services_acb_backup.php");

@@ -453,7 +453,11 @@ if ($savemsg) {
 }
 
 $tab_array = array();
-$tab_array[] = array(gettext("Users"), false, "system_usermanager.php");
+if (!isAllowedPage("system_usermanager.php")) {
+       $tab_array[] = array(gettext("User Password"), false, "system_usermanager_passwordmg.php");
+} else {
+       $tab_array[] = array(gettext("Users"), false, "system_usermanager.php");
+}
 $tab_array[] = array(gettext("Groups"), false, "system_groupmanager.php");
 $tab_array[] = array(gettext("Settings"), false, "system_usermanager_settings.php");
 $tab_array[] = array(gettext("Authentication Servers"), true, "system_authservers.php");
@@ -823,7 +827,7 @@ $section->addInput(new Form_Select(
 
 if (isset($id) && $a_server[$id])
 {
-	$section->addInput(new Form_Input(
+	$form->addGlobal(new Form_Input(
 		'id',
 		null,
 		'hidden',

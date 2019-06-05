@@ -2871,4 +2871,38 @@ function unixnewlines($text) {
 	return preg_replace('/\r\n?/', "\n", $text);
 }
 
+function array_remove_duplicate($array, $field) {
+	foreach ($array as $sub) {
+		if (isset($sub[$field])) {
+			$cmp[] = $sub[$field];
+		}
+	}
+	$unique = array_unique(array_reverse($cmp, true));
+	foreach ($unique as $k => $rien) {
+		$new[] = $array[$k];
+	}
+	return $new;
+}
+
+function dhcpd_date_adjust_gmt($dt) {
+	global $config;
+
+	init_config_arr(array('dhcpd'));
+
+	foreach ($config['dhcpd'] as $dhcpditem) {
+		if ($dhcpditem['dhcpleaseinlocaltime'] == "yes") {
+			$ts = strtotime($dt . " GMT");
+			if ($ts !== false) {
+				return strftime("%Y/%m/%d %H:%M:%S", $ts);
+			}
+		}
+	}
+
+	/*
+	 * If we did not need to convert to local time or the conversion
+	 * failed, just return the input.
+	 */
+	return $dt;
+}
+
 ?>

@@ -1770,9 +1770,6 @@ $types4 = array("none" => gettext("None"), "staticv4" => gettext("Static IPv4"),
 $types6 = array("none" => gettext("None"), "staticv6" => gettext("Static IPv6"), "dhcp6" => gettext("DHCP6"), "slaac" => gettext("SLAAC"), "6rd" => gettext("6rd Tunnel"), "6to4" => gettext("6to4 Tunnel"), "track6" => gettext("Track Interface"));
 
 // Get the MAC address
-$ip = $_SERVER['REMOTE_ADDR'];
-$mymac = `/usr/sbin/arp -an | grep '('{$ip}')' | head -n 1 | cut -d" " -f4`;
-$mymac = str_replace("\n", "", $mymac);
 $defgatewayname4 = $wancfg['descr'] . "GW";
 $defgatewayname6 = $wancfg['descr'] . "GWv6";
 
@@ -2623,7 +2620,7 @@ $section = new Form_Section('Track IPv6 Interface');
 $section->addClass('track6');
 
 function build_ipv6interface_list() {
-	global $config, $section;
+	global $config, $form;
 
 	$list = array('' => '');
 

@@ -68,3 +68,5 @@ $config = parse_config();
 vpn_ipsec_configure();
 
 unlock($ipseclck);
+
+ipsec_reload_package_hook();

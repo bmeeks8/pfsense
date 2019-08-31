@@ -64,14 +64,15 @@ $output_file = "/tmp/status_output.tgz";
 $filtered_tags = array(
 	'accountkey', 'authorizedkeys', 'auth_pass', 'auth_user', 'bcrypt-hash',
 	'crypto_password', 'crypto_password2', 'dns_nsupdatensupdate_key',
-	'gold_encryption_password', 'gold_password', 'ipsecpsk', 'ldap_bindpw',
-	'lighttpd_ls_password', 'lighttpd_ls_password', 'md5-hash',
-	'md5password', 'md5sigkey', 'md5sigpass', 'nt-hash', 'passphrase',
-	'password', 'passwordagain', 'pre-shared-key', 'proxypass',
-	'proxy_passwd', 'proxyuser', 'proxy_user', 'prv', 'radius_secret',
-	'redis_password', 'redis_passwordagain', 'rocommunity', 'secret',
-	'shared_key', 'tls', 'varclientpasswordinput', 'varclientsharedsecret',
-	'varsyncpassword', 'varusersmotpinitsecret', 'varusersmotppin'
+	'encryption_password', 'gold_encryption_password', 'gold_password',
+	'ipsecpsk', 'ldap_bindpw', 'lighttpd_ls_password',
+	'lighttpd_ls_password', 'md5-hash', 'md5password', 'md5sigkey',
+	'md5sigpass', 'nt-hash', 'passphrase', 'password', 'passwordagain',
+	'pre-shared-key', 'proxypass', 'proxy_passwd', 'proxyuser',
+	'proxy_user', 'prv', 'radius_secret', 'redis_password',
+	'redis_passwordagain', 'rocommunity', 'secret', 'shared_key', 'tls',
+	'varclientpasswordinput', 'varclientsharedsecret', 'varsyncpassword',
+	'varusersmotpinitsecret', 'varusersmotppin'
 );
 
 if ($_POST['submit'] == "DOWNLOAD" && file_exists($output_file)) {
@@ -346,20 +347,21 @@ if (file_exists("/var/etc/filterdns.conf")) {
 }
 
 /* Logs */
-defCmdT("Log-System-Last 1000 entries", "/usr/local/sbin/clog /var/log/system.log 2>&1 | tail -n 1000");
-defCmdT("Log-DHCP-Last 1000 entries", "/usr/local/sbin/clog /var/log/dhcpd.log 2>&1 | tail -n 1000");
-defCmdT("Log-Filter-Last 500 entries", "/usr/local/sbin/clog /var/log/filter.log 2>&1 | tail -n 500");
-defCmdT("Log-Gateways-Last 1000 entries", "/usr/local/sbin/clog /var/log/gateways.log 2>&1 | tail -n 1000");
-defCmdT("Log-IPsec-Last 1000 entries", "/usr/local/sbin/clog /var/log/ipsec.log 2>&1 | tail -n 1000");
-defCmdT("Log-L2TP-Last 1000 entries", "/usr/local/sbin/clog /var/log/l2tps.log 2>&1 | tail -n 1000");
-defCmdT("Log-NTP-Last 1000 entries", "/usr/local/sbin/clog /var/log/ntpd.log 2>&1 | tail -n 1000");
-defCmdT("Log-OpenVPN-Last 1000 entries", "/usr/local/sbin/clog /var/log/openvpn.log 2>&1 | tail -n 1000");
-defCmdT("Log-Captive Portal Authentication-Last 1000 entries", "/usr/local/sbin/clog /var/log/portalauth.log 2>&1 | tail -n 1000");
-defCmdT("Log-PPP-Last 1000 entries", "/usr/local/sbin/clog /var/log/ppp.log 2>&1 | tail -n 1000");
-defCmdT("Log-PPPoE Server-Last 1000 entries", "/usr/local/sbin/clog /var/log/poes.log 2>&1 | tail -n 1000");
-defCmdT("Log-DNS-Last 1000 entries", "/usr/local/sbin/clog /var/log/resolver.log 2>&1 | tail -n 1000");
-defCmdT("Log-Routing-Last 1000 entries", "/usr/local/sbin/clog /var/log/routing.log 2>&1 | tail -n 1000");
-defCmdT("Log-Wireless-Last 1000 entries", "/usr/local/sbin/clog /var/log/wireless.log 2>&1 | tail -n 1000");
+
+defCmdT("Log-System-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/system.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-DHCP-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/dhcpd.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-Filter-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/filter.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-Gateways-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/gateways.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-IPsec-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/ipsec.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-L2TP-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/l2tps.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-NTP-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/ntpd.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-OpenVPN-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/openvpn.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-Captive Portal Authentication-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/portalauth.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-PPP-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/ppp.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-PPPoE Server-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/poes.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-DNS-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/resolver.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-Routing-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/routing.log', true, true) . ' | tail -n 1000');
+defCmdT("Log-Wireless-Last 1000 entries", '/usr/bin/bzcat -f ' . sort_related_log_files('/var/log/wireless.log', true, true) . ' | tail -n 1000');
 if (file_exists("/tmp/PHP_errors.log")) {
 	defCmdT("Log-PHP Errors", "/bin/cat /tmp/PHP_errors.log");
 }
@@ -369,6 +371,7 @@ defCmdT("OS-Message Buffer (Boot)", "/bin/cat /var/log/dmesg.boot");
 /* OS/Hardware Status */
 defCmdT("OS-sysctl values", "/sbin/sysctl -aq");
 defCmdT("OS-Kernel Environment", "/bin/kenv");
+defCmdT("OS-Kernel Memory Usage", "/usr/local/sbin/kmemusage.sh");
 defCmdT("OS-Installed Packages", "/usr/sbin/pkg info");
 defCmdT("OS-Package Manager Configuration", "/usr/sbin/pkg -vv");
 defCmdT("Hardware-PCI Devices", "/usr/sbin/pciconf -lvb");

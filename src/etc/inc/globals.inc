@@ -71,7 +71,7 @@ $g = array(
 	"disablecrashreporter" => false,
 	"crashreporterurl" => "https://crashreporter.pfsense.org/crash_reporter.php",
 	"debug" => false,
-	"latest_config" => "19.6",
+	"latest_config" => "19.7",
 	"minimum_ram_warning" => "101",
 	"minimum_ram_warning_text" => "128 MB",
 	"wan_interface_name" => "wan",
@@ -86,6 +86,8 @@ $g = array(
 	"default_timezone" => "Etc/UTC",
 	"language" => "en_US",
 	"default_config_backup_count" => 30,
+	"default_log_entries" => 500,
+	"default_log_size" => 512000,
 	"minimumtableentries_bogonsv6" => 400000,
 	"alternativemetaports" => array("vmware", "php72", "php73")
 );
@@ -257,6 +259,35 @@ global $system_log_files;
 $system_log_files = array(
 	"system", "filter", "dhcpd", "vpn", "poes", "l2tps", "openvpn",
 	"portalauth", "ipsec", "ppp", "wireless", "nginx", "ntpd", "gateways",
-	"resolver", "routing");
+	"resolver", "routing", "auth");
+
+global $system_log_compression_types;
+$system_log_compression_types = array(
+	'bzip2' => array(
+			'flag' => 'J',
+			'cat' => '/usr/bin/bzcat -qf',
+			'ext' => 'bz2',
+		),
+	'gzip' => array(
+			'flag' => 'Z',
+			'cat' => '/usr/bin/zcat -qf',
+			'ext' => 'gz',
+		),
+	'xz' => array(
+			'flag' => 'X',
+			'cat' => '/usr/bin/xzcat -qf',
+			'ext' => 'xz',
+		),
+	'zstd' => array(
+			'flag' => 'Y',
+			'cat' => '/usr/bin/zstdcat -qqf',
+			'ext' => 'zst',
+		),
+	'none' => array(
+			'flag' => '',
+			'cat' => '/usr/bin/cat',
+			'ext' => '',
+		),
+);
 
 ?>

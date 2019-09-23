@@ -6028,15 +6028,23 @@ function upgrade_194_to_195() {
 	$logfiles = system_syslogd_get_all_logfilenames();
 
 	foreach ($logfiles as $logfile) {
-		$logpath = "{$g['varlog_path']}/{$logfile}.log";
+		if (substr($logfile, -4) != '.log') {
+			$logfile .= ".log";
+		}
+		$logpath = "{$g['varlog_path']}/{$logfile}";
 		exec("/usr/bin/truncate -s 0 " . escapeshellarg($logpath));
 	}
 }
 
-/* Add newsyslog cron job */
+/* Skipped. See https://redmine.pfsense.org/issues/9730 */
 function upgrade_195_to_196() {
+}
+
+/* Add newsyslog cron job */
+function upgrade_196_to_197() {
 	global $g, $config;
 
+	install_cron_job('/usr/sbin/newsyslog', true, "*/1", '*', '*', '*', '*', 'root', false);
 }
 
 /*
@@ -6048,7 +6056,6 @@ function upgrade_195_to_196() {
  *     version
  */
 function additional_config_upgrade() {
-	install_cron_job('/usr/sbin/newsyslog', true, "*/1", '*', '*', '*', '*', 'root', false);
 }
 
 ?>

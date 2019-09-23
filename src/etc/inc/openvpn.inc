@@ -142,13 +142,30 @@ global $openvpn_topologies;
 $openvpn_topologies = array(
 	'subnet' => gettext("Subnet -- One IP address per client in a common subnet"),
 	'net30' => gettext("net30 -- Isolated /30 network per client")
-//	'p2p => gettext("Peer to Peer -- One IP address per client peer-to-peer style. Does not work on Windows.")
 );
 
 global $openvpn_tls_modes;
 $openvpn_tls_modes = array(
 	'auth' => gettext("TLS Authentication"),
 	'crypt' => gettext("TLS Encryption and Authentication")
+);
+
+global $openvpn_ping_method;
+$openvpn_ping_method = array(
+	'keepalive' => gettext("keepalive -- Use keepalive helper to define ping configuration"),
+	'ping' => gettext("ping -- Define ping/ping-exit/ping-restart manually")
+);
+
+global $openvpn_default_keepalive_interval;
+$openvpn_default_keepalive_interval = 10;
+
+global $openvpn_default_keepalive_timeout;
+$openvpn_default_keepalive_timeout = 60;
+
+global $openvpn_ping_action;
+$openvpn_ping_action = array(
+	'ping_restart' => gettext("ping-restart -- Restart OpenVPN after timeout"),
+	'ping_exit' => gettext("ping-exit -- Exit OpenVPN after timeout")
 );
 
 function openvpn_build_mode_list() {
@@ -501,6 +518,16 @@ function openvpn_remap_digest($digest) {
 	return $digest;
 }
 
+function openvpn_get_keydirlist() {
+	$keydirs = array(
+		''  => gettext('Use default direction'),
+		'0' => gettext('Direction 0'),
+		'1' => gettext('Direction 1'),
+		'2' => gettext('Both directions'),
+	);
+	return $keydirs;
+}
+
 function openvpn_get_engines() {
 	$openssl_engines = array('none' => gettext('No Hardware Crypto Acceleration'));
 	exec("/usr/bin/openssl engine -t -c", $openssl_engine_output);
@@ -569,7 +596,7 @@ function openvpn_validate_port($value, $name, $first_port = 0) {
 		$first_port = 0;
 	}
 	if (empty($value) || !is_numeric($value) || $value < $first_port || ($value > 65535)) {
-		return sprintf(gettext("The field '%s' must contain a valid port, ranging from {$first_port} to 65535."), $name);
+		return sprintf(gettext("The field '%s' must contain a valid port, ranging from %s to 65535."), $name, $first_port);
 	}
 	return false;
 }
@@ -819,7 +846,34 @@ function openvpn_reconfigure($mode, $settings) {
 	$conf .= "#group nobody\n";
 	$conf .= "script-security 3\n";
 	$conf .= "daemon\n";
-	$conf .= "keepalive 10 60\n";
+
+	if (!empty($settings['inactive_seconds'])) {
+		$conf .= "inactive {$settings['inactive_seconds']}\n";
+	}
+
+	if (!empty($settings['ping_method']) &&
+	    $settings['ping_method'] == 'ping') {
+		$conf .= "ping {$settings['ping_seconds']}\n";
+
+		if (!empty($settings['ping_push'])) {
+			$conf .= "push \"ping {$settings['ping_seconds']}\"\n";
+		}
+
+		$action = str_replace("_", "-", $settings['ping_action']);
+		$conf .= "{$action} {$settings['ping_action_seconds']}\n";
+
+		if (!empty($settings['ping_action_push'])) {
+			$conf .= "push \"{$action} " .
+			    "{$settings['ping_action_seconds']}\"\n";
+		}
+	} else {
+		$conf .= "keepalive " .
+		    ($settings['keepalive_interval']
+			?: $openvpn_default_keepalive_interval) . " " .
+		    ($settings['keepalive_timeout']
+			?: $openvpn_default_keepalive_timeout) . "\n";
+	}
+
 	$conf .= "ping-timer-rem\n";
 	$conf .= "persist-tun\n";
 	$conf .= "persist-key\n";
@@ -1190,9 +1244,29 @@ function openvpn_reconfigure($mode, $settings) {
 				} else {
 					$tls_directive = "tls-auth";
 					if ($mode == "server") {
-						$tlsopt = 0;
+						switch($settings['tlsauth_keydir']){
+							case '1':
+								$tlsopt = 1;
+								break;
+							case '2':
+								$tlsopt = '';
+								break;
+							default:
+								$tlsopt = 0;
+								break;
+						}
 					} else {
-						$tlsopt = 1;
+						switch($settings['tlsauth_keydir']){
+							case '0':
+								$tlsopt = 0;
+								break;
+							case '2':
+								$tlsopt = '';
+								break;
+							default:
+								$tlsopt = 1;
+								break;
+						}
 					}
 				}
 				openvpn_add_keyfile($settings['tls'], $conf, $mode_id, $tls_directive, $tlsopt);
@@ -1555,43 +1629,34 @@ function openvpn_resync_all($interface = "") {
 		$config['openvpn'] = array();
 	}
 
-/*
-	if (!$config['openvpn']['dh-parameters']) {
-		echo "Configuring OpenVPN Parameters ...\n";
-		$dh_parameters = openvpn_create_dhparams(1024);
-		$dh_parameters = base64_encode($dh_parameters);
-		$config['openvpn']['dh-parameters'] = $dh_parameters;
-		write_config("OpenVPN DH parameters");
-	}
-
-	$path_ovdh = $g['varetc_path']."/openvpn/dh-parameters";
-	if (!file_exists($path_ovdh)) {
-		$dh_parameters = $config['openvpn']['dh-parameters'];
-		$dh_parameters = base64_decode($dh_parameters);
-		file_put_contents($path_ovdh, $dh_parameters);
-	}
-*/
 	if ($interface <> "") {
 		log_error(sprintf(gettext("Resyncing OpenVPN instances for interface %s."), convert_friendly_interface_to_friendly_descr($interface)));
 	} else {
 		log_error(gettext("Resyncing OpenVPN instances."));
 	}
 
-	if (is_array($config['openvpn']['openvpn-server'])) {
-		foreach ($config['openvpn']['openvpn-server'] as & $settings) {
-			if ($interface <> "" && $interface != $settings['interface']) {
-				continue;
-			}
-			openvpn_resync('server', $settings);
+	// Check if OpenVPN clients and servers require a resync.
+	foreach (array("server", "client") as $type) {
+		if (!is_array($config['openvpn']["openvpn-{$type}"])) {
+			continue;
 		}
-	}
+		foreach ($config['openvpn']["openvpn-{$type}"] as & $settings) {
+			$fpath = "{$g['varetc_path']}/openvpn/{$type}" .
+			    $settings['vpnid'] . ".interface";
+			$gw_group_change = FALSE;
+			$ip_change = ($interface === "") ||
+			    ($interface === $settings['interface']);
 
-	if (is_array($config['openvpn']['openvpn-client'])) {
-		foreach ($config['openvpn']['openvpn-client'] as & $settings) {
-			if ($interface <> "" && $interface != $settings['interface']) {
-				continue;
+			if (!$ip_change && file_exists($fpath)) {
+				$gw_group_change =
+				    (trim(file_get_contents($fpath), " \t\n") !=
+				    get_failover_interface(
+					$settings['interface']));
 			}
-			openvpn_resync('client', $settings);
+
+			if ($ip_change || $gw_group_change) {
+				openvpn_resync($type, $settings);
+			}
 		}
 	}
 

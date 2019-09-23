@@ -90,6 +90,7 @@ if ($act == "new") {
 	$pconfig['ncp-ciphers'] = "AES-128-GCM";
 	$pconfig['autokey_enable'] = "yes";
 	$pconfig['tlsauth_enable'] = "yes";
+	$pconfig['tlsauth_keydir'] = "";
 	$pconfig['autotls_enable'] = "yes";
 	$pconfig['interface'] = "wan";
 	$pconfig['server_port'] = 1194;
@@ -149,6 +150,7 @@ if ($act == "edit") {
 		} else {
 			$pconfig['shared_key'] = base64_decode($a_client[$id]['shared_key']);
 		}
+		$pconfig['tlsauth_keydir'] = $a_client[$id]['tlsauth_keydir'];
 		$pconfig['crypto'] = $a_client[$id]['crypto'];
 		$pconfig['digest'] = !empty($a_client[$id]['digest']) ? $a_client[$id]['digest'] : "SHA256";
 		$pconfig['engine'] = $a_client[$id]['engine'];
@@ -181,6 +183,14 @@ if ($act == "edit") {
 		} else {
 			$pconfig['verbosity_level'] = 1; // Default verbosity is 1
 		}
+
+		$pconfig['ping_method'] = $a_client[$id]['ping_method'];
+		$pconfig['keepalive_interval'] = $a_client[$id]['keepalive_interval'];
+		$pconfig['keepalive_timeout'] = $a_client[$id]['keepalive_timeout'];
+		$pconfig['ping_seconds'] = $a_client[$id]['ping_seconds'];
+		$pconfig['ping_action'] = $a_client[$id]['ping_action'];
+		$pconfig['ping_action_seconds'] = $a_client[$id]['ping_action_seconds'];
+		$pconfig['inactive_seconds'] = $a_client[$id]['inactive_seconds'] ?: 0;
 	}
 }
 
@@ -435,6 +445,7 @@ if ($_POST['save']) {
 				}
 				$client['tls'] = base64_encode($pconfig['tls']);
 				$client['tls_type'] = $pconfig['tls_type'];
+				$client['tlsauth_keydir'] = $pconfig['tlsauth_keydir'];
 			}
 		} else {
 			$client['shared_key'] = base64_encode($pconfig['shared_key']);
@@ -464,6 +475,14 @@ if ($_POST['save']) {
 		}
 
 		$client['ncp_enable'] = $pconfig['ncp_enable'] ? "enabled":"disabled";
+
+		$client['ping_method'] = $pconfig['ping_method'];
+		$client['keepalive_interval'] = $pconfig['keepalive_interval'];
+		$client['keepalive_timeout'] = $pconfig['keepalive_timeout'];
+		$client['ping_seconds'] = $pconfig['ping_seconds'];
+		$client['ping_action'] = $pconfig['ping_action'];
+		$client['ping_action_seconds'] = $pconfig['ping_action_seconds'];
+		$client['inactive_seconds'] = $pconfig['inactive_seconds'];
 
 		if (isset($id) && $a_client[$id]) {
 			$a_client[$id] = $client;
@@ -684,6 +703,15 @@ if ($act=="new" || $act=="edit"):
 		))->setHelp('In Authentication mode the TLS key is used only as HMAC authentication for the control channel, protecting the peers from unauthorized connections. %1$s' .
 		    'Encryption and Authentication mode also encrypts control channel communication, providing more privacy and traffic control channel obfuscation.', '<br/>');
 
+	$section->addInput(new Form_Select(
+		'tlsauth_keydir',
+		'*TLS keydir direction',
+		$pconfig['tlsauth_keydir'],
+		openvpn_get_keydirlist()
+        ))->setHelp('The TLS Key Direction must be set to complementary values on the client and server. ' .
+			'For example, if the server is set to 0, the client must be set to 1. ' .
+			'Both may be set to omit the direction, in which case the TLS Key will be used bidirectionally.');
+
 	if (count($a_ca)) {
 		$list = array();
 		foreach ($a_ca as $ca) {
@@ -899,6 +927,78 @@ if ($act=="new" || $act=="edit"):
 		'Don\'t add or remove routes automatically',
 		$pconfig['route_no_exec']
 	))->setHelp('Do not execute operating system commands to install routes. Instead, pass routes to --route-up script using environmental variables.');
+
+	$form->add($section);
+
+	$section = new Form_Section("Ping settings");
+
+	$section->addInput(new Form_Input(
+		'inactive_seconds',
+		'Inactive',
+		'number',
+		$pconfig['inactive_seconds'] ?: 0,
+		['min' => '0']
+	    ))->setHelp('Causes OpenVPN to exit after n seconds of ' .
+	    'inactivity on the TUN/TAP device.%1$s' .
+	    'The time length of inactivity is measured since the last ' .
+	    'incoming or outgoing tunnel packet.%1$s' .
+	    '0 disables this feature.%1$s', '<br />');
+
+	$section->addInput(new Form_Select(
+		'ping_method',
+		'Ping method',
+		$pconfig['ping_method'],
+		$openvpn_ping_method
+	))->setHelp('keepalive helper uses interval and timeout parameters ' .
+	    'to define ping and ping-restart values as follows:%1$s' .
+	    'ping = interval%1$s' .
+	    'ping-restart = timeout%1$s',
+	    '<br />');
+
+	$section->addInput(new Form_Input(
+		'keepalive_interval',
+		'Interval',
+		'number',
+		$pconfig['keepalive_interval']
+		    ?: $openvpn_default_keepalive_interval,
+		['min' => '0']
+	));
+
+	$section->addInput(new Form_Input(
+		'keepalive_timeout',
+		'Timeout',
+		'number',
+		$pconfig['keepalive_timeout']
+		    ?: $openvpn_default_keepalive_timeout,
+		['min' => '0']
+	));
+
+	$section->addInput(new Form_Input(
+		'ping_seconds',
+		'Ping',
+		'number',
+		$pconfig['ping_seconds'] ?: $openvpn_default_keepalive_interval,
+		['min' => '0']
+	))->setHelp('Ping remote over the TCP/UDP control channel if no ' .
+	    'packets have been sent for at least n seconds.%1$s',
+	    '<br />');
+
+	$section->addInput(new Form_Select(
+		'ping_action',
+		'Ping restart or exit',
+		$pconfig['ping_action'],
+		$openvpn_ping_action
+	))->setHelp('Exit or restart OpenVPN after timeout from remote%1$s',
+	    '<br />');
+
+	$section->addInput(new Form_Input(
+		'ping_action_seconds',
+		'Ping restart or exit seconds',
+		'number',
+		$pconfig['ping_action_seconds']
+		    ?: $openvpn_default_keepalive_timeout,
+		['min' => '0']
+	));
 
 	$form->add($section);
 
@@ -1129,6 +1229,18 @@ events.push(function() {
 		hideInput('tls_type', $('#autotls_enable').prop('checked') || !$('#tlsauth_enable').prop('checked') || ($('#mode').val() == 'p2p_shared_key'));
 	}
 
+	function ping_method_change() {
+		pvalue = $('#ping_method').val();
+
+		keepalive = (pvalue == 'keepalive');
+
+		hideInput('keepalive_interval', !keepalive);
+		hideInput('keepalive_timeout', !keepalive);
+		hideInput('ping_seconds', keepalive);
+		hideInput('ping_action', keepalive);
+		hideInput('ping_action_seconds', keepalive);
+	}
+
 	// ---------- Monitor elements for change and call the appropriate display functions ------------------------------
 
 	 // TLS Authorization
@@ -1161,17 +1273,22 @@ events.push(function() {
 		dev_mode_change();
 	});
 
+	// ping
+	$('#ping_method').change(function () {
+		ping_method_change();
+	});
+
 	 // Auto TLS
 	$('#autotls_enable').click(function () {
 		autotls_change();
 	});
 
-	function updateCiphers(mem) {
+	function updateCipher(mem) {
 		var found = false;
 
 		// If the cipher exists, remove it
 		$('[id="ncp-ciphers[]"] option').each(function() {
-			if($(this).val() == mem) {
+			if($(this).val().toString() == mem) {
 				$(this).remove();
 				found = true;
 			}
@@ -1181,6 +1298,10 @@ events.push(function() {
 		if (!found) {
 			$('[id="ncp-ciphers[]"]').append(new Option(mem , mem));
 		}
+	}
+
+	function updateCiphers(mem) {
+		mem.toString().split(",").forEach(updateCipher);
 
 		// Unselect all options
 		$('[id="availciphers[]"] option:selected').removeAttr("selected");
@@ -1211,6 +1332,7 @@ events.push(function() {
 	autokey_change();
 	tlsauth_change();
 	useproxy_changed();
+	ping_method_change();
 });
 //]]>
 </script>

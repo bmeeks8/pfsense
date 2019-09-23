@@ -163,6 +163,9 @@ $p1_dhgroups = array(
 	22 => '22 (1024(sub 160) bit)',
 	23 => '23 (2048(sub 224) bit)',
 	24 => '24 (2048(sub 256) bit)',
+	25 => '25 (nist ecp192)',
+	26 => '26 (nist ecp224)',
+	27 => '27 (brainpool ecp224)',
 	28 => '28 (brainpool ecp256)',
 	29 => '29 (brainpool ecp384)',
 	30 => '30 (brainpool ecp512)',
@@ -198,6 +201,15 @@ $ipsec_preshared_key_type = array(
 	'EAP' => 'EAP'
 );
 
+global $ipsec_closeactions;
+$ipsec_closeactions = array(
+	'' => gettext('Default'),
+	'none' => gettext('No action'),
+	'restart' => gettext('Restart/Reconnect'),
+	'clear' => gettext('Close connection and clear SA'),
+	'hold' => gettext('Close connection and reconnect on demand'),
+);
+
 global $p2_modes;
 $p2_modes = array(
 	'tunnel' => gettext('Tunnel IPv4'),
@@ -229,6 +241,9 @@ $p2_pfskeygroups = array(
 	22 => gettext('22 (1024(sub 160) bit)'),
 	23 => gettext('23 (2048(sub 224) bit)'),
 	24 => gettext('24 (2048(sub 256) bit)'),
+	25 => gettext('25 (nist ecp192)'),
+	26 => gettext('26 (nist ecp224)'),
+	27 => gettext('27 (brainpool ecp224)'),
 	28 => gettext('28 (brainpool ecp256)'),
 	29 => gettext('29 (brainpool ecp384)'),
 	30 => gettext('30 (brainpool ecp512)'),

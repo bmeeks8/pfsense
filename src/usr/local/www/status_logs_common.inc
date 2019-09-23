@@ -26,7 +26,7 @@
  */
 
 require_once("guiconfig.inc");
-require_once("filter_log.inc");
+require_once("syslog.inc");
 
 
 // Status Logs Common - Code
@@ -34,7 +34,11 @@ function status_logs_common_code() {
 	global $g, $config, $user_settings, $specific_log, $nentries, $rawfilter, $filterlogentries_qty, $logfile_path, $shortcut_section, $allowed_logs, $logfile;
 	global $system_logs_filter_form_hidden, $system_logs_manage_log_form_hidden, $view;
 
-	$logfile_path = "{$g['varlog_path']}/" . basename($logfile) . ".log";
+	$logfile_path = "{$g['varlog_path']}/" . basename($logfile);
+	/* Only add .log suffix if necessary */
+	if (!in_array($logfile, array('userlog', 'dmesg.boot'))) {
+		$logfile_path .= ".log";
+	}
 
 	$specific_log = basename($logfile) . '_settings';
 
@@ -46,7 +50,7 @@ function status_logs_common_code() {
 	}
 
 	if (!$nentries || !is_numeric($nentries)) {
-		$nentries = 50;
+		$nentries = $g['default_log_entries'];
 	}
 
 	if ($_POST['clear']) {
@@ -63,7 +67,8 @@ function status_logs_common_code() {
 	$system_logs_filter_form_hidden = !$user_settings['webgui']['systemlogsfilterpanel'];
 	$system_logs_manage_log_form_hidden = !$user_settings['webgui']['systemlogsmanagelogpanel'];
 
-	if ($logfile == 'filter' && $view == 'summary') {
+	if (($logfile == 'filter' && $view == 'summary') ||
+	    in_array($logfile, array('utx', 'userlog'))) {
 		$system_logs_filter_form_hidden = false;
 		$system_logs_manage_log_form_hidden = false;
 	}
@@ -82,7 +87,8 @@ function status_logs_common_code() {
 function tab_array_logs_common() {
 	global $tab_array, $logfile, $vpntype, $view;
 
-	$is_system_log = in_array($logfile, array('system', 'gateways', 'routing', 'resolver', 'wireless'));
+	$is_system_log = in_array($logfile, array('system', 'gateways', 'routing', 'resolver', 'wireless', 'nginx', 'dmesg.boot'));
+	$is_auth_log = in_array($logfile, array('auth', 'portalauth', 'utx', 'userlog'));
 	$is_filter_log = in_array($logfile, array('filter'));
 	$is_pppoe_l2tp_vpn_log = in_array($logfile, array('poes', 'l2tps', 'vpn'));
 
@@ -90,13 +96,14 @@ function tab_array_logs_common() {
 	$tab_array[] = array(gettext("System"), $is_system_log, "status_logs.php");
 	$tab_array[] = array(gettext("Firewall"), $is_filter_log, "status_logs_filter.php");
 	$tab_array[] = array(gettext("DHCP"), ($logfile == 'dhcpd'), "status_logs.php?logfile=dhcpd");
-	$tab_array[] = array(gettext("Captive Portal Auth"), ($logfile == 'portalauth'), "status_logs.php?logfile=portalauth");
+	$tab_array[] = array(gettext("Authentication"), $is_auth_log, "status_logs.php?logfile=auth");
 	$tab_array[] = array(gettext("IPsec"), ($logfile == 'ipsec'), "status_logs.php?logfile=ipsec");
 	$tab_array[] = array(gettext("PPP"), ($logfile == 'ppp'), "status_logs.php?logfile=ppp");
-	$tab_array[] = array(gettext("VPN"), $is_pppoe_l2tp_vpn_log, "status_logs_vpn.php");
+	$tab_array[] = array(gettext("PPPoE/L2TP Server"), $is_pppoe_l2tp_vpn_log, "status_logs_vpn.php");
 	$tab_array[] = array(gettext("OpenVPN"), ($logfile == 'openvpn'), "status_logs.php?logfile=openvpn");
 	$tab_array[] = array(gettext("NTP"), ($logfile == 'ntpd'), "status_logs.php?logfile=ntpd");
-	$tab_array[] = array(gettext("Settings"), false, "status_logs_settings.php");
+	$tab_array[] = array(gettext("Packages"), (basename($_SERVER["SCRIPT_FILENAME"]) == "status_logs_packages.php"), "status_logs_packages.php");
+	$tab_array[] = array(gettext("Settings"), (basename($_SERVER["SCRIPT_FILENAME"]) == "status_logs_settings.php"), "status_logs_settings.php");
 	display_top_tabs($tab_array);
 
 	$tab_array = array();
@@ -106,13 +113,24 @@ function tab_array_logs_common() {
 		$tab_array[] = array(gettext("Routing"), ($logfile == 'routing'), "/status_logs.php?logfile=routing");
 		$tab_array[] = array(gettext("DNS Resolver"), ($logfile == 'resolver'), "/status_logs.php?logfile=resolver");
 		$tab_array[] = array(gettext("Wireless"), ($logfile == 'wireless'), "/status_logs.php?logfile=wireless");
-	}
-	else if ($is_filter_log) {
+		$tab_array[] = array(gettext("GUI Service"), ($logfile == 'nginx'), "/status_logs.php?logfile=nginx");
+		$tab_array[] = array(gettext("OS Boot"), ($logfile == 'dmesg.boot'), "/status_logs.php?logfile=dmesg.boot");
+	} else if ($is_auth_log) {
+		$tab_array[] = array(gettext("General"), ($logfile == 'auth'), "status_logs.php?logfile=auth");
+		$tab_array[] = array(gettext("Captive Portal Auth"), ($logfile == 'portalauth'), "status_logs.php?logfile=portalauth");
+		$tab_array[] = array(gettext("PPPoE Logins"),
+					(($logfile == 'vpn') && ($vpntype == "poes")),
+					"/status_logs_vpn.php?logfile=vpn&amp;vpntype=poes");
+		$tab_array[] = array(gettext("L2TP Logins"),
+					(($logfile == 'vpn') && ($vpntype == "l2tp")),
+					"/status_logs_vpn.php?logfile=vpn&amp;vpntype=l2tp");
+		$tab_array[] = array(gettext("OS User Events"), ($logfile == 'utx'), "status_logs.php?logfile=utx");
+		$tab_array[] = array(gettext("OS Account Changes"), ($logfile == 'userlog'), "status_logs.php?logfile=userlog");
+	} else if ($is_filter_log) {
 		$tab_array[] = array(gettext("Normal View"), ($view == 'normal'), "/status_logs_filter.php");
 		$tab_array[] = array(gettext("Dynamic View"), ($view == 'dynamic'), "/status_logs_filter_dynamic.php?logfile=filter&amp;view=dynamic");
 		$tab_array[] = array(gettext("Summary View"), ($view == 'summary'), "/status_logs_filter_summary.php?logfile=filter&amp;view=summary");
-	}
-	else if ($is_pppoe_l2tp_vpn_log) {
+	} else if ($is_pppoe_l2tp_vpn_log) {
 		$tab_array[] = array(gettext("PPPoE Logins"),
 					(($logfile == 'vpn') && ($vpntype == "poes")),
 					"/status_logs_vpn.php?logfile=vpn&amp;vpntype=poes");
@@ -164,12 +182,9 @@ function system_log_filter() {
 	global $rawfilter, $filtersubmit, $filterlogentries_submit, $filterlog, $nentries;
 	global $logfile_path, $filtertext, $filterfieldsarray, $interfacefilter, $inverse, $rows;
 
-	if ($rawfilter) {
-		if (($filtersubmit) || ($filterlogentries_submit)) {
-			$rows = dump_log($logfile_path, $nentries, true, array("$filtertext"), $inverse);
-		} else {
-			$rows = dump_log($logfile_path, $nentries, true, array(), $inverse);
-		}
+	if ($rawfilter && (basename($logfile_path) != 'utx.log')) {
+		$filtertext = (($filtersubmit) || ($filterlogentries_submit)) ? $filtertext : null;
+		$rows = dump_log($logfile_path, $nentries, true, array($filtertext), $inverse, 'raw');
 	} else {
 		if (($filtersubmit) || ($filterlogentries_submit)) {
 			$filterlog = conv_log_filter($logfile_path, $nentries, $nentries + 100, $filterfieldsarray);
@@ -212,7 +227,7 @@ function log_filter_form_system_submit() {
 // Filter Section/Form - System
 function filter_form_system() {
 
-	global $filter_active, $rawfilter, $filterfieldsarray, $filtertext, $filterlogentries_qty, $nentries, $Include_Act, $interfacefilter;
+	global $logfile, $filter_active, $rawfilter, $filterfieldsarray, $filtertext, $filterlogentries_qty, $nentries, $Include_Act, $interfacefilter;
 	global $system_logs_filter_form_hidden;
 
 	if ($filter_active) {
@@ -229,6 +244,23 @@ function filter_form_system() {
 	}
 
 	if (!$rawfilter) { // Advanced log filter form
+
+		if ($logfile == 'utx') {
+			$filter_form_labels = array(
+				'filterlogentries_time'    => gettext('Login Time'),
+				'filterlogentries_process' => gettext('Duration'),
+				'filterlogentries_pid'     => gettext('TTY'),
+				'filterlogentries_message' => gettext('User/Message'),
+			);
+		} else {
+			$filter_form_labels = array(
+				'filterlogentries_time'    => gettext('Time'),
+				'filterlogentries_process' => gettext('Process'),
+				'filterlogentries_pid'     => gettext('PID'),
+				'filterlogentries_message' => gettext('Message'),
+			);
+		}
+
 		$form = new Form(false);
 		$form->setAttribute('id', 'filter-form')->addClass('collapse ' . $panel_state);
 
@@ -241,21 +273,21 @@ function filter_form_system() {
 			null,
 			'text',
 			$filterfieldsarray['time']
-		))->setWidth(3)->setHelp('Time');
+		))->setWidth(3)->setHelp($filter_form_labels['filterlogentries_time']);
 
 		$group->add(new Form_Input(
 			'filterlogentries_process',
 			null,
 			'text',
 			$filterfieldsarray['process']
-		))->setWidth(2)->setHelp('Process');
+		))->setWidth(2)->setHelp($filter_form_labels['filterlogentries_process']);
 
 		$group->add(new Form_Input(
 			'filterlogentries_pid',
 			null,
 			'text',
 			$filterfieldsarray['pid']
-		))->setWidth(2)->setHelp('PID');
+		))->setWidth(2)->setHelp($filter_form_labels['filterlogentries_pid']);
 
 		$group->add(new Form_Input(
 			'filterlogentries_qty',
@@ -274,7 +306,7 @@ function filter_form_system() {
 			null,
 			'text',
 			$filterfieldsarray['message']
-		))->setWidth(7)->setHelp('Message');
+		))->setWidth(7)->setHelp($filter_form_labels['filterlogentries_message']);
 
 		$btnsubmit = new Form_Button(
 			'filterlogentries_submit',
@@ -593,10 +625,11 @@ function manage_log_code() {
 	init_config_arr(array('syslog', $specific_log));
 
 	// Common to All Logs
-	$pconfig['cronorder'] = isset($config['syslog'][$specific_log]['cronorder']) ? $config['syslog'][$specific_log]['cronorder'] : "forward";
-	$pconfig['nentries'] = isset($config['syslog'][$specific_log]['nentries']) ? $config['syslog'][$specific_log]['nentries'] : 50;
-	$pconfig['logfilesize'] = isset($config['syslog'][$specific_log]['logfilesize']) ? $config['syslog'][$specific_log]['logfilesize'] : 511488;
-	$pconfig['format'] = isset($config['syslog'][$specific_log]['format']) ? $config['syslog'][$specific_log]['format'] : "formatted";
+	$pconfig['cronorder'] = isset($config['syslog'][$specific_log]['cronorder']) ? $config['syslog'][$specific_log]['cronorder'] : null;
+	$pconfig['nentries'] = isset($config['syslog'][$specific_log]['nentries']) ? $config['syslog'][$specific_log]['nentries'] : null;
+	$pconfig['logfilesize'] = isset($config['syslog'][$specific_log]['logfilesize']) ? $config['syslog'][$specific_log]['logfilesize'] : null;
+	$pconfig['rotatecount'] = isset($config['syslog'][$specific_log]['rotatecount']) ? $config['syslog'][$specific_log]['rotatecount'] : null;
+	$pconfig['format'] = isset($config['syslog'][$specific_log]['format']) ? $config['syslog'][$specific_log]['format'] : null;
 
 	// Specific to System General (main) Log
 	if ($logfile == 'system') {
@@ -609,7 +642,7 @@ function manage_log_code() {
 		$pconfig['logdefaultpass'] = isset($config['syslog']['nologdefaultpass']);
 		$pconfig['logbogons'] = !isset($config['syslog']['nologbogons']);
 		$pconfig['logprivatenets'] = !isset($config['syslog']['nologprivatenets']);
-		$pconfig['filterdescriptions'] = isset($config['syslog']['filterdescriptions']) ? $config['syslog']['filterdescriptions'] : 1;
+		$pconfig['filterdescriptions'] = isset($config['syslog']['filterdescriptions']) ? $config['syslog']['filterdescriptions'] : null;
 	}
 
 	$save_settings = getGETPOSTsettingvalue('save_settings', null);
@@ -620,6 +653,7 @@ function manage_log_code() {
 		$cronorder = getGETPOSTsettingvalue('cronorder',  null);
 		$nentries = getGETPOSTsettingvalue('nentries', null);
 		$logfilesize = getGETPOSTsettingvalue('logfilesize', null);
+		$rotatecount = getGETPOSTsettingvalue('rotatecount', null);
 		$format  = getGETPOSTsettingvalue('format',  null);
 
 		// Specific to System General (main) Log
@@ -655,6 +689,13 @@ function manage_log_code() {
 				$input_errors[] = gettext("Log file size is too large. Set a smaller value.");
 			}
 		}
+		if (isset($rotatecount) && (strlen($rotatecount) > 0)) {
+			if (!is_numericint($rotatecount) ||
+			    ($rotatecount < 0) ||
+			    ($rotatecount > 99)) {
+				$input_errors[] = gettext("Log Retention Count must be an integer from 0 to 99.");
+			}
+		}
 
 		if (!$input_errors) {
 
@@ -675,6 +716,10 @@ function manage_log_code() {
 
 			if (isset($logfilesize) && (strlen($logfilesize) > 0)) {
 				$config['syslog'][$specific_log]['logfilesize'] = (int)$logfilesize;
+			}
+
+			if (isset($rotatecount) && (strlen($rotatecount) > 0)) {
+				$config['syslog'][$specific_log]['rotatecount'] = (int)$rotatecount;
 			}
 
 			if ($format != '') { # if not using the general logging options setting (global)
@@ -761,7 +806,7 @@ function manage_log_section() {
 		return;
 	}
 
-	global $input_errors, $allowed_logs, $logfile, $config, $pconfig;
+	global $g, $input_errors, $allowed_logs, $logfile, $config, $pconfig;
 	global $system_logs_manage_log_form_hidden;
 
 	if ($input_errors) {
@@ -831,25 +876,37 @@ function manage_log_section() {
 		'GUI Log Entries',
 		'number',
 		$pconfig['nentries'],
-		['min' => 5, 'max' => 2000, 'placeholder' => $config['syslog']['nentries'] ? $config['syslog']['nentries'] : "50"]
+		['min' => 5, 'max' => 200000, 'placeholder' => $config['syslog']['nentries'] ? $config['syslog']['nentries'] : $g['default_log_entries']]
 	))->setWidth(2);
 
 	$group->setHelp('This is the number of log entries displayed in the GUI. It does not affect how many entries are contained in the log.');
 	$section->add($group);
 
-	$group = new Form_Group('Log file size (Bytes)');
+	$group = new Form_Group('Log Rotation Size (Bytes)');
 
 	// Use the general logging options setting (global) as placeholder.
 	$group->add(new Form_Input(
 		'logfilesize',
-		'Log file size (Bytes)',
+		'Log Rotation Size (Bytes)',
 		'number',
 		$pconfig['logfilesize'],
-		['min' => 100000, 'placeholder' => $config['syslog']['logfilesize'] ? $config['syslog']['logfilesize'] : "511488"]
+		['min' => 100000, 'placeholder' => $config['syslog']['logfilesize'] ? $config['syslog']['logfilesize'] : $g['default_log_size']]
 	))->setWidth(2);
-	$group->setHelp('The log is held in a constant-size circular log file. This field controls how large the log file is, and thus how many entries may exist inside the log. The default is approximately 500KB.%1$s' .
-				'NOTE: The log size is changed the next time it is cleared. To immediately change the log size, first save the options to set the size, then clear the log using the "Clear Log" action below. ',
-				'<br /><br />');
+	$group->setHelp('This field controls the size at which logs will be rotated. By default this is %1 per log file.%2$s' .
+				'NOTE: Log file sizes are checked once per minute to determine if rotation is necessary, so a very rapidly growing log file may exceed this value. ',
+				format_bytes($g['default_log_size']), '<br /><br />');
+	$section->add($group);
+
+	$group = new Form_Group('Log Retention Count');
+	// Use the general logging options setting (global) as placeholder.
+	$group->add(new Form_Input(
+		'rotatecount',
+		'Log Retention Count',
+		'number',
+		$pconfig['rotatecount'],
+		['min' => 0, 'max' => 99, 'placeholder' => $config['syslog']['rotatecount'] ? $config['syslog']['rotatecount'] : 7]
+	))->setWidth(2);
+	$group->setHelp('The number of log files to keep before the oldest copy is removed on rotation.');
 	$section->add($group);
 
 	$group = new Form_Group('Formatted/Raw Display');

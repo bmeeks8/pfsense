@@ -1427,12 +1427,10 @@ function interface_ipsec_vti_configure($ph1ent) {
 			continue;
 		}
 		// Create IPsec interface
-		if (platform_booting() || !does_interface_exist($ipsecif)) {
+		if (!platform_booting() && does_interface_exist($ipsecif)) {
 			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " destroy", false);
-			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " create reqid " . escapeshellarg($ipsecifnum), false);
-		} else {
-			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " create reqid " . escapeshellarg($ipsecifnum), false);
 		}
+		mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " create reqid " . escapeshellarg($ipsecifnum), false);
 
 		/* Apply the outer tunnel addresses to the interface */
 		$inet = is_ipaddrv6($left_spec) ? "inet6" : "inet";
@@ -2122,15 +2120,6 @@ function interface_ppps_configure($interface) {
 	}
 	$upper_type = strtoupper($ppp['type']);
 
-	/* XXX: This does not make sense and may create trouble
-	 * comment it for now to be removed later on.
-	if (platform_booting()) {
-		$descr = isset($ifcfg['descr']) ? $ifcfg['descr'] : strtoupper($interface);
-		echo "starting {$pppif} link...";
-		if (isvalidpid("{$g['varrun_path']}/{$ppp['type']}_{$interface}.pid"))
-			return 0;
-	}
-	*/
 	$confports = explode(',', $ppp['ports']);
 	if ($type == "modem") {
 		$ports = $confports;

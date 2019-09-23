@@ -107,6 +107,15 @@ function vpn_ipsec_convert_to_modp($index) {
 		case '24':
 			$conversion = "modp2048s256";
 			break;
+		case '25':
+			$conversion = "ecp192";
+			break;
+		case '26':
+			$conversion = "ecp224";
+			break;
+		case '27':
+			$conversion = "ecp224bp";
+			break;
 		case '28':
 			$conversion = "ecp256bp";
 			break;
@@ -855,6 +864,12 @@ EOD;
 			$ikeid = $ph1ent['ikeid'];
 			$keyexchange = "ikev1";
 			$passive = "route";
+
+			$closeaction = "";
+			if (!empty($ph1ent['closeaction'])) {
+				$closeaction = "closeaction = {$ph1ent['closeaction']}";
+			}
+
 			if (!empty($ph1ent['iketype'])) {
 				if ($ph1ent['iketype'] == "ikev2") {
 					$keyexchange = "ikev2";
@@ -1292,7 +1307,9 @@ EOD;
 													if (!empty($modp)) {
 														$tmpealgo .= "-{$modp}";
 													}
-													$ealgoESPsp2arr[] = $tmpealgo;
+													if (!in_array($tmpealgo, $ealgoESPsp2arr)) {
+														$ealgoESPsp2arr[] = $tmpealgo;
+													}
 												}
 											} else {
 												$tmpealgo = "{$ealg_id}{$keylen}";
@@ -1300,7 +1317,9 @@ EOD;
 												if (!empty($modp)) {
 													$tmpealgo .= "-{$modp}";
 												}
-												$ealgoESPsp2arr[] = $tmpealgo;
+												if (!in_array($tmpealgo, $ealgoESPsp2arr)) {
+													$ealgoESPsp2arr[] = $tmpealgo;
+												}
 											}
 										}
 									}
@@ -1313,7 +1332,9 @@ EOD;
 											if (!empty($modp)) {
 												$tmpealgo .= "-{$modp}";
 											}
-											$ealgoESPsp2arr[] = $tmpealgo;
+											if (!in_array($tmpealgo, $ealgoESPsp2arr)) {
+												$ealgoESPsp2arr[] = $tmpealgo;
+											}
 										}
 									} else {
 										$tmpealgo = "{$ealg_id}{$ealg_kl}";
@@ -1321,7 +1342,9 @@ EOD;
 										if (!empty($modp)) {
 											$tmpealgo .= "-{$modp}";
 										}
-										$ealgoESPsp2arr[] = $tmpealgo;
+										if (!in_array($tmpealgo, $ealgoESPsp2arr)) {
+											$ealgoESPsp2arr[] = $tmpealgo;
+										}
 									}
 								}
 							}
@@ -1334,7 +1357,9 @@ EOD;
 								if (!empty($modp)) {
 									$tmpAHalgo = "-{$modp}";
 								}
-								$ealgoAHsp2arr[] = $tmpAHalgo;
+								if (!in_array($tmpAHalgo, $ealgoAHsp2arr)) {
+									$ealgoAHsp2arr[] = $tmpAHalgo;
+								}
 							}
 						}
 					}
@@ -1364,6 +1389,7 @@ EOD;
 	{$installpolicy}
 	{$tunneltype}
 	{$dpdline}
+	{$closeaction}
 	auto = {$passive}
 	left = {$left_spec}
 	right = {$right_spec}

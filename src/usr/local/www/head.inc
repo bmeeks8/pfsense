@@ -359,7 +359,6 @@ $status_menu[] = array(gettext("Interfaces"), "/status_interfaces.php");
 $status_menu[] = array(gettext("IPsec"), "/status_ipsec.php");
 $status_menu[] = array(gettext("NTP"), "/status_ntpd.php");
 $status_menu[] = array(gettext("OpenVPN"), "/status_openvpn.php");
-$status_menu[] = array(gettext("Package Logs"), "/status_pkglogs.php");
 $status_menu[] = array(gettext("Queues"), "/status_queues.php");
 $status_menu[] = array(gettext("Services"), "/status_services.php");
 $status_menu[] = array(gettext("System Logs"), "/status_logs.php");
@@ -638,6 +637,11 @@ if (are_notices_pending()) {
 	<?php endif?>
 
 <?php
+/* Determine shortcut section for XML-based packages */
+if (empty($shortcut_section) && !empty($xmlfile)) {
+	$shortcut_section = basename($pagename, '.xml');
+}
+
 if (!$hide_service_status && !empty($shortcuts[$shortcut_section]['service']) && isAllowedPage('status_services.php')) {
 	$ssvc = array();
 	switch ($shortcut_section) {

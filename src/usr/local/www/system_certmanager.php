@@ -41,12 +41,17 @@ $cert_methods = array(
 );
 
 $cert_keylens = array("1024", "2048", "3072", "4096", "6144", "7680", "8192", "15360", "16384");
+$cert_keytypes = array("RSA", "ECDSA");
 $cert_types = array(
 	"server" => "Server Certificate",
 	"user" => "User Certificate");
 
 global $cert_altname_types;
 global $openssl_digest_algs;
+global $cert_strict_values;
+$max_lifetime = cert_get_max_lifetime();
+$default_lifetime = min(3650, $max_lifetime);
+$openssl_ecnames = openssl_get_curve_names();
 
 if (isset($_REQUEST['userid']) && is_numericint($_REQUEST['userid'])) {
 	$userid = $_REQUEST['userid'];
@@ -93,13 +98,17 @@ if ($_POST['act'] == "del") {
 
 if ($act == "new") {
 	$pconfig['method'] = $_POST['method'];
+	$pconfig['keytype'] = "RSA";
 	$pconfig['keylen'] = "2048";
+	$pconfig['ecname'] = "brainpoolP256r1";
 	$pconfig['digest_alg'] = "sha256";
+	$pconfig['csr_keytype'] = "RSA";
 	$pconfig['csr_keylen'] = "2048";
+	$pconfig['csr_ecname'] = "brainpoolP256r1";
 	$pconfig['csr_digest_alg'] = "sha256";
 	$pconfig['csrsign_digest_alg'] = "sha256";
 	$pconfig['type'] = "user";
-	$pconfig['lifetime'] = "3650";
+	$pconfig['lifetime'] = $default_lifetime;
 }
 
 if ($act == "exp") {
@@ -216,11 +225,16 @@ if ($_POST['save']) {
 				$input_errors[] = gettext("This signing request does not appear to be valid.");
 			}
 
-			if ( (($_POST['csrtosign'] === "new") && (strlen($_POST['keypaste']) > 0)) && (!strstr($_POST['keypaste'], "BEGIN PRIVATE KEY") || !strstr($_POST['keypaste'], "END PRIVATE KEY"))) {
+			if ( (($_POST['csrtosign'] === "new") && (strlen($_POST['keypaste']) > 0)) && 
+			    ((!strstr($_POST['keypaste'], "BEGIN PRIVATE KEY") && !strstr($_POST['keypaste'], "BEGIN EC PRIVATE KEY")) || 
+			    (strstr($_POST['keypaste'], "BEGIN PRIVATE KEY") && !strstr($_POST['keypaste'], "END PRIVATE KEY")) ||
+			    (strstr($_POST['keypaste'], "BEGIN EC PRIVATE KEY") && !strstr($_POST['keypaste'], "END EC PRIVATE KEY")))) {
 				$input_errors[] = gettext("This private does not appear to be valid.");
 				$input_errors[] = gettext("Key data field should be blank, or a valid x509 private key");
 			}
-
+			if ($_POST['lifetime'] > $max_lifetime) {
+				$input_errors[] = gettext("Lifetime is longer than the maximum allowed value. Use a shorter lifetime.");
+			}
 		}
 
 		if ($pconfig['method'] == "import") {
@@ -241,22 +255,29 @@ if ($_POST['save']) {
 
 		if ($pconfig['method'] == "internal") {
 			$reqdfields = explode(" ",
-				"descr caref keylen type lifetime dn_commonname");
+				"descr caref keylen ecname keytype type lifetime dn_commonname");
 			$reqdfieldsn = array(
 				gettext("Descriptive name"),
 				gettext("Certificate authority"),
 				gettext("Key length"),
+				gettext("Elliptic Curve Name"),
+				gettext("Key type"),
 				gettext("Certificate Type"),
 				gettext("Lifetime"),
 				gettext("Common Name"));
+			if ($_POST['lifetime'] > $max_lifetime) {
+				$input_errors[] = gettext("Lifetime is longer than the maximum allowed value. Use a shorter lifetime.");
+			}
 		}
 
 		if ($pconfig['method'] == "external") {
 			$reqdfields = explode(" ",
-				"descr csr_keylen csr_dn_commonname");
+				"descr csr_keylen csr_ecname csr_keytype csr_dn_commonname");
 			$reqdfieldsn = array(
 				gettext("Descriptive name"),
 				gettext("Key length"),
+				gettext("Elliptic Curve Name"),
+				gettext("Key type"),
 				gettext("Common Name"));
 		}
 
@@ -335,16 +356,28 @@ if ($_POST['save']) {
 
 			switch ($pconfig['method']) {
 				case "internal":
+					if (isset($_POST["keytype"]) && !in_array($_POST["keytype"], $cert_keytypes)) {
+						array_push($input_errors, gettext("Please select a valid Key Type."));
+					}
 					if (isset($_POST["keylen"]) && !in_array($_POST["keylen"], $cert_keylens)) {
 						array_push($input_errors, gettext("Please select a valid Key Length."));
+					}
+					if (isset($_POST["ecname"]) && !in_array($_POST["ecname"], $openssl_ecnames)) {
+						array_push($input_errors, gettext("Please select a valid Elliptic Curve Name."));
 					}
 					if (!in_array($_POST["digest_alg"], $openssl_digest_algs)) {
 						array_push($input_errors, gettext("Please select a valid Digest Algorithm."));
 					}
 					break;
 				case "external":
+					if (isset($_POST["csr_keytype"]) && !in_array($_POST["csr_keytype"], $cert_keytypes)) {
+						array_push($input_errors, gettext("Please select a valid Key Type."));
+					}
 					if (isset($_POST["csr_keylen"]) && !in_array($_POST["csr_keylen"], $cert_keylens)) {
 						array_push($input_errors, gettext("Please select a valid Key Length."));
+					}
+					if (isset($_POST["csr_ecname"]) && !in_array($_POST["csr_ecname"], $openssl_ecnames)) {
+						array_push($input_errors, gettext("Please select a valid Elliptic Curve Name."));
 					}
 					if (!in_array($_POST["csr_digest_alg"], $openssl_digest_algs)) {
 						array_push($input_errors, gettext("Please select a valid Digest Algorithm."));
@@ -456,7 +489,7 @@ if ($_POST['save']) {
 						$dn['subjectAltName'] = implode(",", $altnames_tmp);
 					}
 
-					if (!cert_create($cert, $pconfig['caref'], $pconfig['keylen'], $pconfig['lifetime'], $dn, $pconfig['type'], $pconfig['digest_alg'])) {
+					if (!cert_create($cert, $pconfig['caref'], $pconfig['keylen'], $pconfig['lifetime'], $dn, $pconfig['type'], $pconfig['digest_alg'], $pconfig['keytype'], $pconfig['ecname'])) {
 						$input_errors = array();
 						while ($ssl_err = openssl_error_string()) {
 							if (strpos($ssl_err, 'NCONF_get_string:no value') === false) {
@@ -501,7 +534,7 @@ if ($_POST['save']) {
 						$dn['subjectAltName'] = implode(",", $altnames_tmp);
 					}
 
-					if (!csr_generate($cert, $pconfig['csr_keylen'], $dn, $pconfig['type'], $pconfig['csr_digest_alg'])) {
+					if (!csr_generate($cert, $pconfig['csr_keylen'], $dn, $pconfig['type'], $pconfig['csr_digest_alg'], $pconfig['csr_keytype'], $pconfig['csr_ecname'])) {
 						$input_errors = array();
 						while ($ssl_err = openssl_error_string()) {
 							if (strpos($ssl_err, 'NCONF_get_string:no value') === false) {
@@ -715,15 +748,19 @@ if ($act == "new" || (($_POST['save'] == gettext("Save")) && $input_errors)) {
 		'csrsign_lifetime',
 		'*Certificate Lifetime (days)',
 		'number',
-		$pconfig['csrsign_lifetime'] ? $pconfig['csrsign_lifetime']:'3650'
-	));
+		$pconfig['csrsign_lifetime'] ? $pconfig['csrsign_lifetime']:$default_lifetime,
+		['max' => $max_lifetime]
+	))->setHelp('The length of time the signed certificate will be valid, in days. %1$s' .
+		'Server certificates should not have a lifetime over 825 days or some platforms ' .
+		'may consider the certificate invalid.', '<br/>');
 	$section->addInput(new Form_Select(
 		'csrsign_digest_alg',
 		'*Digest Algorithm',
 		$pconfig['csrsign_digest_alg'],
 		array_combine($openssl_digest_algs, $openssl_digest_algs)
-	))->setHelp('NOTE: It is recommended to use an algorithm stronger than '.
-		'SHA1 when possible');
+	))->setHelp('The digest method used when the certificate is signed. %1$s' .
+		'The best practice is to use an algorithm stronger than SHA1. '.
+		'Some platforms may consider weaker digest algorithms invalid', '<br/>');
 
 	$form->add($section);
 
@@ -772,26 +809,52 @@ if ($act == "new" || (($_POST['save'] == gettext("Save")) && $input_errors)) {
 	}
 
 	$section->addInput(new Form_Select(
+		'keytype',
+		'*Key type',
+		$pconfig['keytype'],
+		array_combine($cert_keytypes, $cert_keytypes)
+	));
+
+	$group = new Form_Group($i == 0 ? '*Key length':'');
+	$group->addClass('rsakeys');
+	$group->add(new Form_Select(
 		'keylen',
-		'*Key length',
+		null,
 		$pconfig['keylen'],
 		array_combine($cert_keylens, $cert_keylens)
+	))->setHelp('The length to use when generating a new RSA key, in bits. %1$s' .
+		'The Key Length should not be lower than 2048 or some platforms ' .
+		'may consider the certificate invalid.', '<br/>');
+	$section->add($group);
+
+	$group = new Form_Group($i == 0 ? '*Elliptic Curve Name':'');
+	$group->addClass('ecnames');
+	$group->add(new Form_Select(
+		'ecname',
+		null,
+		$pconfig['ecname'],
+		array_combine($openssl_ecnames, $openssl_ecnames)
 	));
+	$section->add($group);
 
 	$section->addInput(new Form_Select(
 		'digest_alg',
 		'*Digest Algorithm',
 		$pconfig['digest_alg'],
 		array_combine($openssl_digest_algs, $openssl_digest_algs)
-	))->setHelp('NOTE: It is recommended to use an algorithm stronger than '.
-		'SHA1 when possible.');
+	))->setHelp('The digest method used when the certificate is signed. %1$s' .
+		'The best practice is to use an algorithm stronger than SHA1. '.
+		'Some platforms may consider weaker digest algorithms invalid', '<br/>');
 
 	$section->addInput(new Form_Input(
 		'lifetime',
 		'*Lifetime (days)',
 		'number',
-		$pconfig['lifetime']
-	));
+		$pconfig['lifetime'],
+		['max' => $max_lifetime]
+	))->setHelp('The length of time the signed certificate will be valid, in days. %1$s' .
+		'Server certificates should not have a lifetime over 825 days or some platforms ' .
+		'may consider the certificate invalid.', '<br/>');
 
 	$section->addInput(new Form_Input(
 		'dn_commonname',
@@ -850,19 +913,42 @@ if ($act == "new" || (($_POST['save'] == gettext("Save")) && $input_errors)) {
 	$section->addClass('toggle-external collapse');
 
 	$section->addInput(new Form_Select(
+		'csr_keytype',
+		'*Key type',
+		$pconfig['csr_keytype'],
+		array_combine($cert_keytypes, $cert_keytypes)
+	));
+
+	$group = new Form_Group($i == 0 ? '*Key length':'');
+	$group->addClass('csr_rsakeys');
+	$group->add(new Form_Select(
 		'csr_keylen',
-		'*Key length',
+		null,
 		$pconfig['csr_keylen'],
 		array_combine($cert_keylens, $cert_keylens)
+	))->setHelp('The length to use when generating a new RSA key, in bits. %1$s' .
+		'The Key Length should not be lower than 2048 or some platforms ' .
+		'may consider the certificate invalid.', '<br/>');
+	$section->add($group);
+
+	$group = new Form_Group($i == 0 ? '*Elliptic Curve Name':'');
+	$group->addClass('csr_ecnames');
+	$group->add(new Form_Select(
+		'csr_ecname',
+		null,
+		$pconfig['csr_ecname'],
+		array_combine($openssl_ecnames, $openssl_ecnames)
 	));
+	$section->add($group);
 
 	$section->addInput(new Form_Select(
 		'csr_digest_alg',
 		'*Digest Algorithm',
 		$pconfig['csr_digest_alg'],
 		array_combine($openssl_digest_algs, $openssl_digest_algs)
-	))->setHelp('NOTE: It is recommended to use an algorithm stronger than '.
-		'SHA1 when possible');
+	))->setHelp('The digest method used when the certificate is signed. %1$s' .
+		'The best practice is to use an algorithm stronger than SHA1. '.
+		'Some platforms may consider weaker digest algorithms invalid', '<br/>');
 
 	$section->addInput(new Form_Input(
 		'csr_dn_commonname',
@@ -1160,13 +1246,10 @@ foreach ($a_cert as $i => $cert):
 		continue;
 	}
 	$name = htmlspecialchars($cert['descr']);
-	$sans = array();
 	if ($cert['crt']) {
 		$subj = cert_get_subject($cert['crt']);
 		$issuer = cert_get_issuer($cert['crt']);
 		$purpose = cert_get_purpose($cert['crt']);
-		$sans = cert_get_sans($cert['crt']);
-		list($startdate, $enddate) = cert_get_dates($cert['crt']);
 
 		if ($subj == $issuer) {
 			$caname = '<i>'. gettext("self-signed") .'</i>';
@@ -1186,7 +1269,6 @@ foreach ($a_cert as $i => $cert):
 
 	if ($cert['csr']) {
 		$subj = htmlspecialchars(cert_escape_x509_chars(csr_get_subject($cert['csr']), true));
-		$sans = cert_get_sans($cert['crt']);
 		$caname = "<em>" . gettext("external - signature pending") . "</em>";
 	}
 
@@ -1209,52 +1291,8 @@ foreach ($a_cert as $i => $cert):
 					<td><?=$caname?></td>
 					<td>
 						<?=$subj?>
-						<?php
-						$certextinfo = "";
-						$certserial = cert_get_serial($cert['crt']);
-						if (!empty($certserial)) {
-							$certextinfo .= '<b>' . gettext("Serial: ") . '</b> ';
-							$certextinfo .= htmlspecialchars(cert_escape_x509_chars($certserial, true));
-							$certextinfo .= '<br/>';
-						}
-						$certsig = cert_get_sigtype($cert['crt']);
-						if (is_array($certsig) && !empty($certsig) && !empty($certsig['shortname'])) {
-							$certextinfo .= '<b>' . gettext("Signature Digest: ") . '</b> ';
-							$certextinfo .= htmlspecialchars(cert_escape_x509_chars($certsig['shortname'], true));
-							$certextinfo .= '<br/>';
-						}
-						if (is_array($sans) && !empty($sans)) {
-							$certextinfo .= '<b>' . gettext("SAN: ") . '</b> ';
-							$certextinfo .= htmlspecialchars(implode(', ', cert_escape_x509_chars($sans, true)));
-							$certextinfo .= '<br/>';
-						}
-						if (is_array($purpose) && !empty($purpose['ku'])) {
-							$certextinfo .= '<b>' . gettext("KU: ") . '</b> ';
-							$certextinfo .= htmlspecialchars(implode(', ', $purpose['ku']));
-							$certextinfo .= '<br/>';
-						}
-						if (is_array($purpose) && !empty($purpose['eku'])) {
-							$certextinfo .= '<b>' . gettext("EKU: ") . '</b> ';
-							$certextinfo .= htmlspecialchars(implode(', ', $purpose['eku']));
-							$certextinfo .= '<br/>';
-						}
-						if (cert_get_ocspstaple($cert['crt'])) {
-							$certextinfo .= '<b>' . gettext("OCSP: ") . '</b> ';
-							$certextinfo .= gettext("Must Staple");
-						}
-						?>
-						<?php if (!empty($certextinfo)): ?>
-							<div class="infoblock">
-							<? print_info_box($certextinfo, 'info', false); ?>
-							</div>
-						<?php endif?>
-
-						<?php if (!empty($startdate) || !empty($enddate)): ?>
-						<br />
-						<small>
-							<?=gettext("Valid From")?>: <b><?=$startdate ?></b><br /><?=gettext("Valid Until")?>: <b><?=$enddate ?></b>
-						</small>
-						<?php endif?>
+						<?= cert_print_infoblock($cert); ?>
+						<?php cert_print_dates($cert);?>
 					</td>
 					<td>
 						<?php if (is_cert_revoked($cert)): ?>
@@ -1286,6 +1324,9 @@ foreach ($a_cert as $i => $cert):
 							<?php if ($cert['prv']): ?>
 								<a href="system_certmanager.php?act=key&amp;id=<?=$i?>" class="fa fa-key" title="<?=gettext("Export Key")?>"></a>
 							<?php endif?>
+							<?php if (is_cert_locally_renewable($cert)): ?>
+								<a href="system_certmanager_renew.php?type=cert&amp;refid=<?=$cert['refid']?>" class="fa fa-repeat" title="<?=gettext("Reissue/Renew")?>"></a>
+							<?php endif ?>
 							<a href="system_certmanager.php?act=p12&amp;id=<?=$i?>" class="fa fa-archive" title="<?=gettext("Export P12")?>"></a>
 						<?php else: ?>
 							<a href="system_certmanager.php?act=csr&amp;id=<?=$i?>" class="fa fa-pencil" title="<?=gettext("Update CSR")?>"></a>
@@ -1388,7 +1429,10 @@ events.push(function() {
 					continue;
 				}
 
-				$subject = cert_get_subject_hash($ca['crt']);
+				$subject = @cert_get_subject_hash($ca['crt']);
+				if (!is_array($subject) || empty($subject)) {
+					continue;
+				}
 ?>
 				case "<?=$ca['refid'];?>":
 					$('#dn_country').val(<?=json_encode(cert_escape_x509_chars($subject['C'], true));?>);
@@ -1411,7 +1455,88 @@ events.push(function() {
 		setRequired('csrpaste', newcsr);
 	}
 
+	function check_lifetime() {
+		var maxserverlife = <?= $cert_strict_values['max_server_cert_lifetime'] ?>;
+		var ltid = '#lifetime';
+		if ($('#method').val() == "sign") {
+			ltid = '#csrsign_lifetime';
+		}
+		if (($('#type').val() == "server") && (parseInt($(ltid).val()) > maxserverlife)) {
+			$(ltid).parent().parent().removeClass("text-normal").addClass("text-warning");
+			$(ltid).removeClass("text-normal").addClass("text-warning");
+		} else {
+			$(ltid).parent().parent().removeClass("text-warning").addClass("text-normal");
+			$(ltid).removeClass("text-warning").addClass("text-normal");
+		}
+	}
+	function check_keylen() {
+		var min_keylen = <?= $cert_strict_values['min_private_key_bits'] ?>;
+		var klid = '#keylen';
+		if ($('#method').val() == "external") {
+			klid = '#csr_keylen';
+		}
+		/* Color the Parent/Label */
+		if (parseInt($(klid).val()) < min_keylen) {
+			$(klid).parent().parent().removeClass("text-normal").addClass("text-warning");
+		} else {
+			$(klid).parent().parent().removeClass("text-warning").addClass("text-normal");
+		}
+		/* Color individual options */
+		$(klid + " option").filter(function() {
+			return parseInt($(this).val()) < min_keylen;
+		}).removeClass("text-normal").addClass("text-warning").siblings().removeClass("text-warning").addClass("text-normal");
+	}
+
+	function check_digest() {
+		var weak_algs = <?= json_encode($cert_strict_values['digest_blacklist']) ?>;
+		var daid = '#digest_alg';
+		if ($('#method').val() == "external") {
+			daid = '#csr_digest_alg';
+		} else if ($('#method').val() == "sign") {
+			daid = '#csrsign_digest_alg';
+		}
+		/* Color the Parent/Label */
+		if (jQuery.inArray($(daid).val(), weak_algs) > -1) {
+			$(daid).parent().parent().removeClass("text-normal").addClass("text-warning");
+		} else {
+			$(daid).parent().parent().removeClass("text-warning").addClass("text-normal");
+		}
+		/* Color individual options */
+		$(daid + " option").filter(function() {
+			return (jQuery.inArray($(this).val(), weak_algs) > -1);
+		}).removeClass("text-normal").addClass("text-warning").siblings().removeClass("text-warning").addClass("text-normal");
+	}
+
 	// ---------- Click checkbox handlers ---------------------------------------------------------
+
+	$('#type').on('change', function() {
+		check_lifetime();
+	});
+	$('#method').on('change', function() {
+		check_lifetime();
+		check_keylen();
+		check_digest();
+	});
+	$('#lifetime').on('change', function() {
+		check_lifetime();
+	});
+	$('#csrsign_lifetime').on('change', function() {
+		check_lifetime();
+	});
+
+	$('#keylen').on('change', function() {
+		check_keylen();
+	});
+	$('#csr_keylen').on('change', function() {
+		check_keylen();
+	});
+
+	$('#digest_alg').on('change', function() {
+		check_digest();
+	});
+	$('#csr_digest_alg').on('change', function() {
+		check_digest();
+	});
 
 	$('#caref').on('change', function() {
 		internalca_change();
@@ -1421,13 +1546,37 @@ events.push(function() {
 		set_csr_ro();
 	});
 
+	function change_keytype() {
+		hideClass('rsakeys', ($('#keytype').val() != 'RSA'));
+		hideClass('ecnames', ($('#keytype').val() != 'ECDSA'));
+	}
+
+	$('#keytype').change(function () {
+		change_keytype();
+	});
+
+	function change_csrkeytype() {
+		hideClass('csr_rsakeys', ($('#csr_keytype').val() != 'RSA'));
+		hideClass('csr_ecnames', ($('#csr_keytype').val() != 'ECDSA'));
+	}
+
+	$('#csr_keytype').change(function () {
+		change_csrkeytype();
+	});
+
 	// ---------- On initial page load ------------------------------------------------------------
 
 	internalca_change();
 	set_csr_ro();
+	change_keytype();
+	change_csrkeytype();
+	check_lifetime();
+	check_keylen();
+	check_digest();
 
 	// Suppress "Delete row" button if there are fewer than two rows
 	checkLastRow();
+
 
 <?php endif; ?>
 

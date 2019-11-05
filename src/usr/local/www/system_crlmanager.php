@@ -34,11 +34,8 @@ require_once("openvpn.inc");
 require_once("pfsense-utils.inc");
 require_once("vpn.inc");
 
-$max_lifetime = crl_get_max_lifetime();
-$default_lifetime = 3650;
-if ($max_lifetime < $default_lifetime) {
-	$default_lifetime = $max_lifetime;
-}
+$max_lifetime = cert_get_max_lifetime();
+$default_lifetime = min(9999, $max_lifetime);
 
 global $openssl_crl_status;
 
@@ -67,6 +64,7 @@ foreach ($a_crl as $cid => $acrl) {
 
 $act = $_REQUEST['act'];
 
+$cacert_list = array();
 
 if (!empty($id)) {
 	$thiscrl =& lookup_crl($id);
@@ -102,6 +100,11 @@ if ($act == "new") {
 	$pconfig['caref'] = $_REQUEST['caref'];
 	$pconfig['lifetime'] = $default_lifetime;
 	$pconfig['serial'] = "0";
+	$crlca =& lookup_ca($pconfig['caref']);
+	if (!$crlca) {
+		$input_errors[] = gettext('Invalid CA');
+		unset($act);
+	}
 }
 
 if ($act == "exp") {
@@ -120,36 +123,62 @@ if ($act == "exp") {
 if ($act == "addcert") {
 	unset($input_errors);
 	$pconfig = $_REQUEST;
+	$revoke_list = array();
 
-	if (!$pconfig['crlref'] || !$pconfig['certref']) {
+	if (!$pconfig['crlref'] || (!$pconfig['certref'] && !$pconfig['revokeserial'])) {
 		pfSenseHeader("system_crlmanager.php");
 		exit;
 	}
 
 	// certref, crlref
 	$crl =& lookup_crl($pconfig['crlref']);
-	$cert = lookup_cert($pconfig['certref']);
-
-	if (!$crl['caref'] || !$cert['caref']) {
-		$input_errors[] = gettext("Both the Certificate and CRL must be specified.");
+	if (!is_array($pconfig['certref'])) {
+		$pconfig['certref'] = array();
 	}
 
-	if ($crl['caref'] != $cert['caref']) {
-		$input_errors[] = gettext("CA mismatch between the Certificate and CRL. Unable to Revoke.");
+	if (empty($pconfig['certref']) && empty($pconfig['revokeserial'])) {
+		$input_errors[] = gettext("Select one or more certificates or enter a serial number to revoke.");
 	}
 	if (!is_crl_internal($crl)) {
 		$input_errors[] = gettext("Cannot revoke certificates for an imported/external CRL.");
 	}
 
+	foreach ($pconfig['certref'] as $rcert) {
+		$cert = lookup_cert($rcert);
+		if ($crl['caref'] == $cert['caref']) {
+			$revoke_list[] = $cert;
+		} else {
+			$input_errors[] = gettext("CA mismatch between the Certificate and CRL. Unable to Revoke.");
+		}
+	}
+
+	foreach (explode(' ', $pconfig['revokeserial']) as $serial) {
+		if (empty($serial)) {
+			continue;
+		}
+		$vserial = cert_validate_serial($serial, true);
+		if ($vserial != null) {
+			$revoke_list[] = $vserial;
+		} else {
+			$input_errors[] = gettext("Invalid serial in list (Must be ASN.1 integer compatible decimal or hex string).");
+		}
+	}
+
 	if (!$input_errors) {
 		$reason = (empty($pconfig['crlreason'])) ? 0 : $pconfig['crlreason'];
-		cert_revoke($cert, $crl, $reason);
+
+		foreach ($revoke_list as $cert) {
+			cert_revoke($cert, $crl, $reason);
+		}
+
 		// refresh IPsec and OpenVPN CRLs
 		openvpn_refresh_crls();
 		vpn_ipsec_configure();
-		write_config("Revoked cert {$cert['descr']} in CRL {$crl['descr']}.");
+		write_config("Revoked certificate(s) in CRL {$crl['descr']}.");
 		pfSenseHeader("system_crlmanager.php");
 		exit;
+	} else {
+		$act = 'edit';
 	}
 }
 
@@ -285,13 +314,13 @@ function method_change() {
 
 <?php
 
-function build_method_list() {
+function build_method_list($importonly = false) {
 	global $_POST, $crl_methods;
 
 	$list = array();
 
 	foreach ($crl_methods as $method => $desc) {
-		if (($_POST['importonly'] == "yes") && ($method != "existing")) {
+		if ($importonly && ($method != "existing")) {
 			continue;
 		}
 
@@ -314,12 +343,15 @@ function build_ca_list() {
 }
 
 function build_cacert_list() {
-	global $ca_certs;
+	global $a_cert, $crl, $id;
 
 	$list = array();
-
-	foreach ($ca_certs as $cert) {
-		$list[$cert['refid']] = $cert['descr'];
+	foreach ($a_cert as $cert) {
+		if ((isset($cert['caref']) && !empty($cert['caref'])) &&
+		    ($cert['caref'] == $crl['caref']) &&
+		    !is_cert_revoked($cert, $id)) {
+			$list[$cert['refid']] = $cert['descr'];
+		}
 	}
 
 	return($list);
@@ -339,17 +371,22 @@ $tab_array[] = array(gettext("Certificates"), false, "system_certmanager.php");
 $tab_array[] = array(gettext("Certificate Revocation"), true, "system_crlmanager.php");
 display_top_tabs($tab_array);
 
-if ($act == "new" || $act == gettext("Save") || $input_errors) {
+if ($act == "new" || $act == gettext("Save")) {
 	$form = new Form();
 
 	$section = new Form_Section('Create new Revocation List');
+
+	$section->addInput(new Form_StaticText(
+		'Certificate Authority',
+		$crlca['descr'],
+	));
 
 	if (!isset($id)) {
 		$section->addInput(new Form_Select(
 			'method',
 			'*Method',
 			$pconfig['method'],
-			build_method_list()
+			build_method_list((!isset($crlca['prv']) || empty($crlca['prv'])))
 		));
 	}
 
@@ -360,11 +397,11 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 		$pconfig['descr']
 	));
 
-	$section->addInput(new Form_Select(
+	$form->addGlobal(new Form_Input(
 		'caref',
-		'*Certificate Authority',
-		$pconfig['caref'],
-		build_ca_list()
+		null,
+		'hidden',
+		$pconfig['caref']
 	));
 
 	$form->add($section);
@@ -396,7 +433,7 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 		'Serial',
 		'number',
 		$pconfig['serial'],
-		['min' => '0', 'max' => '9999']
+		['min' => '0']
 	));
 
 	$form->add($section);
@@ -456,16 +493,17 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 ?>
 
 	<div class="panel panel-default">
-		<div class="panel-heading"><h2 class="panel-title"><?=gettext("Currently Revoked Certificates for CRL") . ': ' . $crl['descr']?></h2></div>
+		<div class="panel-heading"><h2 class="panel-title"><?=gettext("Revoked Certificates in CRL") . ': ' . $crl['descr']?></h2></div>
 		<div class="panel-body table-responsive">
 <?php
 	if (!is_array($crl['cert']) || (count($crl['cert']) == 0)) {
 		print_info_box(gettext("No certificates found for this CRL."), 'danger');
 	} else {
 ?>
-			<table class="table table-striped table-hover table-condensed">
+			<table class="table table-striped table-hover table-condensed sortable-theme-bootstrap" data-sortable>
 				<thead>
 					<tr>
+						<th><?=gettext("Serial")?></th>
 						<th><?=gettext("Certificate Name")?></th>
 						<th><?=gettext("Revocation Reason")?></th>
 						<th><?=gettext("Revoked At")?></th>
@@ -475,18 +513,16 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 				<tbody>
 <?php
 		foreach ($crl['cert'] as $i => $cert):
-			$name = htmlspecialchars($cert['descr']);
-?>
+			$name = empty($cert['descr']) ? gettext('Revoked by Serial') : htmlspecialchars($cert['descr']);
+			$serial = crl_get_entry_serial($cert);
+			if (empty($serial)) {
+				$serial = gettext("Invalid");
+			} ?>
 					<tr>
-						<td class="listlr">
-							<?=$name; ?>
-						</td>
-						<td class="listlr">
-							<?=$openssl_crl_status[$cert["reason"]]; ?>
-						</td>
-						<td class="listlr">
-							<?=date("D M j G:i:s T Y", $cert["revoke_time"]); ?>
-						</td>
+						<td><?=htmlspecialchars($serial);?></td>
+						<td><?=$name; ?></td>
+						<td><?=$openssl_crl_status[$cert['reason']]; ?></td>
+						<td><?=date("D M j G:i:s T Y", $cert['revoke_time']); ?></td>
 						<td class="list">
 							<a href="system_crlmanager.php?act=delcert&amp;id=<?=$crl['refid']; ?>&amp;certref=<?=$cert['refid']; ?>" usepost>
 								<i class="fa fa-trash" title="<?=gettext("Delete this certificate from the CRL")?>" alt="<?=gettext("Delete this certificate from the CRL")?>"></i>
@@ -505,76 +541,77 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 	</div>
 <?php
 
-	$ca_certs = array();
-	foreach ($a_cert as $cert) {
-		if ($cert['caref'] == $crl['caref'] && !is_cert_revoked($cert, $id)) {
-			$ca_certs[] = $cert;
-		}
-	}
+	$section = new Form_Section('Revoke Certificates');
 
-	if (count($ca_certs) == 0) {
+	$section->addInput(new Form_Select(
+		'crlreason',
+		'Reason',
+		-1,
+		$openssl_crl_status
+		))->setHelp('Select the reason for which the certificates are being revoked.');
+
+	$cacert_list = build_cacert_list();
+	if (count($cacert_list) == 0) {
 		print_info_box(gettext("No certificates found for this CA."), 'danger');
 	} else {
-		$section = new Form_Section('Choose a Certificate to Revoke');
-		$group = new Form_Group(null);
-
-		$group->add(new Form_Select(
+		$section->addInput(new Form_Select(
 			'certref',
-			null,
+			'Revoke Certificates',
 			$pconfig['certref'],
-			build_cacert_list()
-			))->setWidth(4)->setHelp('Certificate');
-
-		$group->add(new Form_Select(
-			'crlreason',
-			null,
-			-1,
-			$openssl_crl_status
-			))->setHelp('Reason');
-
-		$group->add(new Form_Button(
-			'submit',
-			'Add',
-			null,
-			'fa-plus'
-			))->addClass('btn-success btn-sm');
-
-		$section->add($group);
-
-		$form->addGlobal(new Form_Input(
-			'id',
-			null,
-			'hidden',
-			$crl['refid']
-		));
-
-		$form->addGlobal(new Form_Input(
-			'act',
-			null,
-			'hidden',
-			'addcert'
-		));
-
-		$form->addGlobal(new Form_Input(
-			'crlref',
-			null,
-			'hidden',
-			$crl['refid']
-		));
-
-		$form->add($section);
+			$cacert_list,
+			true
+			))->addClass('multiselect')
+			->setHelp('Hold down CTRL (PC)/COMMAND (Mac) key to select multiple items.');
 	}
+
+	$section->addInput(new Form_Input(
+		'revokeserial',
+		'Revoke by Serial',
+		'text',
+		$pconfig['revokeserial']
+	))->setHelp('List of certificate serial numbers to revoke (separated by spaces)');
+
+	$form->addGlobal(new Form_Button(
+		'submit',
+		'Add',
+		null,
+		'fa-plus'
+		))->addClass('btn-success btn-sm');
+
+	$form->addGlobal(new Form_Input(
+		'id',
+		null,
+		'hidden',
+		$crl['refid']
+	));
+
+	$form->addGlobal(new Form_Input(
+		'act',
+		null,
+		'hidden',
+		'addcert'
+	));
+
+	$form->addGlobal(new Form_Input(
+		'crlref',
+		null,
+		'hidden',
+		$crl['refid']
+	));
+
+	$form->add($section);
 
 	print($form);
 } else {
 ?>
 
 	<div class="panel panel-default">
-		<div class="panel-heading"><h2 class="panel-title"><?=gettext("Additional Certificate Revocation Lists")?></h2></div>
+		<div class="panel-heading"><h2 class="panel-title"><?=gettext("Certificate Revocation Lists")?></h2></div>
 		<div class="panel-body table-responsive">
 			<table class="table table-striped table-hover table-condensed table-rowdblclickedit">
 				<thead>
 					<tr>
+						<th><?=gettext("CA")?></th>
 						<th><?=gettext("Name")?></th>
 						<th><?=gettext("Internal")?></th>
 						<th><?=gettext("Certificates")?></th>
@@ -596,39 +633,7 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 
 	$i = 0;
 	foreach ($a_ca as $ca):
-		$name = htmlspecialchars($ca['descr']);
-
-		if ($ca['prv']) {
-			$cainternal = "YES";
-		} else {
-			$cainternal = "NO";
-		}
-?>
-					<tr>
-						<td colspan="4">
-							<?=$name?>
-						</td>
-						<td>
-<?php
-		if ($cainternal == "YES"):
-?>
-							<a href="system_crlmanager.php?act=new&amp;caref=<?=$ca['refid']; ?>" class="btn btn-xs btn-success">
-								<i class="fa fa-plus icon-embed-btn"></i>
-								<?=gettext("Add or Import CRL")?>
-							</a>
-<?php
-		else:
-?>
-							<a href="system_crlmanager.php?act=new&amp;caref=<?=$ca['refid']; ?>&amp;importonly=yes" class="btn btn-xs btn-success">
-								<i class="fa fa-plus icon-embed-btn"></i>
-								<?=gettext("Add or Import CRL")?>
-							</a>
-<?php
-		endif;
-?>
-						</td>
-					</tr>
-<?php
+		$caname = htmlspecialchars($ca['descr']);
 		if (is_array($ca_crl_map[$ca['refid']])):
 			foreach ($ca_crl_map[$ca['refid']] as $crl):
 				$tmpcrl = lookup_crl($crl);
@@ -639,6 +644,7 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 				$inuse = crl_in_use($tmpcrl['refid']);
 ?>
 					<tr>
+						<td><?=$caname?></td>
 						<td><?=$tmpcrl['descr']; ?></td>
 						<td><i class="fa fa-<?=($internal) ? "check" : "times"; ?>"></i></td>
 						<td><?=($internal) ? count($tmpcrl['cert']) : "Unknown (imported)"; ?></td>
@@ -675,9 +681,33 @@ if ($act == "new" || $act == gettext("Save") || $input_errors) {
 		</div>
 	</div>
 
-
 <?php
+	$form = new Form(false);
+	$section = new Form_Section('Create or Import a New Certificate Revocation List');
+	$group = new Form_Group(null);
+	$group->add(new Form_Select(
+		'caref',
+		'Certificate Authority',
+		null,
+		build_ca_list()
+		))->setHelp('Select a Certificate Authority for the new CRL');
+	$group->add(new Form_Button(
+		'submit',
+		'Add',
+		null,
+		'fa-plus'
+		))->addClass('btn-success btn-sm');
+	$section->add($group);
+	$form->addGlobal(new Form_Input(
+		'act',
+		null,
+		'hidden',
+		'new'
+	));
+	$form->add($section);
+	print($form);
 }
+
 ?>
 
 <script type="text/javascript">
@@ -701,6 +731,7 @@ events.push(function() {
 
 	hideClass('internal', ($('#method').val() == 'existing'));
 	hideClass('existing', ($('#method').val() == 'internal'));
+	$('.multiselect').attr("size","<?= max(3, min(15, count($cacert_list))) ?>");
 });
 //]]>
 </script>

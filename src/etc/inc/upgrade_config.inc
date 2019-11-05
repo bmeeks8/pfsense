@@ -4571,6 +4571,7 @@ function upgrade_144_to_145() {
 		foreach ($config['interfaces'] as $ifname => $ifcfg) {
 			if (isset($ifcfg['enable'])) {
 				if ($ifcfg['ipaddrv6'] == "track6") {
+					init_config_arr(array('dhcpdv6', $ifname, 'range'));
 					$config['dhcpdv6'][$ifname]['enable'] = true;
 					$config['dhcpdv6'][$ifname]['range']['from'] = "::1000";
 					$config['dhcpdv6'][$ifname]['range']['to'] = "::2000";
@@ -6045,6 +6046,15 @@ function upgrade_196_to_197() {
 	global $g, $config;
 
 	install_cron_job('/usr/sbin/newsyslog', true, "*/1", '*', '*', '*', '*', 'root', false);
+}
+
+/* Add periodic cron jobs */
+function upgrade_197_to_198() {
+	global $g, $config;
+
+	install_cron_job('/etc/rc.periodic daily',   true, "1",  '3', '*', '*', '*', 'root', false);
+	install_cron_job('/etc/rc.periodic weekly',  true, "15", '4', '*', '*', '6', 'root', false);
+	install_cron_job('/etc/rc.periodic monthly', true, "30", '5', '1', '*', '*', 'root', false);
 }
 
 /*

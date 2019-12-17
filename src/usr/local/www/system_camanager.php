@@ -44,7 +44,7 @@ global $openssl_digest_algs;
 global $cert_strict_values;
 $max_lifetime = cert_get_max_lifetime();
 $default_lifetime = min(3650, $max_lifetime);
-$openssl_ecnames = openssl_get_curve_names();
+$openssl_ecnames = cert_build_curve_list();
 $class = "success";
 
 init_config_arr(array('ca'));
@@ -124,7 +124,7 @@ switch ($act) {
 		$pconfig['method'] = $_POST['method'];
 		$pconfig['keytype'] = "RSA";
 		$pconfig['keylen'] = "2048";
-		$pconfig['ecname'] = "brainpoolP256r1";
+		$pconfig['ecname'] = "prime256v1";
 		$pconfig['digest_alg'] = "sha256";
 		$pconfig['lifetime'] = $default_lifetime;
 		$pconfig['dn_commonname'] = "internal-ca";
@@ -211,7 +211,7 @@ if ($_POST['save']) {
 		if (!in_array($_POST["keylen"], $ca_keylens)) {
 			array_push($input_errors, gettext("Please select a valid Key Length."));
 		}
-		if (!in_array($_POST["ecname"], $openssl_ecnames)) {
+		if (!in_array($_POST["ecname"], array_keys($openssl_ecnames))) {
 			array_push($input_errors, gettext("Please select a valid Elliptic Curve Name."));
 		}
 		if (!in_array($_POST["digest_alg"], $openssl_digest_algs)) {
@@ -580,14 +580,6 @@ $section->addInput(new Form_Input(
 	$pconfig['descr']
 ));
 
-$section->addInput(new Form_Checkbox(
-	'trust',
-	'Trust Store',
-	'Add this Certificate Authority to the Operating System Trust Store',
-	$pconfig['trust']
-))->setHelp('When enabled, the contents of the CA will be added to the trust ' .
-	'store so that they will be trusted by the operating system.');
-
 if (!isset($id) || $act == "edit") {
 	$section->addInput(new Form_Select(
 		'method',
@@ -596,6 +588,24 @@ if (!isset($id) || $act == "edit") {
 		$ca_methods
 	))->toggles();
 }
+
+$section->addInput(new Form_Checkbox(
+	'trust',
+	'Trust Store',
+	'Add this Certificate Authority to the Operating System Trust Store',
+	$pconfig['trust']
+))->setHelp('When enabled, the contents of the CA will be added to the trust ' .
+	'store so that they will be trusted by the operating system.');
+
+$section->addInput(new Form_Checkbox(
+	'randomserial',
+	'Randomize Serial',
+	'Use random serial numbers when signing certifices',
+	$pconfig['randomserial']
+))->setHelp('When enabled, if this CA is capable of signing certificates then ' .
+		'serial numbers for certificates signed by this CA will be ' .
+		'automatically randomized and checked for uniqueness instead of ' .
+		'using the sequential value from Next Certificate Serial.');
 
 $form->add($section);
 
@@ -615,15 +625,6 @@ $section->addInput(new Form_Textarea(
 ))->setHelp('Paste the private key for the above certificate here. This is '.
 	'optional in most cases, but is required when generating a '.
 	'Certificate Revocation List (CRL).');
-
-$section->addInput(new Form_Checkbox(
-	'randomserial',
-	'Randomize Serial',
-	'Use random serial numbers when signing certifices',
-	$pconfig['randomserial']
-))->setHelp('When enabled, serial numbers for certificates signed by this CA ' .
-		'will be automatically randomized and checked for uniqueness ' .
-		'instead of using the sequential value from Next Certificate Serial.');
 
 $section->addInput(new Form_Input(
 	'serial',
@@ -682,8 +683,8 @@ $group->add(new Form_Select(
 	'ecname',
 	null,
 	$pconfig['ecname'],
-	array_combine($openssl_ecnames, $openssl_ecnames)
-));
+	$openssl_ecnames
+))->setHelp('Curves may not be compatible with all uses. Known compatible curve uses are denoted in brackets.');
 $section->add($group);
 
 $section->addInput(new Form_Select(

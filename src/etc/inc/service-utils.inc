@@ -630,7 +630,7 @@ function service_control_start($name, $extras) {
 			upnp_action('start');
 			break;
 		case 'ipsec':
-			vpn_ipsec_force_reload();
+			ipsec_force_reload();
 			break;
 		case 'sshd':
 			send_event("service restart sshd");
@@ -639,7 +639,7 @@ function service_control_start($name, $extras) {
 			$vpnmode = isset($extras['vpnmode']) ? htmlspecialchars($extras['vpnmode']) : htmlspecialchars($extras['mode']);
 			if (($vpnmode == "server") || ($vpnmode == "client")) {
 				$id = isset($extras['vpnid']) ? htmlspecialchars($extras['vpnid']) : htmlspecialchars($extras['id']);
-				$configfile = "{$g['varetc_path']}/openvpn/{$vpnmode}{$id}.conf";
+				$configfile = "{$g['openvpn_base']}/{$vpnmode}{$id}/config.ovpn";
 				if (file_exists($configfile)) {
 					openvpn_restart_by_vpnid($vpnmode, $id);
 				}
@@ -705,7 +705,7 @@ function service_control_stop($name, $extras) {
 			killbyname("sshd");
 			break;
 		case 'ipsec':
-			exec("/usr/local/sbin/ipsec stop");
+			exec("/usr/local/sbin/strongswanrc stop");
 			break;
 		case 'openvpn':
 			$vpnmode = htmlspecialchars($extras['vpnmode']);
@@ -778,7 +778,7 @@ function service_control_restart($name, $extras) {
 			upnp_action('restart');
 			break;
 		case 'ipsec':
-			vpn_ipsec_force_reload();
+			ipsec_force_reload();
 			break;
 		case 'sshd':
 			send_event("service restart sshd");
@@ -787,7 +787,7 @@ function service_control_restart($name, $extras) {
 			$vpnmode = htmlspecialchars($extras['vpnmode']);
 			if ($vpnmode == "server" || $vpnmode == "client") {
 				$id = htmlspecialchars($extras['id']);
-				$configfile = "{$g['varetc_path']}/openvpn/{$vpnmode}{$id}.conf";
+				$configfile = "{$g['openvpn_base']}/{$vpnmode}{$id}/config.ovpn";
 				if (file_exists($configfile)) {
 					openvpn_restart_by_vpnid($vpnmode, $id);
 				}

@@ -469,18 +469,6 @@ if ($_POST['save']) {
 	}
 }
 
-function build_cert_list() {
-	global $a_cert;
-
-	$list = array();
-
-	foreach ($a_cert as $cert) {
-		$list[$cert['refid']] = $cert['descr'];
-	}
-
-	return($list);
-}
-
 function build_authserver_list() {
 
 	$authlist = auth_get_authserver_list();
@@ -606,7 +594,7 @@ $section->addInput(new Form_Input(
 	'Pre-authentication redirect URL',
 	'text',
 	$pconfig['preauthurl']
-))->setHelp('Set a default redirection URL. Visitors will be redirected to this URL after authentication only if the captive portal don\'t know where to redirect them. This field will be accessible through $PORTAL_REDIRURL$ variable in captiveportal\'s HTML pages.');
+))->setHelp('Set a default redirection URL. Visitors will be redirected to this URL after authentication only if the captive portal doesn\'t know where to redirect them. This field will be accessible through $PORTAL_REDIRURL$ variable in captiveportal\'s HTML pages.');
 
 $section->addInput(new Form_Input(
 	'redirurl',
@@ -1106,8 +1094,8 @@ $section->addInput(new Form_Select(
 	'certref',
 	'*SSL Certificate',
 	$pconfig['certref'],
-	build_cert_list()
-))->setHelp('If no certificates are defined, one may be defined here: %1$sSystem &gt; Cert. Manager%2$s', '<a href="system_certmanager.php">', '</a>');
+	cert_build_list('cert', 'HTTPS')
+))->setHelp('Certificates known to be incompatible with use for HTTPS are not included in this list. If no certificates are defined, one may be defined here: %1$sSystem &gt; Cert. Manager%2$s', '<a href="system_certmanager.php">', '</a>');
 
 $section->addInput(new Form_Checkbox(
 	'nohttpsforwards',

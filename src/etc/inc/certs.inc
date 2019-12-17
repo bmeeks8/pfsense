@@ -201,7 +201,7 @@ function ca_import(& $ca, $str, $key = "", $serial = "") {
 	return true;
 }
 
-function ca_create(& $ca, $keylen, $lifetime, $dn, $digest_alg = "sha256", $keytype = "RSA", $ecname = "brainpoolP256r1") {
+function ca_create(& $ca, $keylen, $lifetime, $dn, $digest_alg = "sha256", $keytype = "RSA", $ecname = "prime256v1") {
 
 	$args = array(
 		"x509_extensions" => "v3_ca",
@@ -247,7 +247,7 @@ function ca_create(& $ca, $keylen, $lifetime, $dn, $digest_alg = "sha256", $keyt
 	return true;
 }
 
-function ca_inter_create(& $ca, $keylen, $lifetime, $dn, $caref, $digest_alg = "sha256", $keytype = "RSA", $ecname = "brainpoolP256r1") {
+function ca_inter_create(& $ca, $keylen, $lifetime, $dn, $caref, $digest_alg = "sha256", $keytype = "RSA", $ecname = "prime256v1") {
 	// Create Intermediate Certificate Authority
 	$signing_ca =& lookup_ca($caref);
 	if (!$signing_ca) {
@@ -324,7 +324,7 @@ function cert_import(& $cert, $crt_str, $key_str) {
 	return true;
 }
 
-function cert_create(& $cert, $caref, $keylen, $lifetime, $dn, $type = "user", $digest_alg = "sha256", $keytype = "RSA", $ecname = "brainpoolP256r1") {
+function cert_create(& $cert, $caref, $keylen, $lifetime, $dn, $type = "user", $digest_alg = "sha256", $keytype = "RSA", $ecname = "prime256v1") {
 
 	$cert['type'] = $type;
 
@@ -410,7 +410,7 @@ function cert_create(& $cert, $caref, $keylen, $lifetime, $dn, $type = "user", $
 	return true;
 }
 
-function csr_generate(& $cert, $keylen, $dn, $type = "user", $digest_alg = "sha256", $keytype = "RSA", $ecname = "brainpoolP256r1") {
+function csr_generate(& $cert, $keylen, $dn, $type = "user", $digest_alg = "sha256", $keytype = "RSA", $ecname = "prime256v1") {
 
 	$cert_type = cert_type_config_section($type);
 
@@ -696,27 +696,34 @@ function cert_get_ocspstaple($str_crt, $decode = true) {
 	return false;
 }
 
-function cert_get_dates($str_crt, $decode = true) {
+function cert_format_date($validTS, $validTS_time_t, $outputstring = true) {
+	$now = new DateTime("now");
+
+	/* Try to create a DateTime object from the full time string */
+	$date = DateTime::createFromFormat('ymdHis', rtrim($validTS, 'Z'), new DateTimeZone('Z'));
+	/* If that failed, try to create it from the UNIX timestamp */
+	if ($date === false) {
+		$date = new DateTime('@' . $validTS_time_t, new DateTimeZone('Z'));
+	}
+	/* If we have a valid DateTime object, format it in a nice way */
+	if ($date !== false) {
+		$date->setTimezone($now->getTimeZone());
+		if ($outputstring) {
+			$date = $date->format(DateTimeInterface::RFC2822);
+		}
+	}
+	return $date;
+}
+
+function cert_get_dates($str_crt, $decode = true, $outputstring = true) {
 	if ($decode) {
 		$str_crt = base64_decode($str_crt);
 	}
 	$crt_details = openssl_x509_parse($str_crt);
-	if ($crt_details['validFrom_time_t'] > 0) {
-		$start = date('r', $crt_details['validFrom_time_t']);
-	} else {
-		$dt = DateTime::createFromFormat('ymdHis', rtrim($crt_details['validFrom'], 'Z'));
-		if ($dt !== false) {
-			$start = $dt->format(DateTimeInterface::RFC2822);
-		}
-	}
-	if ($crt_details['validTo_time_t'] > 0) {
-		$end = date('r', $crt_details['validTo_time_t']);
-	} else {
-		$dt = DateTime::createFromFormat('ymdHis', rtrim($crt_details['validTo'], 'Z'));
-		if ($dt !== false) {
-			$end = $dt->format(DateTimeInterface::RFC2822);
-		}
-	}
+
+	$start = cert_format_date($crt_details['validFrom'], $crt_details['validFrom_time_t'], $outputstring);
+	$end   = cert_format_date($crt_details['validTo'], $crt_details['validTo_time_t'], $outputstring);
+
 	return array($start, $end);
 }
 
@@ -1312,7 +1319,7 @@ function crl_contains_cert($crl, $cert) {
 
 	/* Find the issuer of this CRL */
 	$ca = lookup_ca($crl['caref']);
-	$crlissuer = is_array($cert) ? cert_get_issuer($ca['crt']) : null;
+	$crlissuer = is_array($cert) ? cert_get_subject($ca['crt']) : null;
 	$serial = crl_get_entry_serial($cert);
 
 	/* Skip issuer match when sarching by serial instead of certificate */
@@ -1769,7 +1776,7 @@ function cert_get_all_services($refid) {
 	 * needs a bump. */
 	init_config_arr(array('ipsec', 'phase1'));
 	foreach ($config['ipsec']['phase1'] as $ipsec) {
-		if (($ipsec['authentication_method'] == 'rsasig') &&
+		if (($ipsec['authentication_method'] == 'cert') &&
 		    ($ipsec['certref'] == $refid)) {
 			$services['services'][] = array('name' => 'ipsec');
 			/* Stop after finding one, no need to search for more. */
@@ -1851,7 +1858,7 @@ function ca_get_all_services($refid) {
 		}
 	}
 	foreach ($config['ipsec']['phase1'] as $ipsec) {
-		if (($ipsec['authentication_method'] == 'rsasig') &&
+		if (($ipsec['authentication_method'] == 'cert') &&
 		    ($ipsec['caref'] == $refid)) {
 			$services['services'][] = array('name' => 'ipsec');
 			break;
@@ -1950,11 +1957,21 @@ function cert_get_lifetime($cert, $untilexpire = false) {
 		return null;
 	}
 	/* Read certificate details */
-	$cert_details = openssl_x509_parse(base64_decode($cert['crt']));
+	list($startdate, $enddate) = cert_get_dates($cert['crt'], true, false);
+
+	/* If either of the dates are invalid, there is nothing we can do here. */
+	if (($startdate === false) || ($enddate === false)) {
+		return false;
+	}
+
 	/* Determine which start time to use (now, or cert start) */
-	$fromtime = ($untilexpire) ? time() : $cert_details['validFrom_time_t'];
-	/* Calculate and return the requested duration, converting from seconds to days. */
-	return (int) round(($cert_details['validTo_time_t'] - $fromtime) / 86400);
+	$startdate = ($untilexpire) ? new DateTime("now") : $startdate;
+
+	/* Calculate the requested intervals */
+	$interval = $startdate->diff($enddate);
+
+	/* DateTime diff is always positive, check if we need to negate the result. */
+	return ($startdate > $enddate) ? -1 * $interval->days : $interval->days;
 }
 
 /****f* certs/cert_analyze_lifetime
@@ -2116,8 +2133,11 @@ function cert_print_infoblock($cert) {
 		} else {
 			/* Elliptic curve (EC) key curve name */
 			$certextinfo .= 'ECDSA<br/>';
-			$certextinfo .= '<b>' . gettext("Elliptic curve name: ") . '</b>';
-			$certextinfo .= $key_details['ec']['curve_name'] . '<br/>';
+			$curve = cert_get_pkey_curve($cert['prv']);
+			if (!empty($curve)) {
+				$certextinfo .= '<b>' . gettext("Elliptic curve name:") . ' </b>';
+				$certextinfo .= $curve . '<br/>';
+			}
 		}
 	}
 
@@ -2162,10 +2182,19 @@ function cert_print_infoblock($cert) {
 	$certextinfo .= "<span class=\"text-{$lrclass}\">{$expstring}</span>";
 	$certextinfo .= '<br/>';
 
-	/* CA Trust store presence */
-	$certextinfo .= '<b>' . gettext("Trust Store: ") . '</b> ';
-	$certextinfo .= (isset($cert['trust']) && ($cert['trust'] == "enabled")) ? gettext('Included') : gettext('Excluded');
-	$certextinfo .= '<br/>';
+	if ($purpose['ca'] == 'Yes') {
+		/* CA Trust store presence */
+		$certextinfo .= '<b>' . gettext("Trust Store: ") . '</b> ';
+		$certextinfo .= (isset($cert['trust']) && ($cert['trust'] == "enabled")) ? gettext('Included') : gettext('Excluded');
+		$certextinfo .= '<br/>';
+
+		if (!empty($cert['prv'])) {
+			/* CA Next/Randomize Serial */
+			$certextinfo .= '<b>' . gettext("Next Serial: ") . '</b> ';
+			$certextinfo .= (isset($cert['randomserial']) && ($cert['randomserial'] == "enabled")) ? gettext('Randomized') : $cert['serial'];
+			$certextinfo .= '<br/>';
+		}
+	}
 
 	/* Output the infoblock */
 	if (!empty($certextinfo)) { ?>
@@ -2200,9 +2229,12 @@ function cert_notify_expiring() {
 	/* Check all CA and Cert entries at once */
 	init_config_arr(array('ca'));
 	init_config_arr(array('cert'));
-	$all_certs = array_merge_recursive_unique($config['ca'], $config['cert']);
+	$all_certs = array_merge_recursive($config['ca'], $config['cert']);
 
 	foreach ($all_certs as $cert) {
+		if (empty($cert)) {
+			continue;
+		}
 		/* Fetch and analyze expiration */
 		$expiredays = cert_get_lifetime($cert, true);
 		/* If the result is null, then the lifetime data is missing, so skip the invalid entry. */
@@ -2255,18 +2287,247 @@ function ca_setup_trust_store() {
 			continue;
 		}
 
-		/* Decode the certificate contents */
-		$cert_contents = base64_decode($ca['crt']);
-		/* Get hash value to use for filename */
-		$cert_details = openssl_x509_parse($cert_contents);
-		$ca_filename = "{$trust_store_directory}/{$cert_details['hash']}.0";
-
-		/* Write CA to trust store and ensure it has correct permissions. */
-		file_put_contents($ca_filename, $cert_contents);
-		chmod($ca_filename, 0644);
-		chown($ca_filename, 'root');
-		chgrp($ca_filename, 'wheel');
+		ca_setup_capath($ca, $trust_store_directory);
 	}
+}
+
+/****f* certs/ca_setup_capath
+ * NAME
+ *   ca_setup_capath - Setup CApath structure so that CA chains and related CRLs
+ *                     may be written and validated by the -CApath option in
+ *                     OpenSSL and other compatible validators.
+ * INPUTS
+ *   $ca     : A CA (not a refid) to write
+ *   $basedir: The directory which will contain the CA structure.
+ *   $crl    : A CRL (not a refid) associated with the CA to write.
+ *   $refresh: Refresh CRLs -- When true, perform no cleanup and increment suffix
+ * RESULT
+ *   $basedir is populated with CA and CRL files in a format usable by OpenSSL
+ *   CApath. This has the filenames as the CA hash with the CA named <hash>.0
+ *   and CRLs named <hash>.r0
+ ******/
+
+function ca_setup_capath($ca, $basedir, $crl = "", $refresh = false) {
+	global $config;
+	/* Check for an invalid CA */
+	if (!$ca || !is_array($ca)) {
+		return false;
+	}
+	/* Check for an invalid CRL, but do not consider it fatal if it's wrong */
+	if (!$crl || !is_array($crl) || ($crl['caref'] != $ca['refid'])) {
+		unset($crl);
+	}
+
+	/* Check for an empty base directory, which is invalid */
+	if (empty($basedir)) {
+		return false;
+	}
+
+	/* Ensure that $basedir exists and is a directory */
+	if (!is_dir($basedir)) {
+		/* If it's a file, remove it, otherwise the directory cannot
+		 * be created. */
+		if (file_exists($basedir)) {
+			@unlink_if_exists($basedir);
+		}
+		@safe_mkdir($basedir);
+	}
+	/* Decode the certificate contents */
+	$cert_contents = base64_decode($ca['crt']);
+	/* Get hash value to use for filename */
+	$cert_details = openssl_x509_parse($cert_contents);
+	$fprefix = "{$basedir}/{$cert_details['hash']}";
+
+
+	$ca_filename = "{$fprefix}.0";
+	/* Cleanup old CA/CRL files for this hash */
+	@unlink_if_exists($ca_filename);
+	/* Write CA to base dir and ensure it has correct permissions. */
+	file_put_contents($ca_filename, $cert_contents);
+	chmod($ca_filename, 0644);
+	chown($ca_filename, 'root');
+	chgrp($ca_filename, 'wheel');
+
+	/* If there is a CRL, process it. */
+	if ($crl) {
+		$crl_filename = "{$fprefix}.r";
+		if (!$refresh) {
+			/* Cleanup old CA/CRL files for this hash */
+			@unlink_if_exists("{$crl_filename}*");
+		}
+		/* Find next suffix based on how many existing files there are (start=0) */
+		$crl_filename .= count(glob("{$crl_filename}*"));
+		/* Write CRL to base dir and ensure it has correct permissions. */
+		file_put_contents($crl_filename, base64_decode($crl['text']));
+		chmod($crl_filename, 0644);
+		chown($crl_filename, 'root');
+		chgrp($crl_filename, 'wheel');
+	}
+
+	return true;
+}
+
+/****f* certs/cert_get_pkey_curve
+ * NAME
+ *   cert_get_pkey_curve - Get the ECDSA curve of a private key
+ * INPUTS
+ *   $pkey  : The private key to check
+ *   $decode: true: base64 decode the string before use, false to use as-is.
+ * RESULT
+ *   false if the private key is not ECDSA or the private key is not present.
+ *   Otherwise, the name of the ECDSA curve used for the private key.
+ ******/
+
+function cert_get_pkey_curve($pkey, $decode = true) {
+	if ($decode) {
+		$pkey = base64_decode($pkey);
+	}
+
+	/* Attempt to read the private key, and if successful, its details. */
+	$res_key = openssl_pkey_get_private($pkey);
+	if ($res_key) {
+		$key_details = openssl_pkey_get_details($res_key);
+		/* If this is an EC key, and the curve name is not empty, return
+		 * that curve name. */
+		if ($key_details['type'] ==  OPENSSL_KEYTYPE_EC) {
+			if (!empty($key_details['ec']['curve_name'])) {
+				return $key_details['ec']['curve_name'];
+			} else {
+				return $key_details['ec']['curve_oid'];
+			}
+		}
+	}
+
+	/* Either the private key could not be read, or this is not an EC certificate. */
+	return false;
+}
+
+/* Array containing ECDSA curve names allowed in certain contexts. For instance,
+ * HTTPS servers and web browsers only support specific curves in TLSv1.3. */
+global $cert_curve_compatible;
+$cert_curve_compatible = array(
+	/* HTTPS list per TLSv1.3 spec and Mozilla compatibility list */
+	'HTTPS' => array('prime256v1', 'secp384r1'),
+	/* IPsec/EAP/TLS list per strongSwan docs/issues */
+	'IPsec' => array('prime256v1', 'secp384r1', 'secp521r1'),
+	/* OpenVPN bug limits usable curves, see https://redmine.pfsense.org/issues/9744 */
+	'OpenVPN' => array('prime256v1', 'secp384r1', 'secp521r1'),
+);
+
+/****f* certs/cert_build_curve_list
+ * NAME
+ *   cert_build_curve_list - Build an option list of ECDSA curves with notations
+ *                           about known compatible uses.
+ * INPUTS
+ *   None
+ * RESULT
+ *   Returns an option list of OpenSSL EC names with added notes. This can be
+ *   used directly in form option selection lists.
+ ******/
+
+function cert_build_curve_list() {
+	global $cert_curve_compatible;
+	/* Get the default list of curve names */
+	$openssl_ecnames = openssl_get_curve_names();
+	/* Turn this into a hashed array where key==value */
+	$curvelist = array_combine($openssl_ecnames, $openssl_ecnames);
+	/* Check all known compatible curves and note matches */
+	foreach ($cert_curve_compatible as $consumer => $validcurves) {
+		/* $consumer will be a name like HTTPS or IPsec
+		 * $validcurves will be an array of curves compatible with the consumer */
+		foreach ($validcurves as $vc) {
+			/* If the valid curve is present in the curve list, add
+			 * a note with the consumer name to the value visible to
+			 * the user. */
+			if (array_key_exists($vc, $curvelist)) {
+				$curvelist[$vc] .= " [{$consumer}]";
+			}
+		}
+	}
+	return $curvelist;
+}
+
+/****f* certs/cert_check_pkey_compatibility
+ * NAME
+ *   cert_check_pkey_compatibility - Check a private key to see if it can be
+ *                                   used in a specific compatible context.
+ * INPUTS
+ *   $pkey    : The private key to check
+ *   $consumer: The consumer name used to validate the curve. See the contents
+ *                 of $cert_curve_compatible for details.
+ * RESULT
+ *   true if the private key may be used in requested area, or if there are no
+ *        restrictions.
+ *   false if the private key cannot be used.
+ ******/
+
+function cert_check_pkey_compatibility($pkey, $consumer) {
+	global $cert_curve_compatible;
+
+	/* Read the curve name from the key */
+	$curve = cert_get_pkey_curve($pkey);
+	/* Return true if any of the following conditions are met:
+	 *  * This is not an EC key
+	 *  * The private key cannot be read
+	 *  * There are no restrictions
+	 *  * The requested curve is compatible */
+	return (($curve === false) ||
+		!array_key_exists($consumer, $cert_curve_compatible) ||
+		in_array($curve, $cert_curve_compatible[$consumer]));
+}
+
+/****f* certs/cert_build_list
+ * NAME
+ *   cert_build_list - Build an option list of cert or CA entries, checked
+ *                     against a specific consumer name.
+ * INPUTS
+ *   $type    : 'ca' for certificate authority entries, 'cert' for certificates.
+ *   $consumer: The consumer name used to filter certificates out of the result.
+ *                 See the contents of $cert_curve_compatible for details.
+ *   $selectsource: Then true, outputs in a format usable by select_source in
+ *                  packages.
+ *   $addnone: When true, a 'none' choice is added to the list.
+ * RESULT
+ *   Returns an option list of entries with incompatible entries removed. This
+ *   can be used directly in form option selection lists.
+ * NOTES
+ *   This can be expanded in the future to allow for other types of restrictions.
+ ******/
+
+function cert_build_list($type = 'cert', $consumer = '', $selectsource = false, $addnone = false) {
+	global $config;
+
+	/* Ensure that $type is valid */
+	if (!in_array($type, array('ca', 'cert'))) {
+		return array();
+	}
+
+	/* Initialize arrays */
+	init_config_arr(array($type));
+	$list = array();
+
+	if ($addnone) {
+		if ($selectsource) {
+			$list[] = array('refid' => 'none', 'descr' => 'None');
+		} else {
+			$list['none'] = "None";
+		}
+	}
+
+	/* Create a hashed array with the certificate refid as the key and
+	 * descriptive name as the value. Exclude incompatible certificates. */
+	foreach ($config[$type] as $cert) {
+		if (cert_check_pkey_compatibility($cert['prv'], $consumer)) {
+			if ($selectsource) {
+				$list[] = array('refid' => $cert['refid'],
+						'descr' => $cert['descr']);
+			} else {
+				$list[$cert['refid']] = $cert['descr'];
+			}
+		}
+	}
+
+	return $list;
 }
 
 ?>

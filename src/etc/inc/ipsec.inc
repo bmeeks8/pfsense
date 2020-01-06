@@ -6,7 +6,7 @@
  * Copyright (c) 2008 Shrew Soft Inc.
  * Copyright (c) 2007-2013 BSD Perimeter
  * Copyright (c) 2013-2016 Electric Sheep Fencing
- * Copyright (c) 2014-2019 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2014-2020 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -1869,7 +1869,7 @@ function ipsec_setup_proposal_algo($ealg_id, $keylen, $halgo, $modp) {
 	}
 
 	/* Add the hash algorithm (if present) */
-	if (!empty($halgo) && !strpos($ealg_id, "gcm")) {
+	if (!empty($halgo)) {
 		/* If there is some content in the propsal already, add a
 		 * separator */
 		if (!empty($palgo)) {

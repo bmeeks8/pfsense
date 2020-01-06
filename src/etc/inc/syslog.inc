@@ -5,7 +5,7 @@
  * part of pfSense (https://www.pfsense.org)
  * Copyright (c) 2004-2013 BSD Perimeter
  * Copyright (c) 2013-2016 Electric Sheep Fencing
- * Copyright (c) 2014-2019 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2014-2020 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * originally part of m0n0wall (http://m0n0.ch/wall)
@@ -330,7 +330,7 @@ EOD;
 local3.*							{$g['varlog_path']}/vpn.log
 local5.*							{$g['varlog_path']}/nginx.log
 *.notice;kern.debug;lpr.info;mail.crit;daemon.none;news.err;local0.none;local3.none;local4.none;local7.none;security.*;auth.info;authpriv.info;daemon.info	{$g['varlog_path']}/system.log
-auth.info;authpriv.info 					|exec /usr/local/sbin/sshguard
+auth.info;authpriv.info 					|exec /usr/local/sbin/sshguard -i /var/run/sshguard.pid
 *.emerg								*
 
 EOD;
@@ -418,6 +418,7 @@ EOD;
 	}
 
 	$sshguard_config = array();
+	$sshguard_config[] = 'LOGREADER="/bin/cat"' . "\n";
 	$sshguard_config[] = 'BACKEND="/usr/local/libexec/sshg-fw-pf"' . "\n";
 	if (!empty($config['system']['sshguard_threshold'])) {
 		$sshguard_config[] = 'THRESHOLD=' .

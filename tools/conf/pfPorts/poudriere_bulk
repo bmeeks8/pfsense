@@ -52,12 +52,14 @@ net/%%PRODUCT_NAME%%-pkg-mtr-nox11
 net/%%PRODUCT_NAME%%-pkg-ntopng
 net/%%PRODUCT_NAME%%-pkg-pfBlockerNG
 net/%%PRODUCT_NAME%%-pkg-pfBlockerNG-devel
+net/%%PRODUCT_NAME%%-pkg-pimd
 net/%%PRODUCT_NAME%%-pkg-routed
 net/%%PRODUCT_NAME%%-pkg-siproxd
 net/bird
 net/hping
 net/mosh
 net/nss_ldap
+net/pimd
 net/py-speedtest-cli
 net/trafshow
 net/trafshow3

@@ -1697,6 +1697,19 @@ function filter_nat_rules_automatic_tonathosts($with_descr = false) {
 		$tonathosts[] = "{$config['ipsec']['client']['pool_address']}/{$config['ipsec']['client']['pool_netbits']}";
 		$descriptions[] = gettext("IPsec client");
 	}
+	if (isset($config['ipsec']['client']['enable']) &&
+	    isset($config['ipsec']['mobilekey'])) {
+		foreach ($config['ipsec']['mobilekey'] as $key) {
+			if (in_array("{$key['pool_address']}/{$key['pool_netbits']}", $tonathosts)) {
+				continue;
+			}
+			if (!empty($key['pool_address']) &&
+			    !empty($key['pool_netbits'])) {
+				$tonathosts[] = "{$key['pool_address']}/{$key['pool_netbits']}";
+				$descriptions[] = gettext("IPsec client");
+			}
+		}
+	}
 	if (is_array($config['ipsec']) && is_array($config['ipsec']['phase1']) && is_array($config['ipsec']['phase2'])) {
 		foreach ($config['ipsec']['phase1'] as $ph1ent) {
 			$vti_addrs = ipsec_vti($ph1ent, true);
@@ -1773,7 +1786,7 @@ function filter_nat_rules_generate_if ($if, $descr = "", $ipprotocol = "", $src 
 	global $config, $FilterIflist;
 
 	/* XXX: billm - any idea if this code is needed? */
-	if ($src == "/32" || $src == "/128" || $src{0} == "/") {
+	if ($src == "/32" || $src == "/128" || $src[0] == "/") {
 		return "# src incorrectly specified\n";
 	}
 	$if_friendly = $FilterIflist[$if]['descr'];
@@ -2379,8 +2392,8 @@ function filter_nat_rules_generate() {
 					$dstaddr_reflect = gen_subnet($dstaddr_reflect, $FilterIflist[$natif]['sn']) . '/' . $FilterIflist[$natif]['sn'];
 				}
 
-				if ($dstaddr_port[2]) {
-					$dstaddr_reflect .= " port " . $dstaddr_port[2];
+				if ($dstaddr_port[count($dstaddr_port)-1]) {
+					$dstaddr_reflect .= " port " . $dstaddr_port[count($dstaddr_port)-1];
 				}
 			}
 
@@ -2412,8 +2425,8 @@ function filter_nat_rules_generate() {
 			}
 
 			$localport_nat = $localport;
-			if (empty($localport_nat) && $dstaddr_port[2]) {
-				$localport_nat = " port " . $dstaddr_port[2];
+			if (empty($localport_nat) && is_port($dstaddr_port[count($dstaddr_port)-1])) {
+				$localport_nat = " port " . $dstaddr_port[count($dstaddr_port)-1];
 			}
 
 			if ($srcaddr <> "" && $dstaddr <> "" && $natif) {

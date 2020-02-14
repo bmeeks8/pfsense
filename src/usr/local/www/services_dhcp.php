@@ -163,7 +163,13 @@ if (is_array($dhcpdconf)) {
 	list($pconfig['wins1'], $pconfig['wins2']) = $dhcpdconf['winsserver'];
 	list($pconfig['dns1'], $pconfig['dns2'], $pconfig['dns3'], $pconfig['dns4']) = $dhcpdconf['dnsserver'];
 	$pconfig['ignorebootp'] = isset($dhcpdconf['ignorebootp']);
-	$pconfig['denyunknown'] = isset($dhcpdconf['denyunknown']);
+
+	if (isset($dhcpdconf['denyunknown'])) {
+		$pconfig['denyunknown'] = empty($dhcpdconf['denyunknown']) ? "enabled" : $dhcpdconf['denyunknown'];
+	} else {
+		$pconfig['denyunknown'] = "disabled";
+	}
+
 	$pconfig['ignoreclientuids'] = isset($dhcpdconf['ignoreclientuids']);
 	$pconfig['nonak'] = isset($dhcpdconf['nonak']);
 	$pconfig['ddnsdomain'] = $dhcpdconf['ddnsdomain'];
@@ -175,7 +181,7 @@ if (is_array($dhcpdconf)) {
 	$pconfig['ddnsforcehostname'] = isset($dhcpdconf['ddnsforcehostname']);
 	$pconfig['mac_allow'] = $dhcpdconf['mac_allow'];
 	$pconfig['mac_deny'] = $dhcpdconf['mac_deny'];
-	list($pconfig['ntp1'], $pconfig['ntp2']) = $dhcpdconf['ntpserver'];
+	list($pconfig['ntp1'], $pconfig['ntp2'], $pconfig['ntp3'] ) = $dhcpdconf['ntpserver'];
 	$pconfig['tftp'] = $dhcpdconf['tftp'];
 	$pconfig['ldap'] = $dhcpdconf['ldap'];
 	$pconfig['netboot'] = isset($dhcpdconf['netboot']);
@@ -407,7 +413,9 @@ if (isset($_POST['save'])) {
 		$input_errors[] = gettext("If a mac deny list is specified, it must contain only valid partial MAC addresses.");
 	}
 
-	if (($_POST['ntp1'] && (!is_ipaddrv4($_POST['ntp1']) && !is_hostname($_POST['ntp1']))) || ($_POST['ntp2'] && (!is_ipaddrv4($_POST['ntp2']) && !is_hostname($_POST['ntp2'])))) {
+	if (($_POST['ntp1'] && (!is_ipaddrv4($_POST['ntp1']) && !is_hostname($_POST['ntp1']))) ||
+	    ($_POST['ntp2'] && (!is_ipaddrv4($_POST['ntp2']) && !is_hostname($_POST['ntp2']))) ||
+	    ($_POST['ntp3'] && (!is_ipaddrv4($_POST['ntp3']) && !is_hostname($_POST['ntp3'])))) {
 		$input_errors[] = gettext("A valid IP address or hostname must be specified for the primary/secondary NTP servers.");
 	}
 	if (($_POST['domain'] && !is_domain($_POST['domain']))) {
@@ -659,7 +667,13 @@ if (isset($_POST['save'])) {
 		$dhcpdconf['domain'] = $_POST['domain'];
 		$dhcpdconf['domainsearchlist'] = $_POST['domainsearchlist'];
 		$dhcpdconf['ignorebootp'] = ($_POST['ignorebootp']) ? true : false;
-		$dhcpdconf['denyunknown'] = ($_POST['denyunknown']) ? true : false;
+
+		if (in_array($_POST['denyunknown'], array("enabled", "class"))) {
+			$dhcpdconf['denyunknown'] = $_POST['denyunknown'];
+		} else {
+			unset($dhcpdconf['denyunknown']);
+		}
+
 		$dhcpdconf['ignoreclientuids'] = ($_POST['ignoreclientuids']) ? true : false;
 		$dhcpdconf['nonak'] = ($_POST['nonak']) ? true : false;
 		$dhcpdconf['ddnsdomain'] = $_POST['ddnsdomain'];
@@ -679,6 +693,9 @@ if (isset($_POST['save'])) {
 		}
 		if ($_POST['ntp2']) {
 			$dhcpdconf['ntpserver'][] = $_POST['ntp2'];
+		}
+		if ($_POST['ntp3']) {
+			$dhcpdconf['ntpserver'][] = $_POST['ntp3'];
 		}
 
 		$dhcpdconf['tftp'] = $_POST['tftp'];
@@ -965,12 +982,19 @@ $section->addInput(new Form_Checkbox(
 	$pconfig['ignorebootp']
 ));
 
-$section->addInput(new Form_Checkbox(
+$section->addInput(new Form_Select(
 	'denyunknown',
 	'Deny unknown clients',
-	'Only the clients defined below will get DHCP leases from this server.',
-	$pconfig['denyunknown']
-));
+	$pconfig['denyunknown'],
+	array(
+		"disabled" => "Allow all clients",
+		"enabled" => "Allow known clients from any interface",
+		"class" => "Allow known clients from only this interface",
+	)
+))->setHelp('When set to %3$sAllow all clients%4$s, any DHCP client will get an IP address within this scope/range on this interface. '.
+	'If set to %3$sAllow known clients from any interface%4$s, any DHCP client with a MAC address listed on %1$s%3$sany%4$s%2$s scope(s)/interface(s) will get an IP address. ' .
+	'If set to %3$sAllow known clients from only this interface%4$s, only MAC addresses listed below (i.e. for this interface) will get an IP address within this scope/range.',
+	'<i>', '</i>', '<b>', '</b>');
 
 $section->addInput(new Form_Checkbox(
 	'nonak',
@@ -1362,6 +1386,13 @@ $section->addInput(new Form_IpAddress(
 	'ntp2',
 	'NTP Server 2',
 	$pconfig['ntp2'],
+	'HOSTV4'
+));
+
+$section->addInput(new Form_IpAddress(
+	'ntp3',
+	'NTP Server 3',
+	$pconfig['ntp3'],
 	'HOSTV4'
 ));
 
@@ -1782,7 +1813,7 @@ events.push(function() {
 		// On page load decide the initial state based on the data.
 		if (ispageload) {
 <?php
-			if (empty($pconfig['ntp1']) && empty($pconfig['ntp2'])) {
+			if (empty($pconfig['ntp1']) && empty($pconfig['ntp2']) && empty($pconfig['ntp3']) ) {
 				$showadv = false;
 			} else {
 				$showadv = true;
@@ -1796,6 +1827,7 @@ events.push(function() {
 
 		hideInput('ntp1', !showadvntp);
 		hideInput('ntp2', !showadvntp);
+		hideInput('ntp3', !showadvntp);
 
 		if (showadvntp) {
 			text = "<?=gettext('Hide Advanced');?>";

@@ -25,6 +25,7 @@
 require_once("filter.inc");
 require_once("auth.inc");
 require_once("certs.inc");
+require_once("interfaces.inc");
 
 /* IPsec defines */
 global $ipsec_loglevels;
@@ -351,7 +352,7 @@ function ipsec_get_phase1_dst(& $ph1ent) {
 	$rg = $ph1ent['remote-gateway'];
 	if (!is_ipaddr($rg)) {
 		if (!platform_booting()) {
-			return resolve_retry($rg);
+			return resolve_retry($rg, $ph1ent['protocol']);
 		}
 	}
 	if (!is_ipaddr($rg)) {
@@ -372,6 +373,8 @@ function ipsec_idinfo_to_cidr(& $idinfo, $addrbits = false, $mode = "") {
 			if ($addrbits) {
 				if ($mode == "tunnel6") {
 					return $idinfo['address']."/128";
+				} elseif (($mode == "vti") && is_ipaddrv6($idinfo['address'])) {
+					return $idinfo['address']."/64";
 				} else {
 					return $idinfo['address']."/32";
 				}
@@ -1213,7 +1216,7 @@ function ipsec_setup_gwifs() {
 				$filterdns_list[] = "{$rg}";
 				add_hostname_to_watch($rg);
 				if (!platform_booting()) {
-					$rg = resolve_retry($rg);
+					$rg = resolve_retry($rg, $ph1ent['protocol']);
 				}
 				if (!is_ipaddr($rg)) {
 					continue;
@@ -1859,7 +1862,7 @@ function ipsec_setup_authentication(& $ph1ent, & $conn) {
  *   Values left empty will not be added to the string. Some combinations may
  *   require one or more parts to be omitted.
  ******/
-function ipsec_setup_proposal_algo($ealg_id, $keylen, $halgo, $modp) {
+function ipsec_setup_proposal_algo($ealg_id, $keylen, $halgo, $prfalgo, $modp) {
 	$palgo = "";
 
 	/* Add the encryption algorithm (if present) */
@@ -1881,6 +1884,10 @@ function ipsec_setup_proposal_algo($ealg_id, $keylen, $halgo, $modp) {
 		}
 		$halgo = str_replace('hmac_', '', $halgo);
 		$palgo .= "{$halgo}";
+	}
+
+	if (!empty($prfalgo)) {
+		$palgo .= "-prf{$prfalgo}";
 	}
 
 	/* Convert the DH group to its keyword and add (if present) */
@@ -1912,10 +1919,10 @@ function ipsec_setup_proposal_entry(& $ph2ent, & $algo_arr, $ealg_id, $keylen) {
 	/* If multiple hash algorithms are present, loop through and add them all. */
 	if (!empty($ph2ent['hash-algorithm-option']) && is_array($ph2ent['hash-algorithm-option'])) {
 		foreach ($ph2ent['hash-algorithm-option'] as $halgo) {
-			$proposal[] = ipsec_setup_proposal_algo($ealg_id, $keylen, $halgo, $ph2ent['pfsgroup']);
+			$proposal[] = ipsec_setup_proposal_algo($ealg_id, $keylen, $halgo, false, $ph2ent['pfsgroup']);
 		}
 	} else {
-		$proposal[] = ipsec_setup_proposal_algo($ealg_id, $keylen, '', $ph2ent['pfsgroup']);
+		$proposal[] = ipsec_setup_proposal_algo($ealg_id, $keylen, false, false, $ph2ent['pfsgroup']);
 	}
 
 	/* Add to master list */
@@ -2030,9 +2037,13 @@ function ipsec_setup_tunnels() {
 						empty($p1enc['hash-algorithm'])) {
 					continue;
 				}
+				if ($ph1ent['prfselect_enable'] != 'yes') {
+					$p1enc['prf-algorithm'] = false;
+				}
 				$ciphers[] = ipsec_setup_proposal_algo($p1enc['encryption-algorithm']['name'],
 									$p1enc['encryption-algorithm']['keylen'],
 									$p1enc['hash-algorithm'],
+									$p1enc['prf-algorithm'],
 									$p1enc['dhgroup']);
 			}
 			$conn['proposals'] = implode(",", $ciphers);
@@ -2518,6 +2529,7 @@ function ipsec_configure($restart = false) {
 		sleep(2);
 		/* Shutdown enc0 interface*/
 		mwexec("/sbin/ifconfig enc0 down");
+		ipsec_gre_default_mtu(); 
 		return 0;
 	} else {
 		/* Startup enc0 interface */
@@ -2639,6 +2651,9 @@ function ipsec_configure($restart = false) {
 		}
 	}
 
+	/* set default MTU to 1400 for GRE over IPsec, othewise to 1476 */
+	ipsec_gre_default_mtu(); 
+
 	/* Manage process */
 	if ($restart === true) {
 		mwexec_bg("/usr/local/sbin/strongswanrc restart", false);
@@ -2689,5 +2704,19 @@ function ipsec_configure($restart = false) {
 
 	unlock($ipsecstartlock);
 	return count($filterdns_list);
+}
+
+function ipsec_gre_default_mtu() {
+	global $config;
+
+	foreach ($config['interfaces'] as $if => $ifdetail) { 
+		if (interface_is_type($ifdetail['if'], 'gre') && !isset($ifdetail['mtu'])) {
+			if (is_greipsec($ifdetail['if'])) {
+				set_interface_mtu($ifdetail['if'], 1400);
+			} else {
+				set_interface_mtu($ifdetail['if'], 1476);
+			}
+		}
+	}
 }
 ?>

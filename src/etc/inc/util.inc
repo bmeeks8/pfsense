@@ -1932,22 +1932,57 @@ function mac_format($clientmac) {
 	}
 }
 
-function resolve_retry($hostname, $retries = 5) {
+function resolve_retry($hostname, $protocol = 'inet', $retries = 5, $numrecords = 1) {
 
-	if (is_ipaddr($hostname)) {
-		return $hostname;
-	}
-
+	$recresult = array();
+	$returnres = array();
 	for ($i = 0; $i < $retries; $i++) {
-		// FIXME: gethostbyname does not work for AAAA hostnames, boo, hiss
-		$ip = gethostbyname($hostname);
-
-		if ($ip && $ip != $hostname) {
-			/* success */
-			return $ip;
+		switch ($protocol) {
+			case 'any':
+				$checkproto = 'is_ipaddr';
+				$dnsproto = DNS_ANY;
+				$dnstype = array('A', 'AAAA');
+				break;
+			case 'inet6':
+				$checkproto = 'is_ipaddrv6';
+				$dnsproto = DNS_AAAA;
+				$dnstype = array('AAAA');
+				break;
+			case 'inet': 
+			default:
+				$checkproto = 'is_ipaddrv4';
+				$dnsproto = DNS_A;
+				$dnstype = array('A');
+				break;
+		}
+		if ($checkproto($hostname)) {
+			return $hostname;
+		}
+		$dnsresult = @dns_get_record($hostname, $dnsproto);
+		if (!empty($dnsresult)) {
+			foreach ($dnsresult as $dnsrec => $ip) {
+				if (is_array($ip)) {
+					if (in_array($ip['type'], $dnstype)) {
+					    if ($checkproto($ip['ip'])) { 
+						    $recresult[] = $ip['ip'];
+					    }
+					    if ($checkproto($ip['ipv6'])) { 
+						    $recresult[] = $ip['ipv6'];
+					    }
+					}
+				}
+			}
 		}
 
 		sleep(1);
+	}
+
+	if (!empty($recresult)) {
+		if ($numrecords == 1) {
+			return $recresult[0];
+		} else {
+			return array_slice($recresult, 0, $numrecords);
+		}
 	}
 
 	return false;
@@ -1978,6 +2013,23 @@ function format_number($num, $precision = 3) {
 	$num = round($num, $precision);
 
 	return ("$num {$units[$i]}");
+}
+
+
+function unformat_number($formated_num) {
+	$num = strtoupper($formated_num);
+    
+	if ( strpos($num,"T") !== false ) {
+		$num = str_replace("T","",$num) * 1000 * 1000 * 1000 * 1000;
+	} else if ( strpos($num,"G") !== false ) {
+		$num = str_replace("G","",$num) * 1000 * 1000 * 1000;
+	} else if ( strpos($num,"M") !== false ) {
+		$num = str_replace("M","",$num) * 1000 * 1000;
+	} else if ( strpos($num,"K") !== false ) {
+		$num = str_replace("K","",$num) * 1000;
+	}
+    
+	return $num;
 }
 
 function update_filter_reload_status($text, $new=false) {

@@ -137,7 +137,7 @@ export KERNEL_BUILD_PATH=${KERNEL_BUILD_PATH:-"${SCRATCHDIR}/kernels"}
 # Do not touch builder /usr/obj
 export MAKEOBJDIRPREFIX=${MAKEOBJDIRPREFIX:-"${SCRATCHDIR}/obj"}
 
-export MODULES_OVERRIDE=${MODULES_OVERRIDE:-"aesni amdtemp amdsmn coretemp cryptodev cpuctl drm2 fdescfs dummynet hwpmc i2c if_stf ipdivert ipfw ipmi ix ixv ndis nmdm opensolaris sfxge vmm zfs"}
+export MODULES_OVERRIDE=${MODULES_OVERRIDE:-"aesni amdtemp amdsmn coretemp cryptodev cpuctl drm2 fdescfs dummynet hwpmc i2c if_stf ipdivert ipfw ipmi ix ixv ndis nmdm opensolaris sfxge vmm zfs usb/urndis usb/cdce usb/ipheth"}
 
 # gnid
 export GNID_REPO_BASE=${GNID_REPO_BASE:-"${GIT_REPO_BASE}/gnid.git"}
@@ -301,7 +301,7 @@ else
 	export PKG_REPO_SIGN_KEY=${PKG_REPO_SIGN_KEY:-"beta${PRODUCT_NAME_SUFFIX}"}
 fi
 # Command used to sign pkg repo
-: ${PKG_REPO_SIGNING_COMMAND="ssh sign@codesigner.netgate.com sudo ./sign.sh ${PKG_REPO_SIGN_KEY}"}
+: ${PKG_REPO_SIGNING_COMMAND="ssh -o StrictHostKeyChecking=no sign@codesigner.netgate.com sudo ./sign.sh ${PKG_REPO_SIGN_KEY}"}
 export PKG_REPO_SIGNING_COMMAND
 export DO_NOT_SIGN_PKG_REPO=${DO_NOT_SIGN_PKG_REPO:-}
 

@@ -52,7 +52,7 @@ if ($allow_query) {
 		$inet_version = " -4";
 	}
 
-	exec("/usr/local/sbin/ntpq -pn $inet_version | /usr/bin/tail +3", $ntpq_output);
+	exec('/usr/local/sbin/ntpq -pnw ' . $inet_version . ' | /usr/bin/tail +3 | /usr/bin/awk -v RS= \'{gsub(/\n[[:space:]][[:space:]]+/," ")}1\'', $ntpq_output);
 
 	$ntpq_servers = array();
 	foreach ($ntpq_output as $line) {

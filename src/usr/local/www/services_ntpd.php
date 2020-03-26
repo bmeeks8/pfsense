@@ -37,6 +37,8 @@ require_once("shaper.inc");
 global $ntp_poll_min_default, $ntp_poll_max_default;
 $ntp_poll_values = system_ntp_poll_values();
 $auto_pool_suffix = "pool.ntp.org";
+$max_candidate_peers = 25;
+$min_candidate_peers = 4;
 
 if (!is_array($config['ntpd'])) {
 	$config['ntpd'] = array();
@@ -47,7 +49,7 @@ if (empty($config['ntpd']['interface'])) {
 	    is_array($config['installedpackages']['openntpd']['config'][0]) && !empty($config['installedpackages']['openntpd']['config'][0]['interface'])) {
 		$pconfig['interface'] = explode(",", $config['installedpackages']['openntpd']['config'][0]['interface']);
 		unset($config['installedpackages']['openntpd']);
-		write_config(gettext("Upgraded settings from openttpd"));
+		write_config(gettext("Upgraded settings from openntpd"));
 	} else {
 		$pconfig['interface'] = array();
 	}
@@ -59,6 +61,12 @@ if ($_POST) {
 	unset($input_errors);
 	$pconfig = $_POST;
 
+	if (!is_numericint($_POST['ntpmaxpeers']) ||
+	    ($_POST['ntpmaxpeers'] < $min_candidate_peers) ||
+	    ($_POST['ntpmaxpeers'] > $max_candidate_peers)) {
+		$input_errors[] = sprintf(gettext("Max candidate pool peers must be a number between %d and %d"), $min_candidate_peers, $max_candidate_peers);
+	}
+	
 	if ((strlen($pconfig['ntporphan']) > 0) && (!is_numericint($pconfig['ntporphan']) || ($pconfig['ntporphan'] < 1) || ($pconfig['ntporphan'] > 15))) {
 		$input_errors[] = gettext("The supplied value for NTP Orphan Mode is invalid.");
 	}
@@ -122,6 +130,7 @@ if ($_POST) {
 		}
 		$config['system']['timeservers'] = trim($timeservers);
 
+		$config['ntpd']['ntpmaxpeers'] = $pconfig['ntpmaxpeers'];
 		$config['ntpd']['orphan'] = trim($pconfig['ntporphan']);
 		$config['ntpd']['ntpminpoll'] = $pconfig['ntpminpoll'];
 		$config['ntpd']['ntpmaxpoll'] = $pconfig['ntpmaxpoll'];
@@ -192,6 +201,8 @@ function build_interface_list() {
 	$iflist = array('options' => array(), 'selected' => array());
 
 	$interfaces = get_configured_interface_with_descr();
+	$interfaces['lo0'] = "Localhost";
+
 	foreach ($interfaces as $iface => $ifacename) {
 		if (!is_ipaddr(get_interface_ip($iface)) &&
 		    !is_ipaddrv6(get_interface_ipv6($iface))) {
@@ -323,6 +334,18 @@ $section->addInput(new Form_StaticText(
 	'<a target="_blank" href="https://support.ntp.org/bin/view/Support/ConfiguringNTP">',
 	'</a>'
 	);
+
+$section->addInput(new Form_Input(
+	'ntpmaxpeers',
+	'Max candidate pool peers',
+	'number',
+	$pconfig['ntpmaxpeers'],
+	['min' => $min_candidate_peers, 'max' => $max_candidate_peers]
+))->setHelp('Maximum number of candidate peers in the NTP pool. This value should be set low enough to provide sufficient alternate sources ' .
+	    'while not contacting an excessively large number of peers. ' .
+	    'Many servers inside public pools are provided by volunteers, ' .
+	    'and a large candidate pool places unnecessary extra load ' .
+	    'on the volunteer time servers for little to no added benefit. (Default: 5).');
 
 $section->addInput(new Form_Input(
 	'ntporphan',

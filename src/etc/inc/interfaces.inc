@@ -1034,6 +1034,12 @@ function interface_lagg_configure($lagg) {
 		$lagg_mtu = 1500;
 	}
 
+	// put failover master interface on top of list
+	if (isset($lagg['failovermaster']) && ($lagg['failovermaster'] != 'auto')) {
+		unset($members[array_search($lagg['failovermaster'], $members)]);
+		$members = array_merge(array($lagg['failovermaster']), $members);
+	}
+
 	foreach ($members as $member) {
 		if (!does_interface_exist($member)) {
 			continue;
@@ -3999,7 +4005,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 	if ($wantedmtu == 0) {
 		$wantedmtu = interface_mtu_wanted_for_pppoe($mtuif);
 	}
-	if (($wantedmtu == 0) && interface_is_vlan($mtuif) != NULL && interface_isppp_type($interface)) {
+	if (($wantedmtu == 0) && (interface_is_vlan($mtuif) != NULL) && interface_isppp_type($interface)) {
 		$wantedmtu = interface_mtu_wanted_for_pppoe($mtuhwif);
 	}
 	if (($wantedmtu == 0) && interface_is_type($mtuif, 'gre')) {
@@ -6088,6 +6094,18 @@ function link_interface_to_bridge($int) {
 	}
 }
 
+function link_interface_to_lagg($int) {
+	global $config;
+
+	if (isset($config['laggs']['lagg']) && is_array($config['laggs']['lagg'])) {
+		foreach ($config['laggs']['lagg'] as $lagg) {
+			if (in_array($int, explode(',', $lagg['members']))) {
+				return "{$lagg['laggif']}";
+			}
+		}
+	}
+}
+
 function link_interface_to_group($int) {
 	global $config;
 
@@ -6754,7 +6772,8 @@ function get_wireless_channel_info($interface) {
 function set_interface_mtu($interface, $mtu) {
 
 	/* LAGG interface must be destroyed and re-created to change MTU */
-	if (substr($interface, 0, 4) == 'lagg') {
+	if ((substr($interface, 0, 4) == 'lagg') &&
+	    (!strstr($interface, "."))) {
 		if (isset($config['laggs']['lagg']) &&
 		    is_array($config['laggs']['lagg'])) {
 			foreach ($config['laggs']['lagg'] as $lagg) {

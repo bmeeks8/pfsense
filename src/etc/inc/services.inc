@@ -730,23 +730,13 @@ EOPP;
 
 			$revsubnet = array_reverse(explode('.',$subnet));
 
-			/* Take care of full classes first */
-			switch ($ifcfgsn) {
-				case 8:
-					$start_octet = 3;
-					break;
-				case 16:
-					$start_octet = 2;
-					break;
-				case 24:
-					$start_octet = 1;
-					break;
-				default:
-					$start_octet = 0;
-					/* Add subnet bitmask to first octet */
-					$revsubnet[0] .= '-' . $ifcfgsn;
-					break;
-
+			$subnet_mask_bits = 32 - $ifcfgsn;
+			$start_octet = $subnet_mask_bits >> 3;
+			$octet_mask_bits = $subnet_mask_bits & ($subnet_mask_bits % 8);
+			if ($octet_mask_bits) {
+			    $octet_mask = (1 << $octet_mask_bits) - 1;
+			    $octet_start = $revsubnet[$start_octet] & ~$octet_mask;
+			    $revsubnet[$start_octet] = $octet_start . "-" . ($octet_start + $octet_mask);
 			}
 
 			$ptr_domain = '';
@@ -1278,7 +1268,7 @@ EOD;
 		$dhcpdifs[] = get_real_interface($dhcpif);
 		if ($newzone['domain-name']) {
 			if ($need_ddns_updates) {
-				$newzone['dns-servers'] = array($dhcpifconf['ddnsdomainprimary']);
+				$newzone['dns-servers'] = array($dhcpifconf['ddnsdomainprimary'], $dhcpifconf['ddnsdomainsecondary']);
 				$newzone['ddnsdomainkeyname'] = $dhcpifconf['ddnsdomainkeyname'];
 				$newzone['ddnsdomainkeyalgorithm'] = $dhcpifconf['ddnsdomainkeyalgorithm'];
 				$newzone['ddnsdomainkey'] = $dhcpifconf['ddnsdomainkey'];
@@ -1350,9 +1340,9 @@ function dhcpdzones($ddns_zones) {
 			$primary = $zone['dns-servers'][0];
 			$secondary = empty($zone['dns-servers'][1]) ? "" : $zone['dns-servers'][1];
 
-			// Make sure we aren't using any invalid or IPv6 DNS servers.
-			if (!is_ipaddrv4($primary)) {
-				if (is_ipaddrv4($secondary)) {
+			// Make sure we aren't using any invalid servers.
+			if (!is_ipaddr($primary)) {
+				if (is_ipaddr($secondary)) {
 					$primary = $secondary;
 					$secondary = "";
 				} else {
@@ -1363,9 +1353,15 @@ function dhcpdzones($ddns_zones) {
 			// We don't need to add zones multiple times.
 			if ($zone['domain-name'] && !in_array($zone['domain-name'], $added_zones)) {
 				$dhcpdconf .= "zone {$zone['domain-name']}. {\n";
-				$dhcpdconf .= "	primary {$primary};\n";
+				if (is_ipaddrv4($primary)) {
+					$dhcpdconf .= "	primary {$primary};\n";
+				} else {
+					$dhcpdconf .= "	primary6 {$primary};\n";
+				}
 				if (is_ipaddrv4($secondary)) {
 					$dhcpdconf .= "	secondary {$secondary};\n";
+				} elseif (is_ipaddrv6($secondary)) {
+					$dhcpdconf .= "	secondary6 {$secondary};\n";
 				}
 				if ($zone['ddnsdomainkeyname'] <> "" && $zone['ddnsdomainkey'] <> "") {
 					$dhcpdconf .= "	key {$zone['ddnsdomainkeyname']};\n";
@@ -1375,9 +1371,15 @@ function dhcpdzones($ddns_zones) {
 			}
 			if ($zone['ptr-domain'] && !in_array($zone['ptr-domain'], $added_zones)) {
 				$dhcpdconf .= "zone {$zone['ptr-domain']} {\n";
-				$dhcpdconf .= "	primary {$primary};\n";
+				if (is_ipaddrv4($primary)) {
+					$dhcpdconf .= "	primary {$primary};\n";
+				} else {
+					$dhcpdconf .= "	primary6 {$primary};\n";
+				}
 				if (is_ipaddrv4($secondary)) {
 					$dhcpdconf .= "	secondary {$secondary};\n";
+				} elseif (is_ipaddrv6($secondary)) {
+					$dhcpdconf .= "	secondary6 {$secondary};\n";
 				}
 				if ($zone['ddnsdomainkeyname'] <> "" && $zone['ddnsdomainkey'] <> "") {
 					$dhcpdconf .= "	key {$zone['ddnsdomainkeyname']};\n";
@@ -1550,7 +1552,7 @@ EOD;
 		    !empty($dhcpv6ifconf['ddnsdomain'])) {
 			$newzone = array();
 			$newzone['domain-name'] = $dhcpv6ifconf['ddnsdomain'];
-			$newzone['dns-servers'][] = $dhcpv6ifconf['ddnsdomainprimary'];
+			$newzone['dns-servers'] = array($dhcpv6ifconf['ddnsdomainprimary'], $dhcpv6ifconf['ddnsdomainsecondary']);
 			$newzone['ddnsdomainkeyname'] = $dhcpv6ifconf['ddnsdomainkeyname'];
 			$newzone['ddnsdomainkey'] = $dhcpv6ifconf['ddnsdomainkey'];
 			$ddns_zones[] = $newzone;
@@ -1559,7 +1561,7 @@ EOD;
 				foreach ($ptr_zones as $ptr_zone) {
 					$reversezone = array();
 					$reversezone['ptr-domain'] = $ptr_zone;
-					$reversezone['dns-servers'][] = $dhcpv6ifconf['ddnsdomainprimary'];
+					$reversezone['dns-servers'] = array($dhcpv6ifconf['ddnsdomainprimary'], $dhcpv6ifconf['ddnsdomainsecondary']);
 					$reversezone['ddnsdomainkeyname'] = $dhcpv6ifconf['ddnsdomainkeyname'];
 					$reversezone['ddnsdomainkey'] = $dhcpv6ifconf['ddnsdomainkey'];
 					$ddns_zones[] = $reversezone;
@@ -1720,6 +1722,7 @@ EOD;
 
 	if ($nsupdate) {
 		$dhcpdv6conf .= "ddns-update-style interim;\n";
+		$dhcpdv6conf .= "update-static-leases on;\n";
 	} else {
 		$dhcpdv6conf .= "ddns-update-style none;\n";
 	}

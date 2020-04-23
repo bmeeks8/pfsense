@@ -83,6 +83,10 @@ if ($_POST) {
 		    (substr_compare($pconfig["server{$i}"], $auto_pool_suffix, strlen($pconfig["server{$i}"]) - strlen($auto_pool_suffix), strlen($auto_pool_suffix)) === 0))) {
 			$input_errors[] = gettext("It is not possible to use 'No Select' for pools.");
 		}
+		if (!empty($pconfig["server{$i}"]) && !is_domain($pconfig["server{$i}"]) &&
+		    !is_ipaddr($pconfig["server{$i}"])) {
+			$input_errors[] = gettext("NTP Time Server names must be valid domain names, IPv4 addresses, or IPv6 addresses");
+		}
 	}
 
 	if (is_numericint($pconfig['ntpminpoll']) &&
@@ -92,7 +96,7 @@ if ($_POST) {
 	}
 
 	if (!$input_errors) {
-		$config['ntpd']['enable'] = isset($pconfig['enable']) ? 'enabled' : 'disabled';
+		$config['ntpd']['enable'] = isset($_POST['enable']) ? 'enabled' : 'disabled';
 		if (is_array($_POST['interface'])) {
 			$config['ntpd']['interface'] = implode(",", $_POST['interface']);
 		} elseif (isset($config['ntpd']['interface'])) {
@@ -225,7 +229,6 @@ function build_interface_list() {
 
 init_config_arr(array('ntpd'));
 $pconfig = &$config['ntpd'];
-$config['ntpd']['enable'] = isset($pconfig['enable']) ? 'enabled' : 'disabled';
 if (empty($pconfig['interface'])) {
 	$pconfig['interface'] = array();
 } else {
@@ -260,7 +263,7 @@ $section->addInput(new Form_Checkbox(
 	'enable',
 	'Enable',
 	'Enable NTP Server',
-	$pconfig['enable']
+	($pconfig['enable'] == 'enabled')
 ))->setHelp('You may need to disable NTP if pfSense is running in a virtual machine and the host is responsible for the clock.');
 
 $iflist = build_interface_list();

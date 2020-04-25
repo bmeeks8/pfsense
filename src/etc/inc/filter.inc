@@ -330,6 +330,9 @@ function filter_configure_sync($delete_states_if_needed = true) {
 	if (isset($config['system']['tcpclosedtimeout']) && is_numericint($config['system']['tcpclosedtimeout'])) {
 		$timeoutlist .= " tcp.closed {$config['system']['tcpclosedtimeout']} ";
 	}
+	if (isset($config['system']['tcptsdifftimeout']) && is_numericint($config['system']['tcptsdifftimeout'])) {
+		$timeoutlist .= " tcp.tsdiff {$config['system']['tcptsdifftimeout']} ";
+	}
 	if (isset($config['system']['udpfirsttimeout']) && is_numericint($config['system']['udpfirsttimeout'])) {
 		$timeoutlist .= " udp.first {$config['system']['udpfirsttimeout']} ";
 	}
@@ -1659,16 +1662,6 @@ function filter_nat_rules_automatic_tonathosts($with_descr = false) {
 				$tonathosts[] = "{$pppoe['sa']}/{$pppoe['sn']}";
 				$descriptions[] = gettext("PPPoE server");
 			}
-		}
-	}
-
-	/* L2TP subnet */
-	if (isset($FilterIflist['l2tp']) && $FilterIflist['l2tp']['mode'] == "server") {
-		$l2tp_sa = $FilterIflist['l2tp']['sa'];
-		$l2tp_sn = $FilterIflist['l2tp']['sn'];
-		if (is_private_ip($l2tp_sa) && !empty($l2tp_sn)) {
-			$tonathosts[] = "{$l2tp_sa}/{$l2tp_sn}";
-			$descriptions[] = gettext("L2TP server");
 		}
 	}
 

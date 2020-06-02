@@ -5943,7 +5943,10 @@ function upgrade_189_to_190() {
 	global $config;
 	init_config_arr(array('ipsec', 'phase1'));
 	foreach ($config['ipsec']['phase1'] as & $ph1ent) {
-		if (empty($ph1ent['protocol'])) {
+		if (empty($ph1ent)) {
+			continue;
+		}
+		if (!isset($ph1ent['protocol']) || empty($ph1ent['protocol'])) {
 			$ph1ent['protocol'] = 'inet';
 		}
 	}
@@ -6097,6 +6100,9 @@ function upgrade_199_to_200() {
 	global $config;
 	init_config_arr(array('ipsec', 'phase1'));
 	foreach ($config['ipsec']['phase1'] as & $ph1ent) {
+		if (empty($ph1ent)) {
+			continue;
+		}
 		/* Convert lifetime to reauth_time since that's how previous
 		 * versions behaved. */
 		if (isset($ph1ent['reauth_enable'])) {
@@ -6152,6 +6158,27 @@ function upgrade_201_to_202() {
 			$config['system']['language'] = 'zh_Hans_HK';
 		} elseif ($config['system']['language'] == 'zh_TW') {
 			$config['system']['language'] = 'zh_Hant_TW';
+		}
+	}
+}
+
+function upgrade_202_to_203() {
+	global $config;
+	// Upgrade GREs with IPv6 tunnel networks to new dual stack format
+	if (is_array($config['gres']['gre'])) {
+		foreach ($config['gres']['gre'] as $idx => &$gre) {
+			if (is_ipaddrv6($gre['tunnel-local-addr'])) {
+				$gre['tunnel-local-addr6'] = $gre['tunnel-local-addr'];
+				$gre['tunnel-remote-addr6'] = $gre['tunnel-remote-addr'];
+				$gre['tunnel-remote-net6'] = $gre['tunnel-remote-net'];
+				$gre['tunnel-local-addr'] = '';
+				$gre['tunnel-remote-addr'] = '';
+				$gre['tunnel-remote-net'] = '';
+			} else {
+				$gre['tunnel-local-addr6'] = '';
+				$gre['tunnel-remote-addr6'] = '';
+				$gre['tunnel-remote-net6'] = '';
+			}
 		}
 	}
 }

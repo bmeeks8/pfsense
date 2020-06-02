@@ -236,7 +236,7 @@ display_top_tabs($tab_array);
 			}
 			echo "<br />\n";
 		}
-		$tmpaddr = explode(" ", $alias['address']);
+		$tmpaddr = array_map('idn_to_utf8', explode(" ", $alias['address']));
 		$addresses = implode(", ", array_slice($tmpaddr, 0, 10));
 		echo $addresses;
 		if (count($tmpaddr) > 10) {
@@ -250,6 +250,7 @@ display_top_tabs($tab_array);
 			</td>
 			<td>
 				<a class="fa fa-pencil" title="<?=gettext("Edit alias"); ?>" href="firewall_aliases_edit.php?id=<?=$i?>"></a>
+				<a class="fa fa-clone" title="<?=gettext('Copy alias')?>" href="firewall_aliases_edit.php?dup=<?=$i;?>" ></a>
 				<a class="fa fa-trash"	title="<?=gettext("Delete alias")?>" href="?act=del&amp;tab=<?=$tab?>&amp;id=<?=$i?>" usepost></a>
 			</td>
 		</tr>

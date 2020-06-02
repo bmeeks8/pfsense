@@ -1128,18 +1128,26 @@ function interface_gre_configure(&$gre, $grekey = "") {
 		$greif = pfSense_interface_create("gre");
 	}
 
+	$tunnel_type = '';
+	if ((!empty($gre['tunnel-local-addr'])) || (!empty($gre['tunnel-remote-addr']))) {
+		$tunnel_type = 'v4';
+	}
+	if ((!empty($gre['tunnel-local-addr6'])) || (!empty($gre['tunnel-remote-addr6']))) {
+		$tunnel_type .= 'v6';
+	}
+
 	/* Do not change the order here for more see gre(4) NOTES section. */
 	if (is_ipaddrv6($gre['remote-addr'])) {
 		mwexec("/sbin/ifconfig {$greif} inet6 tunnel {$realifip6} " . escapeshellarg($gre['remote-addr']));
 	} else {
 		mwexec("/sbin/ifconfig {$greif} tunnel {$realifip} " . escapeshellarg($gre['remote-addr']));
 	}
-	if ((is_ipaddrv6($gre['tunnel-local-addr'])) || (is_ipaddrv6($gre['tunnel-remote-addr']))) {
-		/* XXX: The prefixlen argument for tunnels of ipv6 is useless since it needs to be 128 as enforced by kernel */
-		//mwexec("/sbin/ifconfig {$greif} inet6 " . escapeshellarg($gre['tunnel-local-addr']) . " " . escapeshellarg($gre['tunnel-remote-addr']) . " prefixlen /" . escapeshellarg($gre['tunnel-remote-net']));
-		mwexec("/sbin/ifconfig {$greif} inet6 " . escapeshellarg($gre['tunnel-local-addr']) . " " . escapeshellarg($gre['tunnel-remote-addr']) . " prefixlen 128");
-	} else {
+	if (in_array($tunnel_type, array('v4', 'v4v6'))) {
 		mwexec("/sbin/ifconfig {$greif} " . escapeshellarg($gre['tunnel-local-addr']) . " " . escapeshellarg($gre['tunnel-remote-addr']) . " netmask " . gen_subnet_mask($gre['tunnel-remote-net']));
+	}
+	if (in_array($tunnel_type, array('v6', 'v4v6'))) {
+		/* XXX: The prefixlen argument for tunnels of ipv6 is useless since it needs to be 128 as enforced by kernel */
+		mwexec("/sbin/ifconfig {$greif} inet6 " . escapeshellarg($gre['tunnel-local-addr6']) . " " . escapeshellarg($gre['tunnel-remote-addr6']) . " prefixlen 128");
 	}
 
 	if ($greif) {
@@ -1148,14 +1156,19 @@ function interface_gre_configure(&$gre, $grekey = "") {
 		log_error(gettext("Could not bring greif up -- variable not defined."));
 	}
 
-	if (isset($gre['link1']) && $gre['link1']) {
-		mwexec("/sbin/route add " . escapeshellarg($gre['tunnel-remote-addr']) . "/" . escapeshellarg($gre['tunnel-remote-net']) . " " . escapeshellarg($gre['tunnel-local-addr']));
+	if (isset($gre['link1'])) {
+		if (in_array($tunnel_type, array('v4', 'v4v6'))) {
+			mwexec("/sbin/route add " . escapeshellarg($gre['tunnel-remote-addr']) . "/" . escapeshellarg($gre['tunnel-remote-net']) . " " . escapeshellarg($gre['tunnel-local-addr']));
+		}
+		if (in_array($tunnel_type, array('v6', 'v4v6'))) {
+			mwexec("/sbin/route -6 add " . escapeshellarg($gre['tunnel-remote-addr6']) . "/" . escapeshellarg($gre['tunnel-remote-net6']) . " " . escapeshellarg($gre['tunnel-local-addr6']));
+		}
 	}
-	if (is_ipaddrv4($gre['tunnel-remote-addr'])) {
+	if (in_array($tunnel_type, array('v4', 'v4v6'))) {
 		file_put_contents("{$g['tmp_path']}/{$greif}_router", $gre['tunnel-remote-addr']);
 	}
-	if (is_ipaddrv6($gre['tunnel-remote-addr'])) {
-		file_put_contents("{$g['tmp_path']}/{$greif}_routerv6", $gre['tunnel-remote-addr']);
+	if (in_array($tunnel_type, array('v6', 'v4v6'))) {
+		file_put_contents("{$g['tmp_path']}/{$greif}_routerv6", $gre['tunnel-remote-addr6']);
 	}
 
 	interfaces_bring_up($greif);
@@ -4746,6 +4759,13 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 	$dhcp6cscriptwithoutra .= "echo \$dmnames > /tmp/{$wanif}_new_domain_name\n";
 	$dhcp6cscriptwithoutra .= "echo \$dreason > /tmp/{$wanif}_reason\n";
 	$dhcp6cscriptwithoutra .= "case \$REASON in\n";
+	$dhcp6cscriptwithoutra .= "REQUEST)\n";
+	$dhcp6cscriptwithoutra .= "/bin/sleep 2\n";
+	$dhcp6cscriptwithoutra .= "/usr/sbin/rtsold -1 -p {$g['varrun_path']}/rtsold_{$wanif}.pid -O {$g['varetc_path']}/rtsold_{$wanif}_script.sh {$wanif}\n";
+	if ($debugOption == '-D') {
+		$dhcp6cscriptwithoutra .= "/usr/bin/logger -t dhcp6c \"dhcp6c REQUEST on {$wanif} - running rtsold\"\n";
+	}
+	$dhcp6cscriptwithoutra .= ";;\n";
 	$dhcp6cscriptwithoutra .= "REBIND)\n";
 	if ($debugOption == '-D') {
 		$dhcp6cscriptwithoutra .= "/usr/bin/logger -t dhcp6c \"dhcp6c rebind on {$wanif}\"\n";
@@ -4761,7 +4781,7 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 	}
 	$dhcp6cscriptwithoutra .= "/usr/local/sbin/fcgicli -f /etc/rc.newwanipv6 -d \"interface={$wanif}&dmnames=\${dmnames}&dmips=\${dmips}\"\n";
 	$dhcp6cscriptwithoutra .= ";;\n";
-	$dhcp6cscriptwithoutra .= "RENEW|REQUEST|INFO)\n";
+	$dhcp6cscriptwithoutra .= "RENEW|INFO)\n";
 	if ($debugOption == '-D') {
 		$dhcp6cscriptwithoutra .= "/usr/bin/logger -t dhcp6c \"dhcp6c renew, no change - bypassing update on {$wanif}\"\n";
 	}

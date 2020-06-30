@@ -158,7 +158,12 @@ function services_radvd_configure($blacklist = array()) {
 				$radvdconf .= "\tAdvOtherConfigFlag on;\n";
 				break;
 		}
-		$radvdconf .= "\tprefix {$subnetv6}/{$ifcfgsnv6} {\n";
+		if ($dhcpv6ifconf['ramode'] == "unmanaged") {
+			$prefixnet = $ifcfgipv6;
+		} else {
+			$prefixnet = $subnetv6;
+		}
+		$radvdconf .= "\tprefix {$prefixnet}/{$ifcfgsnv6} {\n";
 		if ($racarpif == true) {
 			$radvdconf .= "\t\tDeprecatePrefix off;\n";
 		} else {
@@ -168,18 +173,15 @@ function services_radvd_configure($blacklist = array()) {
 			case "managed":
 				$radvdconf .= "\t\tAdvOnLink on;\n";
 				$radvdconf .= "\t\tAdvAutonomous off;\n";
-				$radvdconf .= "\t\tAdvRouterAddr on;\n";
 				break;
 			case "router":
 				$radvdconf .= "\t\tAdvOnLink off;\n";
 				$radvdconf .= "\t\tAdvAutonomous off;\n";
-				$radvdconf .= "\t\tAdvRouterAddr on;\n";
 				break;
 			case "stateless_dhcp":
 			case "assist":
 				$radvdconf .= "\t\tAdvOnLink on;\n";
 				$radvdconf .= "\t\tAdvAutonomous on;\n";
-				$radvdconf .= "\t\tAdvRouterAddr on;\n";
 				break;
 			case "unmanaged":
 				$radvdconf .= "\t\tAdvOnLink on;\n";
@@ -211,22 +213,18 @@ function services_radvd_configure($blacklist = array()) {
 						case "managed":
 							$radvdconf .= "\t\tAdvOnLink on;\n";
 							$radvdconf .= "\t\tAdvAutonomous off;\n";
-							$radvdconf .= "\t\tAdvRouterAddr on;\n";
 							break;
 						case "router":
 							$radvdconf .= "\t\tAdvOnLink off;\n";
 							$radvdconf .= "\t\tAdvAutonomous off;\n";
-							$radvdconf .= "\t\tAdvRouterAddr on;\n";
 							break;
 						case "assist":
 							$radvdconf .= "\t\tAdvOnLink on;\n";
 							$radvdconf .= "\t\tAdvAutonomous on;\n";
-							$radvdconf .= "\t\tAdvRouterAddr on;\n";
 							break;
 						case "unmanaged":
 							$radvdconf .= "\t\tAdvOnLink on;\n";
 							$radvdconf .= "\t\tAdvAutonomous on;\n";
-							$radvdconf .= "\t\tAdvRouterAddr on;\n";
 							break;
 					}
 					$radvdconf .= "\t};\n";
@@ -367,7 +365,6 @@ function services_radvd_configure($blacklist = array()) {
 		$radvdconf .= "\tprefix {$subnetv6}/{$ifcfgsnv6} {\n";
 		$radvdconf .= "\t\tAdvOnLink on;\n";
 		$radvdconf .= "\t\tAdvAutonomous on;\n";
-		$radvdconf .= "\t\tAdvRouterAddr on;\n";
 		$radvdconf .= "\t};\n";
 
 		/* add DNS servers */
@@ -1543,9 +1540,9 @@ EOD;
 
 		if ($dhcpv6ifconf['dhcp6c-dns'] != 'disabled') {
 			if (is_array($dhcpv6ifconf['dnsserver']) && ($dhcpv6ifconf['dnsserver'][0])) {
-				$dnscfgv6 .= "	option dhcp6.name-servers " . join(",", $dhcpv6ifconf['dnsserver']) . ";";
+				$dnscfgv6 .= "	option dhcp6.name-servers " . join(",", $dhcpv6ifconf['dnsserver']) . ";\n";
 			} else if (((isset($config['dnsmasq']['enable'])) || isset($config['unbound']['enable'])) && (is_ipaddrv6($ifcfgipv6))) {
-				$dnscfgv6 .= "	option dhcp6.name-servers {$ifcfgipv6};";
+				$dnscfgv6 .= "	option dhcp6.name-servers {$ifcfgipv6};\n";
 			} else if (is_array($syscfg['dnsserver']) && ($syscfg['dnsserver'][0])) {
 				$dns_arrv6 = array();
 				foreach ($syscfg['dnsserver'] as $dnsserver) {
@@ -1554,11 +1551,11 @@ EOD;
 					}
 				}
 				if (!empty($dns_arrv6)) {
-					$dnscfgv6 .= "	option dhcp6.name-servers " . join(",", $dns_arrv6) . ";";
+					$dnscfgv6 .= "	option dhcp6.name-servers " . join(",", $dns_arrv6) . ";\n";
 				}
 			}
 		} else {
-			$dnscfgv6 .= "	#option dhcp6.name-servers --;";
+			$dnscfgv6 .= "	#option dhcp6.name-servers --;\n";
 		}
 
 		if (!is_ipaddrv6($ifcfgipv6)) {

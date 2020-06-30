@@ -27,6 +27,9 @@ if (!function_exists("dump_rrd_to_xml")) {
 if (!function_exists("read_altq_config")) {
 	require_once("shaper.inc");
 }
+if (!function_exists("console_configure")) {
+	require_once("/etc/inc/pfsense-utils.inc");
+}
 
 /* Upgrade functions must be named:
 *    upgrade_XXX_to_YYY
@@ -6183,7 +6186,40 @@ function upgrade_202_to_203() {
 	}
 }
 
+/*
+ * Change IPsec close_action values
+ * See https://redmine.pfsense.org/issues/10632
+ */
+
 function upgrade_203_to_204() {
+	global $config;
+	init_config_arr(array('ipsec', 'phase1'));
+	foreach ($config['ipsec']['phase1'] as & $ph1ent) {
+		if (empty($ph1ent)) {
+			continue;
+		}
+		if (isset($ph1ent['closeaction'])) {
+			switch ($ph1ent['closeaction']) {
+				case 'clear':
+					/* swanctl.conf combined "clear" and "none" */
+					$ph1ent['closeaction'] = "none";
+					break;
+				case 'restart':
+					/* swanctl.conf uses "start" not "restart" */
+					$ph1ent['closeaction'] = "start";
+					break;
+				case 'hold':
+					/* swanctl.conf uses "trap" not "hold" */
+					$ph1ent['closeaction'] = "trap";
+					break;
+				default:
+					/* "none" does not need changed. */
+			}
+		}
+	}
+}
+
+function upgrade_204_to_205() {
 	global $config, $g;
 
 	if (is_array($config['captiveportal'])) {
@@ -6202,25 +6238,12 @@ function upgrade_203_to_204() {
 	}
 }
 
-/*
- * Change IPsec close_action "hold" values to "trap".
- * See https://redmine.pfsense.org/issues/10632
- */
-
-function upgrade_203_to_204() {
-	global $config;
-	init_config_arr(array('ipsec', 'phase1'));
-	foreach ($config['ipsec']['phase1'] as & $ph1ent) {
-		if (empty($ph1ent)) {
-			continue;
-		}
-		/* swanctl.conf uses "trap" not "hold" which was the
-		 * old ipsec.conf value */
-		if (isset($ph1ent['closeaction']) &&
-		    ($ph1ent['closeaction'] == "hold")) {
-			$ph1ent['closeaction'] = "trap";
-		}
-	}
+function upgrade_205_to_206() {
+	/*
+	 * Trigger a boot loader settings update to make sure the contents will
+	 * be updated before the reboot.
+	 */
+	console_configure();
 }
 
 /*

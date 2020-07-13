@@ -1583,7 +1583,8 @@ class priq_queue {
 				if (($data['newname'] == $q->GetQname()) && ($data['name'] != $data['newname'])) { 
 					$input_errors[] = gettext("A queue with the same name already exists.");
 				}
-				if (($data['priority'] == $q->GetQpriority()) && ($data['name'] != $q->GetQname())) { 
+				if (in_array($parent->GetScheduler(), array('CBQ', 'FAIRQ','PRIQ')) &&
+				    ($data['priority'] == $q->GetQpriority()) && ($data['name'] != $q->GetQname())) { 
 					$input_errors[] = sprintf(gettext("The priority %d is already used by queue %s."),
 							$data['priority'], $q->GetQname());
 				}
@@ -4251,7 +4252,7 @@ EOD;
 
 		// If there are no bandwidths defined, make a blank one for convenience
 		if (empty($bandwidth)) {
-			$bandwidth = array(0 => array('bw' => '', 'bwscale' => 'Kb', 'bwsched' => 'none'));
+			$bandwidth = array(0 => array('bw' => '', 'bwscale' => 'Mb', 'bwsched' => 'none'));
 		}
 
 		if (is_array($bandwidth)) {

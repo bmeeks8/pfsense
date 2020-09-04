@@ -682,6 +682,31 @@ function is_ipaddrv4($ipaddr) {
 	return true;
 }
 
+function is_mcast($ipaddr) {
+	if (is_mcastv4($ipaddr)) {
+		return 4;
+	}
+	if (is_mcastv6($ipaddr)) {
+		return 6;
+	}
+	return false;
+}
+
+function is_mcastv4($ipaddr) {
+	if (!is_ipaddrv4($ipaddr) ||
+	    !preg_match('/^2(?:2[4-9]|3\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d?|0)){3}$/', $ipaddr)) {
+		return false;
+	}
+	return true;
+}
+
+function is_mcastv6($ipaddr) {
+	if (!is_ipaddrv6($ipaddr) || !preg_match('/^ff.+$/', $ipaddr)) {
+		return false;
+	}
+	return true;
+}
+
 /* returns 4 or 6 respectively (== TRUE) if $ipaddr is a valid IPv4 or IPv6 linklocal address
    returns '' if not a valid linklocal address */
 function is_linklocal($ipaddr) {
@@ -1805,16 +1830,15 @@ function unlink_if_exists($fn) {
 	return $result;
 }
 /* make a global alias table (for faster lookups) */
-function alias_make_table($config) {
-	global $aliastable;
+function alias_make_table() {
+	global $aliastable, $config;
 
 	$aliastable = array();
 
-	if (is_array($config['aliases']['alias'])) {
-		foreach ($config['aliases']['alias'] as $alias) {
-			if ($alias['name']) {
-				$aliastable[$alias['name']] = $alias['address'];
-			}
+	init_config_arr(array('aliases', 'alias'));
+	foreach ($config['aliases']['alias'] as $alias) {
+		if ($alias['name']) {
+			$aliastable[$alias['name']] = $alias['address'];
 		}
 	}
 }
@@ -2651,7 +2675,8 @@ function get_staticroutes($returnsubnetsonly = false, $returnhostnames = false, 
 	global $config, $aliastable;
 
 	/* Bail if there are no routes, but return an array always so callers don't have to check. */
-	if (!is_array($config['staticroutes']['route'])) {
+	init_config_arr(array('staticroutes', 'route'));
+	if (empty($config['staticroutes']['route'])) {
 		return array();
 	}
 

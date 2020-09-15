@@ -1,6 +1,6 @@
 <?php
 /*
- * firewall_aliases.php
+ * alias.inc
  *
  * part of pfSense (https://www.pfsense.org)
  * Copyright (c) 2004-2013 BSD Perimeter
@@ -57,8 +57,6 @@ function deleteAlias($id, $apply = false) {
 	find_alias_reference(array('nat', 'rule'), array('target'), $alias_name, $is_alias_referenced, $referenced_by);
 	find_alias_reference(array('nat', 'rule'), array('local-port'), $alias_name, $is_alias_referenced, $referenced_by);
 	// NAT 1:1 Rules
-	//find_alias_reference(array('nat', 'onetoone'), array('external'), $alias_name, $is_alias_referenced, $referenced_by);
-	//find_alias_reference(array('nat', 'onetoone'), array('source', 'address'), $alias_name, $is_alias_referenced, $referenced_by);
 	find_alias_reference(array('nat', 'onetoone'), array('destination', 'address'), $alias_name, $is_alias_referenced, $referenced_by);
 	// NAT Outbound Rules
 	find_alias_reference(array('nat', 'outbound', 'rule'), array('source', 'network'), $alias_name, $is_alias_referenced, $referenced_by);
@@ -149,7 +147,7 @@ function alias_same_type($name, $type) {
 }
 
 function saveAlias($post, $id) {
-	global $config, $pf_reserved_keywords, $reserved_table_names;
+	global $config, $pf_reserved_keywords, $reserved_table_names, $pconfig;
 
 	$reserved_ifs = get_configured_interface_list(true);
 	$pf_reserved_keywords = array_merge($pf_reserved_keywords, $reserved_ifs, $reserved_table_names);
@@ -530,7 +528,7 @@ function saveAlias($post, $id) {
 		$a_aliases = msort($a_aliases, "name");
 
 		write_config(gettext("Edited a firewall alias."));
-	} else {
+	} else if (isset($pconfig)) {
 		//we received input errors, copy data to prevent retype
 		$pconfig['name'] = $post['name'];
 		$pconfig['descr'] = $post['descr'];

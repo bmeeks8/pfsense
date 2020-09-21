@@ -50,8 +50,10 @@ if ($_REQUEST['generatekey']) {
 
 init_config_arr(array('ipsec', 'phase1'));
 init_config_arr(array('ipsec', 'phase2'));
+init_config_arr(array('ipsec', 'vtimaps', 'item'));
 $a_phase1 = &$config['ipsec']['phase1'];
 $a_phase2 = &$config['ipsec']['phase2'];
+$a_vtimaps = &$config['ipsec']['vtimaps']['item'];
 
 if (is_numericint($_REQUEST['p1index'])) {
 	$p1index = $_REQUEST['p1index'];
@@ -486,14 +488,36 @@ if ($_POST['save']) {
 		} else {
 			$ph1ent['mode'] = $pconfig['mode'];
 		}
+
+		// re-create vtimaps after IKE version switching
+		$vtisubnet_spec = ipsec_vti($ph1ent, true);
+		if ((($pconfig['iketype'] != $a_phase1[$p1index]['iketype']) ||
+		    (isset($pconfig['splitconn']) != isset($a_phase1[$p1index]['splitconn']))) &&
+		    ($vtisubnet_spec || is_array($vtisubnet_spec))) {
+			foreach ($a_vtimaps as $id => $vtimap) {
+				if ($vtimap['reqid'] == $ph1ent['ikeid']) {
+					unset($a_vtimaps[$id]);
+				}
+			}
+			if (($pconfig['iketype'] == 'ikev1') ||
+			    isset($pconfig['splitconn'])) {
+				foreach ($vtisubnet_spec as $idx => $vtisub) {
+					$a_vtimaps[] = ipsec_create_vtimap(
+					    $ph1ent['ikeid'], $idx);
+				}
+			} else {
+				$a_vtimaps[] = ipsec_create_vtimap(
+				    $ph1ent['ikeid'], 0);
+			}
+		}
+
 		$ph1ent['disabled'] = $pconfig['disabled'] ? true : false;
 		$ph1ent['interface'] = $pconfig['interface'];
 		/* if the remote gateway changed and the interface is not WAN then remove route */
 		/* the ipsec_configure() handles adding the route */
 		if ($pconfig['interface'] <> "wan") {
 			if ($old_ph1ent['remote-gateway'] <> $pconfig['remotegw']) {
-                                $rgateway = exec("/sbin/route -n get {$old_ph1ent} | /usr/bin/awk '/gateway:/ {print $2;}'");
-				mwexec("/sbin/route delete -host {$old_ph1ent['remote-gateway']} " . escapeshellarg($rgateway));
+				route_del($old_ph1ent['remote-gateway']);
 			}
 		}
 

@@ -158,12 +158,7 @@ function services_radvd_configure($blacklist = array()) {
 				$radvdconf .= "\tAdvOtherConfigFlag on;\n";
 				break;
 		}
-		if ($dhcpv6ifconf['ramode'] == "unmanaged") {
-			$prefixnet = $ifcfgipv6;
-		} else {
-			$prefixnet = $subnetv6;
-		}
-		$radvdconf .= "\tprefix {$prefixnet}/{$ifcfgsnv6} {\n";
+		$radvdconf .= "\tprefix {$subnetv6}/{$ifcfgsnv6} {\n";
 		if ($racarpif == true) {
 			$radvdconf .= "\t\tDeprecatePrefix off;\n";
 		} else {
@@ -186,7 +181,6 @@ function services_radvd_configure($blacklist = array()) {
 			case "unmanaged":
 				$radvdconf .= "\t\tAdvOnLink on;\n";
 				$radvdconf .= "\t\tAdvAutonomous on;\n";
-				$radvdconf .= "\t\tAdvRouterAddr on;\n";
 				break;
 		}
 
@@ -1547,6 +1541,10 @@ EOD;
 				$dns_arrv6 = array();
 				foreach ($syscfg['dnsserver'] as $dnsserver) {
 					if (is_ipaddrv6($dnsserver)) {
+						if ($ifcfgv6['ipaddrv6'] == 'track6' &&
+						    Net_IPv6::isInNetmask($dnsserver, '::', $pdlen)) {
+							$dnsserver = merge_ipv6_delegated_prefix($ifcfgipv6, $dnsserver, $pdlen);
+						}
 						$dns_arrv6[] = $dnsserver;
 					}
 				}
@@ -1768,7 +1766,7 @@ EOD;
 	if (count($dhcpdv6ifs) > 0) {
 		mwexec("/usr/local/sbin/dhcpd -6 -user dhcpd -group _dhcp -chroot {$g['dhcpd_chroot_path']} -cf /etc/dhcpdv6.conf -pf {$g['varrun_path']}/dhcpdv6.pid " .
 			join(" ", $dhcpdv6ifs));
-		mwexec("/usr/local/sbin/dhcpleases6 -c \"/usr/local/bin/php-cgi -f /usr/local/sbin/prefixes.php|/bin/sh\" -l {$g['dhcpd_chroot_path']}/var/db/dhcpd6.leases");
+		mwexec("/usr/local/sbin/dhcpleases6 -c \"/usr/local/bin/php-cgi -f /usr/local/sbin/prefixes.php\" -l {$g['dhcpd_chroot_path']}/var/db/dhcpd6.leases");
 	}
 	if (platform_booting()) {
 		print gettext("done.") . "\n";

@@ -116,6 +116,22 @@ function activate_sysctls() {
 		}
 	}
 
+	/* Set net.pf.request_maxcount via sysctl since it is no longer a loader
+	 *   tunable. See https://redmine.pfsense.org/issues/10861
+	 *   Set the value dynamically since its default is not static, yet this
+	 *   still could be overridden by a user tunable. */
+	if (isset($config['system']['maximumtableentries'])) {
+		$maximumtableentries = $config['system']['maximumtableentries'];
+	} else {
+		$maximumtableentries = pfsense_default_table_entries_size();
+	}
+	/* Set the default when there is no tunable or when the tunable is set
+	 * too low. */
+	if (empty($sysctls['net.pf.request_maxcount']) ||
+	    ($sysctls['net.pf.request_maxcount'] < $maximumtableentries)) {
+		$sysctls['net.pf.request_maxcount'] = $maximumtableentries;
+	}
+
 	set_sysctl($sysctls);
 }
 
@@ -199,15 +215,10 @@ function system_resolvconf_generate($dynupdate = false) {
 		$dnsserver = $syscfg['dnsserver'][$dnscounter - 1];
 		if (!empty($dnsserver)) {
 			if (is_ipaddr($gatewayip)) {
-				route_add_or_change("-host {$inet6}{$dnsserver} {$gatewayip}");
+				route_add_or_change($dnsserver, $gatewayip);
 			} else {
 				/* Remove old route when disable gw */
-				$gatewayip = exec("/sbin/route -n get {$dnsserver} | /usr/bin/awk '/gateway:/ {print $2;}'");
-				mwexec("/sbin/route -q delete -host {$inet6}{$dnsserver} " . escapeshellarg($gatewayip));
-				if (isset($config['system']['route-debug'])) {
-					$mt = microtime();
-					log_error("ROUTING debug: $mt - route delete -host {$inet6}{$dnsserver} {$gatewayip}");
-				}
+				route_del($dnsserver);
 			}
 		}
 		$dnscounter++;
@@ -357,12 +368,14 @@ function system_hosts_override_entries($dnscfg) {
 		}
 		$fqdn .= $host['domain'];
 
-		$hosts[] = array(
-		    'ipaddr' => $host['ip'],
-		    'fqdn' => $fqdn,
-		    'name' => $host['host'],
-		    'domain' => $host['domain']
-		);
+		foreach (explode(',', $host['ip']) as $ip) {
+			$hosts[] = array(
+			    'ipaddr' => $ip,
+			    'fqdn' => $fqdn,
+			    'name' => $host['host'],
+			    'domain' => $host['domain']
+			);
+		}
 
 		if (!is_array($host['aliases']) ||
 		    !is_array($host['aliases']['item'])) {
@@ -376,12 +389,14 @@ function system_hosts_override_entries($dnscfg) {
 			}
 			$fqdn .= $alias['domain'];
 
-			$hosts[] = array(
-			    'ipaddr' => $host['ip'],
-			    'fqdn' => $fqdn,
-			    'name' => $alias['host'],
-			    'domain' => $alias['domain']
-			);
+			foreach (explode(',', $host['ip']) as $ip) {
+				$hosts[] = array(
+				    'ipaddr' => $ip,
+				    'fqdn' => $fqdn,
+				    'name' => $alias['host'],
+				    'domain' => $alias['domain']
+				);
+			}
 		}
 	}
 
@@ -876,9 +891,8 @@ function system_routing_configure($interface = "") {
 			$srgatewayip = $gateway['gateway'];
 			$srinterfacegw = $gateway['interface'];
 			if (is_ipaddr($srgatewayip) && !empty($srinterfacegw)) {
-				$inet = (!is_ipaddrv4($srgatewayip) ? "-inet6" : "-inet");
-				route_add_or_change("{$inet} {$srgatewayip} " .
-				    "-iface {$srinterfacegw}");
+				route_add_or_change($srgatewayip, '',
+				    $srinterfacegw);
 			}
 		}
 	}
@@ -947,21 +961,18 @@ function system_staticroutes_configure($interface = "", $update_dns = false) {
 				if (in_array($ip, $ips)) {
 					continue;
 				}
-				mwexec("/sbin/route delete " . escapeshellarg($ip) . " " . escapeshellarg($gatewayip), true);
-				if (isset($config['system']['route-debug'])) {
-					$mt = microtime();
-					log_error("ROUTING debug: $mt - route delete $ip $gatewayip ");
-				}
+				route_del($ip);
 			}
 
 			if (isset($rtent['disabled'])) {
-				/* XXX: This can break things by deleting routes that shouldn't be deleted - OpenVPN, dynamic routing scenarios, etc. redmine #3709 */
+				/*
+				 * XXX: This can break things by deleting
+				 * routes that shouldn't be deleted - OpenVPN,
+				 * dynamic routing scenarios, etc.
+				 * redmine #3709
+				 */
 				foreach ($ips as $ip) {
-					mwexec("/sbin/route delete " . escapeshellarg($ip) . " " . escapeshellarg($gatewayip), true);
-					if (isset($config['system']['route-debug'])) {
-						$mt = microtime();
-						log_error("ROUTING debug: $mt - route delete $ip $gatewayip ");
-					}
+					route_del($ip);
 				}
 				continue;
 			}
@@ -970,21 +981,27 @@ function system_staticroutes_configure($interface = "", $update_dns = false) {
 				if (is_ipaddrv4($ip)) {
 					$ip .= "/32";
 				}
-				// do NOT do the same check here on v6, is_ipaddrv6 returns true when including the CIDR mask. doing so breaks v6 routes
-
-				$inet = (is_subnetv6($ip) ? "-inet6" : "-inet");
-
-				$cmd = "{$inet} {$blackhole} {$ip} ";
-
+				/*
+				 * do NOT do the same check here on v6,
+				 * is_ipaddrv6 returns true when including
+				 * the CIDR mask. doing so breaks v6 routes
+				 */
 				if (is_subnet($ip)) {
 					if (is_ipaddr($gatewayip)) {
-						if (is_linklocal($gatewayip) == "6" && !strpos($gatewayip, '%')) {
-							// add interface scope for link local v6 routes
+						if (is_linklocal($gatewayip) == "6" &&
+						    !strpos($gatewayip, '%')) {
+							/*
+							 * add interface scope
+							 * for link local v6
+							 * routes
+							 */
 							$gatewayip .= "%$interfacegw";
 						}
-						route_add_or_change($cmd . $gatewayip);
+						route_add_or_change($ip,
+						    $gatewayip, '', $blackhole);
 					} else if (!empty($interfacegw)) {
-						route_add_or_change($cmd . "-iface {$interfacegw}");
+						route_add_or_change($ip,
+						    '', $interfacegw, $blackhole);
 					}
 				}
 			}

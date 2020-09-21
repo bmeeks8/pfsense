@@ -1309,15 +1309,100 @@ function interface_gif_configure(&$gif, $gifkey = "") {
 		    $gif['tunnel-remote-addr']);
 	}
 
-	if (is_ipaddrv4($realifgw)) {
-		route_add_or_change("-host {$gif['remote-addr']} {$realifgw}");
-	} else if (is_ipaddrv6($realifgw)) {
-		route_add_or_change("-host -inet6 {$gif['remote-addr']} {$realifgw}");
-	}
-
+	route_add_or_change($gif['remote-addr'], $realifgw);
 	interfaces_bring_up($gifif);
 
 	return $gifif;
+}
+
+/*
+ * $ipsecifnum = get_ipsecifnum($ikeid, $idx);
+ * locates and returns an ipsecifnum in the config.
+ */
+function get_ipsecifnum($ikeid, $idx) {
+	global $config;
+
+	init_config_arr(array('ipsec', 'vtimaps', 'item'));
+	foreach ($config['ipsec']['vtimaps']['item'] as $vtimap) {
+		if (($vtimap['reqid'] == $ikeid) &&
+		    ($vtimap['index'] == $idx)) {
+			return $vtimap['ifnum'];
+		}
+	}
+
+	return false;
+}
+	
+function ipsec_create_vtimap($ikeid, $idx) {
+	global $config;
+
+	if ((($ikeid < 33) && ($idx < 10)) || (($ikeid < 10) && ($idx < 100))) {
+		$oldformat = "{$ikeid}00{$idx}";
+		return array(
+			"reqid" => $ikeid,
+			"index" => $idx,
+			"ifnum" => $oldformat
+		);
+	}
+
+	init_config_arr(array('ipsec', 'vtimaps', 'item'));
+
+	if (count($config['ipsec']['vtimaps']['item']) == 0) {
+		return array(
+			"reqid" => $ikeid,
+			"index" => $idx,
+			"ifnum" => 1
+		);
+	}
+
+	$assigned = array_column($config['ipsec']['vtimaps']['item'], 'ifnum');
+	asort($assigned, SORT_NUMERIC);
+	$new = 1;
+	foreach($assigned as $ipsecifnum) {
+		if ($ipsecifnum != $new) {
+			return array(
+				"reqid" => $ikeid,
+				"index" => $idx,
+				"ifnum" => $new
+			);
+		}
+		if ($new <= 32767) {
+			$new++;
+		} else {
+			log_error(gettext("All 32767 ipsec interface numbers " .
+			    "have been assigned!"));
+			return(NULL);
+		}
+	}
+}
+
+function ipsec_del_vtimap($phase2) {
+	global $config;
+
+	init_config_arr(array('ipsec', 'vtimaps', 'item'));
+
+	if (count($config['ipsec']['vtimaps']['item']) == 0) {
+		return;
+	}
+
+	$a_vtimaps = &$config['ipsec']['vtimaps']['item'];
+	$phase1 = ipsec_get_phase1($phase2['ikeid']);
+	$last = '';
+	foreach ($a_vtimaps as $id => $vtimap) {
+		if ($vtimap['reqid'] == $phase1['ikeid']) {
+			$last = $id;
+		}
+	}
+	if (!is_numeric($last)) {
+		return false;
+	}
+
+	$vtisubnet_spec = ipsec_vti($phase1, true);
+	if (($phase1['iketype'] == 'ikev1') || isset($phase1['splitconn']) ||
+	    (count($vtisubnet_spec) == 1)) {
+		unset($a_vtimaps[$last]);
+		return true;
+	}
 }
 
 /* NOTE: $vxlankey is not used but useful for passing this function to array_walk. */
@@ -1456,11 +1541,11 @@ function interface_ipsec_vti_list_p1($ph1ent) {
 	/* With IKEv1 or v2+Split, each P2 gets its own conn/reqid/interface */
 	if (!isset($ph1ent['mobile']) && ($ph1ent['iketype'] == 'ikev1' || isset($ph1ent['splitconn']))) {
 		foreach ($vtisubnet_spec as $idx => $vtisub) {
-			$iface_list["ipsec{$ph1ent['ikeid']}00{$idx}"] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr'] . " / " . $vtisub['descr']);
+			$iface_list["ipsec".get_ipsecifnum($ph1ent['ikeid'], $idx)] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr'] . " / " . $vtisub['descr']);
 		}
 	} else {
 		/* For IKEv2, only create one interface with additional addresses as aliases */
-		$iface_list["ipsec{$ph1ent['ikeid']}000"] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr']);
+		$iface_list["ipsec".get_ipsecifnum($ph1ent['ikeid'], 0)] = gettext("IPsec VTI") . ": ".htmlspecialchars($ph1ent['descr']);
 	}
 	return $iface_list;
 }
@@ -1489,11 +1574,11 @@ function is_interface_ipsec_vti_assigned($phase2) {
 				/* Is this for this P2? */
 				if (($vtisub['left'] == ipsec_idinfo_to_cidr($phase2['localid'], true, $phase2['mode'])) &&
 				    ($vtisub['right'] == ipsec_idinfo_to_cidr($phase2['remoteid'], false, $phase2['mode']))) {
-					$vti_interface = "ipsec{$phase1['ikeid']}00{$idx}";
+					$vti_interface = "ipsec".get_ipsecifnum($phase1['ikeid'], $idx);
 				}
 			}
 		} else {
-			$vti_interface = "ipsec{$phase1['ikeid']}000";
+			$vti_interface = "ipsec".get_ipsecifnum($phase1['ikeid'], 0);
 		}
 	}
 	/* Check if this interface is assigned */
@@ -1520,7 +1605,7 @@ function interface_ipsec_vti_configure($ph1ent) {
 	if (!isset($ph1ent['mobile']) && ($ph1ent['iketype'] == 'ikev1' || isset($ph1ent['splitconn']))) {
 		/* Form a single interface for each P2 entry */
 		foreach ($vtisubnet_spec as $idx => $vtisub) {
-			$ipsecifnum = "{$ph1ent['ikeid']}00{$idx}";
+			$ipsecifnum = get_ipsecifnum($ph1ent['ikeid'], $idx);
 			if (!is_array($iface_addrs[$ipsecifnum])) {
 				$iface_addrs[$ipsecifnum] = array();
 			}
@@ -1529,7 +1614,7 @@ function interface_ipsec_vti_configure($ph1ent) {
 		}
 	} else {
 		/* For IKEv2, only create one interface with additional addresses as aliases */
-		$ipsecifnum = "{$ph1ent['ikeid']}000";
+		$ipsecifnum = get_ipsecifnum($ph1ent['ikeid'], 0);
 		if (!is_array($iface_addrs[$ipsecifnum])) {
 			$iface_addrs[$ipsecifnum] = array();
 		}
@@ -1559,7 +1644,7 @@ function interface_ipsec_vti_configure($ph1ent) {
 			continue;
 		}
 		// Create IPsec interface
-		if (!platform_booting() && does_interface_exist($ipsecif)) {
+		if (does_interface_exist($ipsecif)) {
 			mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " destroy", false);
 		}
 		mwexec("/sbin/ifconfig " . escapeshellarg($ipsecif) . " create reqid " . escapeshellarg($ipsecifnum), false);
@@ -3018,6 +3103,7 @@ function interfaces_vips_configure($interface = "") {
 function interface_ipalias_configure(&$vip) {
 	global $config;
 
+	$gateway = '';
 	if ($vip['mode'] != 'ipalias') {
 		return;
 	}
@@ -3028,6 +3114,13 @@ function interface_ipalias_configure(&$vip) {
 		if (!isset($config['interfaces'][$if]) ||
 		    !isset($config['interfaces'][$if]['enable'])) {
 			return;
+		}
+		if (is_pseudo_interface($realif)) {
+			if (is_ipaddrv4($vip['subnet'])) {
+				$gateway = get_interface_gateway($if);
+			} else {
+				$gateway = get_interface_gateway_v6($if);
+			}
 		}
 	}
 
@@ -3042,8 +3135,8 @@ function interface_ipalias_configure(&$vip) {
 		$iface = $carpvip['interface'];
 		$vhid = "vhid {$carpvip['vhid']}";
 	}
-	mwexec("/sbin/ifconfig " . escapeshellarg($realif) ." {$af} ". escapeshellarg($vip['subnet']) ."/" . escapeshellarg($vip['subnet_bits']) . " alias {$vhid}");
-	unset($iface, $af, $realif, $carpvip, $vhid);
+	mwexec("/sbin/ifconfig " . escapeshellarg($realif) ." {$af} ". escapeshellarg($vip['subnet']) ."/" . escapeshellarg($vip['subnet_bits']) . " alias {$gateway} {$vhid}");
+	unset($iface, $af, $realif, $carpvip, $vhid, $gateway);
 }
 
 function interface_carp_configure(&$vip, $maintenancemode_only = false) {
@@ -4603,7 +4696,7 @@ function interface_6rd_configure($interface = "wan", $wancfg) {
 
 	$ip4gateway = get_interface_gateway($interface);
 	if (is_ipaddrv4($ip4gateway)) {
-		route_add_or_change("-host {$wancfg['gateway-6rd']} {$ip4gateway}");
+		route_add_or_change($wancfg['gateway-6rd'], $ip4gateway);
 	}
 
 	/* configure dependent interfaces */
@@ -4716,7 +4809,7 @@ function interface_6to4_configure($interface = "wan", $wancfg) {
 
 	$ip4gateway = get_interface_gateway($interface);
 	if (is_ipaddrv4($ip4gateway)) {
-		route_add_or_change("-host 192.88.99.1 {$ip4gateway}");
+		route_add_or_change("192.88.99.1", $ip4gateway);
 	}
 
 	if (!platform_booting()) {
@@ -5919,24 +6012,17 @@ function get_real_interface($interface = "wan", $family = "all", $realv6iface = 
 /* Guess the physical interface by providing a IP address */
 function guess_interface_from_ip($ipaddress) {
 
-	$family = '';
-	if (is_ipaddrv4($ipaddress)) {
-		$family = 'inet';
-	}
-	if (empty($family) && is_ipaddrv6($ipaddress)) {
-		$family = 'inet6';
-	}
-
-	if (empty($family)) {
+	if (!is_ipaddr($ipaddress)) {
 		return false;
 	}
 
-	/* create a route table we can search */
-	$output = '';
-	$_gb = exec("/sbin/route -n get -{$family} " . escapeshellarg($ipaddress) . " | /usr/bin/awk '/interface/ { print \$2; };'", $output);
-	$output[0] = trim($output[0], " \n");
-	if (!empty($output[0])) {
-		return $output[0];
+	$route = route_get($ipaddress);
+	if (empty($route)) {
+		return false;
+	}
+
+	if (!empty($route[0]['interface-name'])) {
+		return $route[0]['interface-name'];
 	}
 
 	return false;

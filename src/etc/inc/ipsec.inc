@@ -1368,6 +1368,10 @@ function ipsec_setup_strongswan() {
 		$ssconf['charon']['accept_unencrypted_mainmode_messages'] = "yes";
 	}
 
+	if (isset($config['ipsec']['maxexchange'])) {
+		$ssconf['charon']['max_ikev1_exchanges'] = $config['ipsec']['maxexchange'];
+	}
+
 	$unity_enabled = isset($config['ipsec']['unityplugin']) ? 'yes' : 'no';
 	$ssconf['charon']['cisco_unity'] = $unity_enabled;
 
@@ -1377,6 +1381,14 @@ function ipsec_setup_strongswan() {
 
 	if (isset($config['ipsec']['makebeforebreak'])) {
 		$ssconf['charon']['make_before_break'] = "yes";
+	}
+
+	if (isset($config['ipsec']['port'])) {
+		$ssconf['charon']['port'] = $config['ipsec']['port'];
+	}
+
+	if (isset($config['ipsec']['port_nat_t'])) {
+		$ssconf['charon']['port_nat_t'] = $config['ipsec']['port_nat_t'];
 	}
 
 	$ssconf['charon']['syslog'] = array();
@@ -2023,7 +2035,11 @@ function ipsec_setup_tunnels() {
 			$conn =& $scconf["{$cname}-defaults"];
 			$scconf['connections']["{$cname} : {$cname}-defaults"] = array("# Stub to load con-mobile-defaults");
 		} else {
-			$cname = "con" . get_ipsecifnum($ph1ent['ikeid'], 0);
+			if (get_ipsecifnum($ph1ent['ikeid'], 0)) {
+				$cname = "con" . get_ipsecifnum($ph1ent['ikeid'], 0);
+			} else {
+				$cname = "con{$ph1ent['ikeid']}00000";
+			}
 			/* Start with common default values */
 			$scconf['connections'][$cname] = $conn_defaults;
 			/* Array reference to make things easier */
@@ -2130,6 +2146,17 @@ function ipsec_setup_tunnels() {
 		/* TFC Padding */
 		if (isset($ph1ent['tfc_enable'])) {
 			$conn['tfc_padding'] = (isset($ph1ent['tfc_bytes']) && is_numericint($ph1ent['tfc_bytes'])) ? $ph1ent['tfc_bytes'] : "mtu";
+		}
+
+		/* Custom Ports */
+		if (isset($ph1ent['ikeport'])) {
+			/* For a connection without encapsulation, do not set local_port */
+			$conn['remote_port'] = $ph1ent['ikeport'];
+		} elseif (isset($ph1ent['nattport'])) {
+			/* For an encapsulated connection,
+			 * set local_port to the server NAT-T port value or default (4500) */
+			$conn['local_port'] = isset($config['ipsec']['port_nat_t']) ? $config['ipsec']['port_nat_t'] : 4500;
+			$conn['remote_port'] = $ph1ent['nattport'];
 		}
 
 		/* Arrays for P2s/children */

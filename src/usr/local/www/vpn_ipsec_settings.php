@@ -43,11 +43,14 @@ $pconfig['noshuntlaninterfaces'] = isset($config['ipsec']['noshuntlaninterfaces'
 $pconfig['compression'] = isset($config['ipsec']['compression']);
 $pconfig['enableinterfacesuse'] = isset($config['ipsec']['enableinterfacesuse']);
 $pconfig['acceptunencryptedmainmode'] = isset($config['ipsec']['acceptunencryptedmainmode']);
+$pconfig['maxexchange'] = $config['ipsec']['maxexchange'];
 $pconfig['maxmss_enable'] = isset($config['system']['maxmss_enable']);
 $pconfig['maxmss'] = $config['system']['maxmss'];
 $pconfig['uniqueids'] = $config['ipsec']['uniqueids'];
 $pconfig['ipsecbypass'] = isset($config['ipsec']['ipsecbypass']);
 $pconfig['bypassrules'] = $config['ipsec']['bypassrules'];
+$pconfig['port'] = $config['ipsec']['port'];
+$pconfig['port_nat_t'] = $config['ipsec']['port_nat_t'];
 
 if ($_POST['save']) {
 	unset($input_errors);
@@ -68,6 +71,11 @@ if ($_POST['save']) {
 		if ($pconfig['maxmss'] <> '' && $pconfig['maxmss'] < 576 || $pconfig['maxmss'] > 65535) {
 			$input_errors[] = gettext("An integer between 576 and 65535 must be specified for Maximum MSS");
 		}
+	}
+
+	if ($_POST['maxexchange'] && (!is_numeric($_POST['maxexchange']) ||
+	    ($_POST['maxexchange'] < 3) || ($_POST['maxexchange'] > 64))) {
+		$input_errors[] = gettext("The number of IKEv1 phase 2 exchanges must be between 3 and 64.");
 	}
 
 	$bypassrules = array();
@@ -91,6 +99,26 @@ if ($_POST['save']) {
 			$bypassrules['rule'][] = array('source' => $_POST["source{$x}"], 'srcmask' => $_POST["srcmask{$x}"],
 						'destination' => $_POST["destination{$x}"], 'dstmask' => $_POST["dstmask{$x}"]);
 		}
+	}
+
+	if ($_POST['port']) {
+		if (!is_port($pconfig['port'])) {
+			$input_errors[] = gettext("The IKE port number is invalid.");
+		}
+	} else {
+		unset($pconfig['port']);
+	}
+
+	if ($_POST['port_nat_t']) {
+		if (!is_port($pconfig['port_nat_t'])) {
+			$input_errors[] = gettext("The NAT-T port number is invalid.");
+		}
+	} else {
+		unset($pconfig['port_nat_t']);
+	}
+
+	if (isset($pconfig['port']) && isset($pconfig['port_nat_t']) && $pconfig['port'] == $pconfig['port_nat_t']) {
+		$input_errors[] = gettext("IKE and NAT-T port numbers must be different.");
 	}
 
 	$pconfig['bypassrules'] = $bypassrules;
@@ -186,6 +214,17 @@ if ($_POST['save']) {
 			unset($config['ipsec']['acceptunencryptedmainmode']);
 		}
 
+		if (isset($_POST['maxexchange']) && (strlen($_POST['maxexchange']) > 0)) {
+			if (!isset($config['ipsec']['maxexchange']) || ($pconfig['maxexchange'] != $config['ipsec']['maxexchange'])) {
+				$needsrestart = true;
+			}
+			$config['ipsec']['maxexchange'] = (int)$_POST['maxexchange'];
+			$pconfig['maxexchange'] = $config['ipsec']['maxexchange'];
+		} elseif (isset($config['ipsec']['maxexchange'])) {
+			$needsrestart = true;
+			unset($config['ipsec']['maxexchange']);
+		}
+
 		if (!empty($_POST['uniqueids'])) {
 			$config['ipsec']['uniqueids'] = $_POST['uniqueids'];
 		} else if (isset($config['ipsec']['uniqueids'])) {
@@ -209,6 +248,20 @@ if ($_POST['save']) {
 		}
 
 		$config['ipsec']['bypassrules'] = $bypassrules;
+
+		if (!empty($_POST['port_nat_t'])) {
+			$config['ipsec']['port_nat_t'] = $_POST['port_nat_t'];
+		} else {
+			unset($config['ipsec']['port_nat_t']);
+			$pconfig['port_nat_t'] = '';
+		}
+
+		if (!empty($_POST['port'])) {
+			$config['ipsec']['port'] = $_POST['port'];
+		} else {
+			unset($config['ipsec']['port']);
+			$pconfig['port'] = '';
+		}
 
 		write_config(gettext("Saved IPsec advanced settings."));
 
@@ -336,6 +389,18 @@ $section->addInput(new Form_Checkbox(
 	'It is recommended to keep this option to no, unless the exact implications are known and compatibility is required for such devices (for example, some SonicWall boxes).'
 );
 
+$section->addInput(new Form_Input(
+	'maxexchange',
+	'Maximum IKEv1 Phase 2 Exchanges',
+	'number',
+	$pconfig['maxexchange'],
+	['placeholder' => '3']
+))->setHelp(
+	'IKEv1 phase 2 rekeying for one VPN gateway can be initiated in parallel. By default only 3 parallel rekeys are allowed. ' .
+	'Undersized values can break VPN connections with many phase 2 definitions. ' .
+	'If unsure, set this value to match the largest number of phase 2 entries on any phase 1.'
+);
+
 $section->addInput(new Form_Checkbox(
 	'maxmss_enable',
 	'Enable Maximum MSS',
@@ -392,6 +457,24 @@ $section->addInput(new Form_Checkbox(
 	($pconfig['async_crypto'] == "enabled")
 ))->setHelp('Allow crypto(9) jobs to be dispatched multi-threaded to increase performance. ' .
 		'Jobs are handled in the order they are received so that packets will be reinjected in the correct order.');
+
+$group = new Form_Group('Custom ports');
+$group->add(new Form_Input(
+  'port',
+	'IKE port',
+	'number',
+	$pconfig['port'],
+	['min' => 1, 'max' => 65535]
+))->setHelp('Local UDP port for IKE (Default: 500)');
+
+$group->add(new Form_Input(
+  'port_nat_t',
+	'NAT-T port',
+	'number',
+	$pconfig['port_nat_t'],
+	['min' => 1, 'max' => 65535]
+))->setHelp('Local UDP port for NAT-T (Default: 4500)');
+$section->add($group);
 
 $section->addInput(new Form_Checkbox(
 	'autoexcludelanaddress',

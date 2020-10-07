@@ -108,28 +108,10 @@ function get_tmp_file() {
 	return "{$g['tmp_path']}/tmp-" . time();
 }
 
-/****f* pfsense-utils/get_dns_servers
- * NAME
- *   get_dns_servers - get system dns servers
- * INPUTS
- *   none
- * RESULT
- *   $dns_servers - an array of the dns servers
- ******/
+/* Stub for deprecated function
+ * See https://redmine.pfsense.org/issues/10931 */
 function get_dns_servers() {
-	$dns_servers = array();
-	if (file_exists("/etc/resolv.conf")) {
-		$dns_s = file("/etc/resolv.conf", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-	}
-	if (is_array($dns_s)) {
-		foreach ($dns_s as $dns) {
-			$matches = "";
-			if (preg_match("/nameserver (.*)/", $dns, $matches)) {
-				$dns_servers[] = $matches[1];
-			}
-		}
-	}
-	return array_unique($dns_servers);
+	return get_dns_nameservers(false, true);
 }
 
 /****f* pfsense-utils/pfSenseHeader
@@ -541,7 +523,10 @@ function hardware_offloading_applyflags($iface) {
 	$flags_off = 0;
 	$options = pfSense_get_interface_addresses($iface);
 
-	if (isset($config['system']['disablechecksumoffloading'])) {
+	/* disable hardware checksum offloading for VirtIO network drivers,
+	 * see https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=165059 */
+	if (isset($config['system']['disablechecksumoffloading']) ||
+	    stristr($iface, "vtnet") || stristr($iface, "ena")) { 
 		if (isset($options['encaps']['txcsum'])) {
 			$flags_off |= IFCAP_TXCSUM;
 		}

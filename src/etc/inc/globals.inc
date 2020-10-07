@@ -70,7 +70,7 @@ $g = array(
 	"disablehelpicon" => false,
 	"disablecrashreporter" => false,
 	"debug" => false,
-	"latest_config" => "20.9",
+	"latest_config" => "21.0",
 	"minimum_ram_warning" => "101",
 	"minimum_ram_warning_text" => "128 MB",
 	"wan_interface_name" => "wan",
@@ -89,7 +89,13 @@ $g = array(
 	"default_log_entries" => 500,
 	"default_log_size" => 512000,
 	"minimumtableentries_bogonsv6" => 400000,
-	"alternativemetaports" => array("vmware", "php72", "php73", "php74")
+	"alternativemetaports" => array("vmware", "php72", "php73", "php74"),
+	"backuppath" => array(
+		'captiveportal' => "/var/db/captiveportal*.db",
+		'dhcpd' => "/var/dhcpd/var/db/dhcpd.leases",
+		'dhcpdv6' => "/var/dhcpd/var/db/dhcpd6.leases",
+		'voucher' => "/var/db/voucher_*.db"
+	)
 );
 
 /* IP TOS flags */

@@ -1427,21 +1427,36 @@ function interface_vxlan_configure(&$vxlan, $vxlankey = "") {
 		log_error(gettext("could not bring parentif up -- variable not defined -- interface_vxlan_configure()"));
 	}
 
-	if (!platform_booting() && !(empty($vxlan['vxlanif']))) {
-		pfSense_interface_destroy($vxlan['vxlanif']);
+	/* Interface is defined */
+	if (!empty($vxlan['vxlanif'])) {
+		if (!platform_booting()) {
+			/*
+			 * Calling this after boot implies we are editing an
+			 * existing interface so destroy it first
+			 */
+			pfSense_interface_destroy($vxlan['vxlanif']);
+		}
+		/* Create the interfaces at boot */
 		pfSense_interface_create($vxlan['vxlanif']);
 		$vxlanif = $vxlan['vxlanif'];
 	} else {
+		/*
+		 * The interface is undefined, we are creating a new one. Next
+		 * interface name is returned
+		 */
 		$vxlanif = pfSense_interface_create("vxlan");
 	}
 
-	$ifconfigcmd = "/sbin/ifconfig " . escapeshellarg($vxlanif) . " vxlanid " .
-	    escapeshellarg($vxlan['vxlanid']) . " vxlandev " . escapeshellarg($realif);
+	$ifconfigcmd = "/sbin/ifconfig " . escapeshellarg($vxlanif) .
+	    " vxlanid " .  escapeshellarg($vxlan['vxlanid']);
 
 	if (is_mcast($vxlan['remote-addr'])) {
-		$ifconfigcmd .= " vxlangroup " . escapeshellarg($vxlan['remote-addr']);
+		$ifconfigcmd .= " vxlangroup " .
+		    escapeshellarg($vxlan['remote-addr']) . " vxlandev " .
+		    escapeshellarg($realif);
 	} else {
-		$ifconfigcmd .= " vxlanremote " . escapeshellarg($vxlan['remote-addr']);
+		$ifconfigcmd .= " vxlanremote " .
+		    escapeshellarg($vxlan['remote-addr']);
 	}
 
 	if (is_ipaddrv6($vxlan['remote-addr']) && $realifip6) {
@@ -1747,6 +1762,8 @@ function interfaces_configure() {
 		} else if (strstr($realif, "gre")) {
 			$delayed_list[$if] = $ifname;
 		} else if (strstr($realif, "gif")) {
+			$delayed_list[$if] = $ifname;
+		} else if (strstr($realif, "vxlan")) {
 			$delayed_list[$if] = $ifname;
 		} else if (strstr($realif, "ovpn")) {
 			//echo "Delaying OpenVPN interface configuration...done.\n";

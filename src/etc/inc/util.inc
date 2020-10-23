@@ -1614,7 +1614,26 @@ function get_interface_list($mode = "active", $keyby = "physical", $vfaces = "")
 				'tun',
 				'lagg',
 				'vip',
-				'ipfw'
+				'ipfw',
+				'vxlan'
+		);
+	} else {
+		$vfaces = array(
+				'bridge',
+				'sl',
+				'faith',
+				'lo',
+				'ng',
+				'_vlan',
+				'_wlan',
+				'pflog',
+				'plip',
+				'pfsync',
+				'enc',
+				'tun',
+				'lagg',
+				'vip',
+				'ipfw',
 		);
 	}
 	switch ($mode) {
@@ -3543,6 +3562,22 @@ function parse_cisco_acl($attribs, $dev) {
 		}
 	}
 	return $finalrules;
+}
+
+function alias_idn_to_utf8($alias) {
+	if (is_alias($alias)) {
+		return $alias;
+	} else {
+		return idn_to_utf8($alias);
+	}
+}
+
+function alias_idn_to_ascii($alias) {
+	if (is_alias($alias)) {
+		return $alias;
+	} else {
+		return idn_to_ascii($alias);
+	}
 }
 
 ?>

@@ -316,59 +316,94 @@ function setup_gateways_monitor() {
 	return;
 }
 
-function get_dpinger_status($gwname, $detailed = false, $gways = false) {
+function get_dpinger_status($gwname, $gways = false, $action_disable = false,
+    $clear_alarm = true) {
 	global $g;
 
 	$running_processes = running_dpinger_processes();
 
 	if (!isset($running_processes[$gwname])) {
-		log_error(sprintf(gettext('dpinger: No dpinger session running for gateway %s'), $gwname));
+		log_error(sprintf(gettext(
+		    'dpinger: No dpinger session running for gateway %s'),
+		    $gwname));
 		return false;
 	}
 
 	$proc = $running_processes[$gwname];
 	unset($running_processes);
 
-	$timeoutcounter = 0;
-	while (true) {
-		if (!file_exists($proc['socket'])) {
-			log_error("dpinger: status socket {$proc['socket']} not found");
-			return false;
-		}
-		$fp = @stream_socket_client("unix://{$proc['socket']}", $errno, $errstr, 10);
-		if (!$fp) {
-			log_error(sprintf(gettext('dpinger: cannot connect to status socket %1$s - %2$s (%3$s)'), $proc['socket'], $errstr, $errno));
-			return false;
-		}
-
-		$status = '';
-		while (!feof($fp)) {
-			$status .= fgets($fp, 1024);
-		}
-		fclose($fp);
-
+	if (file_exists("/tmp/.alarm.{$gwname}")) {
+		/*
+		 * if dpinger has raised an alarm, read the stats as they were
+		 * for the alarm
+		 */
 		$r = array();
 		list(
 			$r['gwname'],
 			$r['latency_avg'],
 			$r['latency_stddev'],
 			$r['loss']
-		) = explode(' ', preg_replace('/\n/', '', $status));
+		) = explode(' ', preg_replace('/\n/', '',
+		    file_get_contents("/tmp/.alarm.{$gwname}")));
 
-		// dpinger returns '<gwname> 0 0 0' when queried directly after it starts.
-		// while a latency of 0 and a loss of 0 would be perfect, in a real world it doesnt happen.
-		// or does it, anyone? if so we must 'detect' the initialization period differently..
-		$ready = $r['latency_stddev'] != '0' || $r['loss'] != '0';
-
-		if ($ready) {
-			break;
-		} else {
-			$timeoutcounter++;
-			if ($timeoutcounter > 300) {
-				log_error(sprintf(gettext('dpinger: timeout while retrieving status for gateway %s'), $gwname));
+		if ($clear_alarm) {
+			unlink_if_exists("/tmp/.alarm.{$gwname}");
+		}
+	} else {
+		// otherwise, read the current stats from the dpinger socket
+		$timeoutcounter = 0;
+		while (true) {
+			if (!file_exists($proc['socket'])) {
+				log_error("dpinger: status socket " .
+				    $proc['socket'] . " not found");
 				return false;
 			}
-			usleep(10000);
+			$fp = @stream_socket_client("unix://{$proc['socket']}",
+			    $errno, $errstr, 10);
+			if (!$fp) {
+				log_error(sprintf(gettext('dpinger: cannot ' .
+				    'connect to status socket %1$s - %2$s ' .
+				    '(%3$s)'), $proc['socket'], $errstr,
+					$errno));
+				return false;
+			}
+
+			$status = '';
+			while (!feof($fp)) {
+				$status .= fgets($fp, 1024);
+			}
+			fclose($fp);
+
+			$r = array();
+			list(
+				$r['gwname'],
+				$r['latency_avg'],
+				$r['latency_stddev'],
+				$r['loss']
+			) = explode(' ', preg_replace('/\n/', '', $status));
+
+			/*
+			 * dpinger returns '<gwname> 0 0 0' when queried
+			 * directly after it starts.  While a latency of 0 and
+			 * a loss of 0 would be perfect, in a real world it
+			 * doesn't happen.  Or does it, anyone? if so we must
+			 * 'detect' the initialization period differently..
+			 */
+			$ready = $r['latency_stddev'] != '0' ||
+			    $r['loss'] != '0';
+
+			if ($ready) {
+				break;
+			} else {
+				$timeoutcounter++;
+				if ($timeoutcounter > 300) {
+					log_error(sprintf(gettext('dpinger: ' .
+					    'timeout while retrieving status ' .
+					    'for gateway %s'), $gwname));
+					return false;
+				}
+				usleep(10000);
+			}
 		}
 	}
 
@@ -389,9 +424,11 @@ function get_dpinger_status($gwname, $detailed = false, $gways = false) {
 	$r['latency_avg'] = round($r['latency_avg']/1000, 3);
 	$r['latency_stddev'] = round($r['latency_stddev']/1000, 3);
 
-	$r['status'] = "none";
+	$r['status'] = "online";
+	$r['substatus'] = "none";
 	if (isset($gw) && isset($gw['force_down'])) {
-		$r['status'] = "force_down";
+		$r['status'] = "down";
+		$r['substatus'] = "force_down";
 	} else if (isset($gw)) {
 		$settings = return_dpinger_defaults();
 
@@ -410,21 +447,19 @@ function get_dpinger_status($gwname, $detailed = false, $gways = false) {
 		}
 
 		if ($r['latency_avg'] > $settings['latencyhigh']) {
-			if ($detailed) {
-				$r['status'] = "highdelay";
-			} else {
+			if (!$action_disable) {
 				$r['status'] = "down";
 			}
+			$r['substatus'] = "highdelay";
 		} else if ($r['loss'] > $settings['losshigh']) {
-			if ($detailed) {
-				$r['status'] = "highloss";
-			} else {
+			if (!$action_disable) {
 				$r['status'] = "down";
 			}
+			$r['substatus'] = "highloss";
 		} else if ($r['latency_avg'] > $settings['latencylow']) {
-			$r['status'] = "delay";
+			$r['substatus'] = "delay";
 		} else if ($r['loss'] > $settings['losslow']) {
-			$r['status'] = "loss";
+			$r['substatus'] = "loss";
 		}
 	}
 
@@ -432,7 +467,8 @@ function get_dpinger_status($gwname, $detailed = false, $gways = false) {
 }
 
 /* return the status of the dpinger targets as an array */
-function return_gateways_status($byname = false, $gways = false) {
+function return_gateways_status($byname = false, $gways = false,
+    $clear_alarm = true) {
 	global $config, $g;
 
 	$dpinger_gws = running_dpinger_processes();
@@ -445,11 +481,15 @@ function return_gateways_status($byname = false, $gways = false) {
 	}
 
 	foreach ($dpinger_gws as $gwname => $gwdata) {
-		// If action is disabled for this gateway, then we want a detailed status.
-		// That reports "highdelay" or "highloss" rather than just "down".
-		// Because reporting the gateway down would be misleading (gateway action is disabled)
-		$detailed = $gateways_arr[$gwname]['action_disable'];
-		$dpinger_status = get_dpinger_status($gwname, $detailed);
+		/*
+		 * If action is disabled for this gateway, then we want a
+		 * detailed status.  That reports "highdelay" or "highloss"
+		 * rather than just "down".  Because reporting the gateway
+		 * down would be misleading (gateway action is disabled)
+		 */
+		$action_disable = $gateways_arr[$gwname]['action_disable'];
+		$dpinger_status = get_dpinger_status($gwname, $gways,
+		    $action_disable, $clear_alarm);
 		if ($dpinger_status === false) {
 			continue;
 		}
@@ -464,10 +504,19 @@ function return_gateways_status($byname = false, $gways = false) {
 		$status[$target]['monitorip'] = $dpinger_status['targetip'];
 		$status[$target]['srcip'] = $dpinger_status['srcip'];
 		$status[$target]['name'] = $gwname;
-		$status[$target]['delay'] = empty($dpinger_status['latency_avg']) ? "0ms" : $dpinger_status['latency_avg'] . "ms";
-		$status[$target]['stddev'] = empty($dpinger_status['latency_stddev']) ? "0ms" : $dpinger_status['latency_stddev'] . "ms";
-		$status[$target]['loss'] = empty($dpinger_status['loss']) ? "0.0%" : round($dpinger_status['loss'], 1) . "%";
+		$status[$target]['delay'] =
+		    empty($dpinger_status['latency_avg'])
+		    ? "0ms"
+		    : $dpinger_status['latency_avg'] . "ms";
+		$status[$target]['stddev'] =
+		    empty($dpinger_status['latency_stddev'])
+		    ? "0ms"
+		    : $dpinger_status['latency_stddev'] . "ms";
+		$status[$target]['loss'] = empty($dpinger_status['loss'])
+		    ? "0.0%"
+		    : round($dpinger_status['loss'], 1) . "%";
 		$status[$target]['status'] = $dpinger_status['status'];
+		$status[$target]['substatus'] = $dpinger_status['substatus'];
 	}
 
 	/* tack on any gateways that have monitoring disabled
@@ -501,13 +550,15 @@ function return_gateways_status($byname = false, $gways = false) {
 			$status[$target]['delay'] = "0.0ms";
 			$status[$target]['loss'] = "100.0%";
 			$status[$target]['status'] = "down";
+			$status[$target]['substatus'] = "down";
 		} else {
 			$status[$target]['monitorip'] = $tgtip;
 			$status[$target]['srcip'] = $srcip;
 			$status[$target]['name'] = $gwitem['name'];
 			$status[$target]['delay'] = "";
 			$status[$target]['loss'] = "";
-			$status[$target]['status'] = "none";
+			$status[$target]['status'] = "online";
+			$status[$target]['substatus'] = "none";
 		}
 
 		$status[$target]['monitor_disable'] = true;
@@ -528,7 +579,8 @@ function return_gateways_status_text($byname = false, $brief = false) {
 				'delay' => "Delay",
 				'stddev' => "StdDev",
 				'loss' => "Loss",
-				'status' => "Status");
+				'status' => "Status",
+				'substatus' => "Substatus");
 	}
 	foreach ($gwstat as $gw) {
 		foreach ($gw as $gwdidx => $gwdata) {
@@ -1237,16 +1289,17 @@ function get_gwgroup_members_inner($group, $gateways_status, $gateways_arr, $vip
 			$status = $gateways_status[$gwname];
 			$gwdown = false;
 			if (stristr($status['status'], "down")) {
-				$msg = sprintf(gettext('MONITOR: %1$s is down, omitting from routing group %2$s'), $gwname, $group['name']);
 				$gwdown = true;
-			} else if (stristr($status['status'], "loss") && strstr($group['trigger'], "loss")) {
-				/* packet loss */
-				$msg = sprintf(gettext('MONITOR: %1$s has packet loss, omitting from routing group %2$s'), $gwname, $group['name']);
-				$gwdown = true;
-			} else if (stristr($status['status'], "delay") && strstr($group['trigger'] , "latency")) {
-				/* high latency */
-				$msg = sprintf(gettext('MONITOR: %1$s has high latency, omitting from routing group %2$s'), $gwname, $group['name']);
-				$gwdown = true;
+				switch ($status['substatus']) {
+					case "highloss":
+						$msg = sprintf(gettext('MONITOR: %1$s has packet loss, omitting from routing group %2$s'), $gwname, $group['name']);
+						break;
+					case "highdelay":
+						$msg = sprintf(gettext('MONITOR: %1$s has high latency, omitting from routing group %2$s'), $gwname, $group['name']);
+						break;
+					default:
+						$msg = sprintf(gettext('MONITOR: %1$s is down, omitting from routing group %2$s'), $gwname, $group['name']);
+				}
 			}
 			$statuschanged = false;
 			$pluginparams = array();
@@ -1266,7 +1319,7 @@ function get_gwgroup_members_inner($group, $gateways_status, $gateways_arr, $vip
 				}
 				$tiers[$tier][] = $gwname;
 				if (unlink_if_exists("/tmp/.down.{$gwname}")) {
-					$msg = sprintf(getmypid () . gettext('MONITOR: %1$s is available now, adding to routing group %2$s'), $gwname, $group['name']);
+					$msg = sprintf(gettext('MONITOR: %1$s is available now, adding to routing group %2$s'), $gwname, $group['name']);
 					$msg .= "\n".implode("|", $status);
 					$pluginparams['event'] = 'gateway.up';
 					$statuschanged = true;

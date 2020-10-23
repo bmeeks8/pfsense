@@ -278,6 +278,8 @@ switch ($wancfg['ipaddr']) {
 			$pconfig['ipaddr'] = $wancfg['ipaddr'];
 			$pconfig['subnet'] = $wancfg['subnet'];
 			$pconfig['gateway'] = $wancfg['gateway'];
+		} elseif (in_array(remove_ifindex($wancfg['if']), array("ppp", "pppoe", "pptp", "l2tp"))) {
+			$pconfig['type'] = remove_ifindex($wancfg['if']);
 		} else {
 			$pconfig['type'] = "none";
 		}
@@ -440,10 +442,11 @@ if ($_POST['apply']) {
 		unlink_if_exists("{$g['tmp_path']}/config.cache");
 		clear_subsystem_dirty('interfaces');
 
-		$vlan_redo = false;
+		$vlan_redo = array();
 		if (file_exists("{$g['tmp_path']}/.interfaces.apply")) {
 			$toapplylist = unserialize(file_get_contents("{$g['tmp_path']}/.interfaces.apply"));
 			foreach ($toapplylist as $ifapply => $ifcfgo) {
+				$ifmtu = get_interface_mtu(get_real_interface($ifapply));
 				if (isset($config['interfaces'][$ifapply]['enable'])) {
 					interface_bring_down($ifapply, false, $ifcfgo);
 					interface_configure($ifapply, true);
@@ -463,18 +466,24 @@ if ($_POST['apply']) {
 						services_dhcpd_configure();
 					}
 				}
-				if (interface_has_clones(get_real_interface($ifapply))) {
-					$vlan_redo = true;
+				if (interface_has_clones(get_real_interface($ifapply)) &&
+				    (isset($config['interfaces'][$ifapply]['mtu']) &&
+				    ($config['interfaces'][$ifapply]['mtu'] != $ifmtu)) ||
+				    (!isset($config['interfaces'][$ifapply]['mtu']) &&
+				    (get_interface_default_mtu() != $ifmtu))) { 
+					$vlan_redo[] = get_real_interface($ifapply);
 				}
 			}
 		}
 
 		/*
-		 * If the parent interface has changed above, the VLANs needs to be
-		 * redone.
+                 * If the parent interface has changed MTU above, the VLANs needs to be
+                 * redone.
 		 */
-		if ($vlan_redo) {
-			interfaces_vlan_configure();
+		if (!empty($vlan_redo)) {
+			foreach ($vlan_redo as $vlredo) {
+				interfaces_vlan_configure($vlredo);
+			}
 		}
 
 		/* restart snmp so that it binds to correct address */
@@ -1824,7 +1833,13 @@ foreach ($mediaopts as $mediaopt) {
 $pgtitle = array(gettext("Interfaces"), "{$wancfg['descr']} ({$realifname})");
 $shortcut_section = "interfaces";
 
-$types4 = array("none" => gettext("None"), "staticv4" => gettext("Static IPv4"), "dhcp" => gettext("DHCP"), "ppp" => gettext("PPP"), "pppoe" => gettext("PPPoE"), "pptp" => gettext("PPTP"), "l2tp" => gettext("L2TP"));
+$types4 = array("ppp" => gettext("PPP"), "pppoe" => gettext("PPPoE"), "pptp" => gettext("PPTP"), "l2tp" => gettext("L2TP"));
+
+if (!in_array($pconfig['type'], array("ppp", "pppoe", "pptp", "l2tp")) ||
+   !array_key_exists($a_ppps[$pppid]['ports'], get_configured_interface_list_by_realif())) { 
+	$types4 = array_merge(array("none" => gettext("None"), "staticv4" => gettext("Static IPv4"), "dhcp" => gettext("DHCP")), $types4);
+}
+
 $types6 = array("none" => gettext("None"), "staticv6" => gettext("Static IPv6"), "dhcp6" => gettext("DHCP6"), "slaac" => gettext("SLAAC"), "6rd" => gettext("6rd Tunnel"), "6to4" => gettext("6to4 Tunnel"), "track6" => gettext("Track Interface"));
 
 // Get the MAC address
@@ -2931,7 +2946,7 @@ $group->setHelp('Leave the date field empty, for the reset to be executed each d
 $section->add($group);
 
 $group = new Form_MultiCheckboxGroup('cron based reset');
-$group->addClass('pppoepreset notoggleall');
+$group->addClass('pppoepreset');
 
 $group->add(new Form_MultiCheckbox(
 	'pppoe_pr_preset_val',

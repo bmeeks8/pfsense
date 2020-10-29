@@ -276,7 +276,7 @@ EOD;
 			$syslogconf .= system_syslogd_get_remote_servers($syslogcfg, "*.*");
 		}
 
-		$syslogconf .= "!dpinger\n";
+		$syslogconf .= "!dpinger,gwlb,rc.newwanip,rc.newwanipv6\n";
 		if (!isset($syslogcfg['disablelocallogging'])) {
 			$syslogconf .= "*.*								{$g['varlog_path']}/gateways.log\n";
 		}
@@ -292,7 +292,7 @@ EOD;
 			$syslogconf .= system_syslogd_get_remote_servers($syslogcfg, "*.*");
 		}
 
-		$syslogconf .= "!dhcpd,dhcrelay,dhclient,dhcp6c,dhcpleases,dhcpleases6\n";
+		$syslogconf .= "!dhcpd,dhcrelay,dhclient,dhcp6c,dhcpleases,dhcpleases6,rtsold\n";
 		if (!isset($syslogcfg['disablelocallogging'])) {
 			$syslogconf .= "*.*								{$g['varlog_path']}/dhcpd.log\n";
 		}

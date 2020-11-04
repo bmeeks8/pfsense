@@ -34,7 +34,7 @@ if (platform_booting()) {
 }
 
 function handle_argument_group($iface, $argument2) {
-	global $config;
+	global $g, $config;
 
 	if (!is_array($config['interfaces'][$iface])) {
 		log_error("Cannot find interface configuration for {$iface}");
@@ -114,6 +114,12 @@ function handle_argument_group($iface, $argument2) {
 				log_error("HOTPLUG: Configuring interface {$iface}");
 				// Do not try to readd to bridge otherwise em(4) has problems
 				interface_configure($iface, true, true);
+
+				/* Make sure gw monitor is configured */
+				if ($ip6addr == 'slaac' ||
+				    $ip6addr == 'dhcp6') {
+					setup_gateways_monitor();
+				}
 				break;
 		}
 	}

@@ -257,7 +257,7 @@ function setup_gateways_monitor() {
 
 			if (is_linklocal($gateway['monitor'])) {
 				if (get_ll_scope($gateway['monitor']) == '') {
-					$gateway['monitor'] .= '%' . $gateway['interface'];
+					$gateways_arr[$gwname]['monitor'] .= '%' . $gateway['interface'];
 				}
 
 				$gwifip = find_interface_ipv6_ll($gateway['interface'], true);
@@ -279,7 +279,7 @@ function setup_gateways_monitor() {
 			 * Add static routes for each gateway with their monitor IP
 			 * not strictly necessary but is a added level of protection.
 			 */
-			if ($gateway['gateway'] != $gateway['monitor']) {
+			if ($gateway['gateway'] != $gateways_arr[$gwname]['monitor']) {
 				log_error(sprintf(gettext('Removing static route for monitor %1$s and adding a new route through %2$s'), $gateway['monitor'], $gateway['gateway']));
 				if (interface_isppp_type($gateway['friendlyiface'])) {
 					route_add_or_change($gateway['monitor'],
@@ -1130,7 +1130,6 @@ function fixup_default_gateway($ipprotocol, $gateways_status, $gateways_arr) {
 			}
 		}
 		if (empty($set_dfltgwname)) {
-			openlog("gwlb", LOG_PID, LOG_LOCAL0);
 			log_error(sprintf("Gateway, none 'available' for %s, use the first one configured. '%s'", $ipprotocol, $fallback));
 			$set_dfltgwname = $fallback;
 		}

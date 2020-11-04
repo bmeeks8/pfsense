@@ -2073,8 +2073,10 @@ function interface_bring_down($interface = "wan", $destroy = false, $ifacecfg = 
 			kill_dhcp6client_process($realif, $destroy, false);
 			unlink_if_exists("{$g['varetc_path']}/dhcp6c_{$interface}.conf");
 			unlink_if_exists("{$g['varetc_path']}/dhcp6c_{$interface}_script.sh");
+			unlink_if_exists("{$g['varetc_path']}/dhcp6c_{$interface}_dhcp6withoutra_script.sh");
 			unlink_if_exists("{$g['varetc_path']}/rtsold_{$realifv6}_script.sh");
 			if (does_interface_exist($realifv6)) {
+				mwexec("/sbin/ifconfig " . escapeshellarg($realifv6) . " inet6 -accept_rtadv");
 				$ip6 = find_interface_ipv6($realifv6);
 				if (is_ipaddrv6($ip6) && $ip6 != "::") {
 					mwexec("/sbin/ifconfig " . escapeshellarg($realifv6) . " inet6 {$ip6} delete", true);
@@ -2083,7 +2085,6 @@ function interface_bring_down($interface = "wan", $destroy = false, $ifacecfg = 
 				if ($destroy == true) {
 					pfSense_interface_flags($realif, -IFF_UP);
 				}
-				//mwexec("/usr/sbin/arp -d -i " . escapeshellarg($realif) . " -a");
 			}
 			$track6 = link_interface_to_track6($interface);
 			break;
@@ -4947,7 +4948,7 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 			if (!isset($wancfg['dhcp6prefixonly'])) {
 				$dhcp6cconf .= "\tsend ia-na 0;\t# request stateful address\n";
 			}
-			if (is_numeric($wancfg['dhcp6-ia-pd-len']) && !empty($trackiflist)) {
+			if (is_numeric($wancfg['dhcp6-ia-pd-len'])) {
 				$dhcp6cconf .= "\tsend ia-pd 0;\t# request prefix delegation\n";
 			}
 
@@ -4969,7 +4970,7 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 				$dhcp6cconf .= "id-assoc na 0 { };\n";
 			}
 
-			if (is_numeric($wancfg['dhcp6-ia-pd-len']) && !empty($trackiflist)) {
+			if (is_numeric($wancfg['dhcp6-ia-pd-len'])) {
 				/* Setup the prefix delegation */
 				$dhcp6cconf .= "id-assoc pd 0 {\n";
 				$preflen = 64 - $wancfg['dhcp6-ia-pd-len'];

@@ -504,6 +504,44 @@ function interface_vlan_configure(&$vlan, $flush = true) {
 	return $vlanif;
 }
 
+/*
+ * reconfigure VLAN childs interfaces after MTU changes, see
+ * https://redmine.pfsense.org/issues/11035
+ */
+function interfaces_vlan_configure_mtu($parentif = "") {
+	global $config;
+
+	init_config_arr(array('ppps', 'ppp'));
+	if (!is_array($config['vlans']['vlan']) ||
+	    !count($config['vlans']['vlan'])) {
+		return;
+	}
+
+	foreach ($config['vlans']['vlan'] as $vlan) {
+		if ($parentif != $vlan['if']) {
+			continue;
+		}
+		if (interface_vlan_mtu_configured($vlan['vlanif'])) {
+		       set_interface_mtu($vlan['vlanif'],
+			   interface_vlan_mtu_configured($vlan['vlanif']));
+		}
+		if (empty($config['ppps']['ppp'])) {
+			continue;
+		}
+		// PPP interfaces must be restarted to adjust MTU changes
+		foreach ($config['ppps']['ppp'] as $pppid => $ppp) {
+			$ports = explode(',', $ppp['ports']);
+			foreach ($ports as $pid => $port) {
+				if ($port != $vlan['vlanif']) {
+					continue;
+				}
+				$confif = convert_real_interface_to_friendly_interface_name($ppp['if']);
+				interface_configure($confif);
+			}
+		}
+	}
+}
+
 function interface_qinq_configure(&$qinq, $fd = NULL, $flush = true) {
 	global $config, $g;
 
@@ -1481,23 +1519,12 @@ function interface_vxlan_configure(&$vxlan, $vxlankey = "", $flush = true) {
 	}
 
 	/* Interface is defined */
-	if (!empty($vxlan['vxlanif'])) {
-		if (!platform_booting()) {
-			/*
-			 * Calling this after boot implies we are editing an
-			 * existing interface so destroy it first
-			 */
-			pfSense_interface_destroy($vxlan['vxlanif']);
-		}
-		/* Create the interfaces at boot */
+	if (platform_booting() || !(empty($vxlan['vxlanif']))) {
+		pfSense_interface_destroy($vxlan['vxlanif']);
 		pfSense_interface_create($vxlan['vxlanif']);
 		$vxlanif = $vxlan['vxlanif'];
 	} else {
-		/*
-		 * The interface is undefined, we are creating a new one. Next
-		 * interface name is returned
-		 */
-		$vxlanif = pfSense_interface_create("vxlan");
+		$vxlanif = pfSense_interface_create("vxlanif");
 	}
 
 	$ifconfigcmd = "/sbin/ifconfig " . escapeshellarg($vxlanif) .

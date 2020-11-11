@@ -96,6 +96,7 @@ if ($_POST['act'] == "del") {
 if ($act == "new") {
 	$pconfig['ncp_enable'] = "enabled";
 	$pconfig['data_ciphers'] = 'AES-256-GCM,AES-128-GCM,CHACHA20-POLY1305';
+	$pconfig['data_ciphers_fallback'] = 'AES-256-CBC';
 	$pconfig['autokey_enable'] = "yes";
 	$pconfig['tlsauth_enable'] = "yes";
 	$pconfig['tlsauth_keydir'] = "default";
@@ -1030,7 +1031,7 @@ if ($act=="new" || $act=="edit"):
 		($pconfig['ncp_enable'] == "enabled")
 	))->setHelp('This option allows OpenVPN clients and servers to negotiate a compatible set of acceptable cryptographic ' .
 			'data encryption algorithms from those selected in the Data Encryption Algorithms list below. ' .
-			'Diabling this feature is deprecated.%1$s%2$s%3$s');
+			'Disabling this feature is deprecated.');
 
 	$group = new Form_Group('Data Encryption Algorithms');
 
@@ -1273,9 +1274,12 @@ if ($act=="new" || $act=="edit"):
 	$section->addInput(new Form_Checkbox(
 		'duplicate_cn',
 		'Duplicate Connection',
-		'Allow multiple concurrent connections from clients using the same Common Name.',
+		'Allow multiple concurrent connections from the same user',
 		$pconfig['duplicate_cn']
-	))->setHelp('(This is not generally recommended, but may be needed for some scenarios.)');
+	))->setHelp('When set, the same user may connect multiple times. ' .
+			'When unset, a new connection from a user will disconnect the previous session. %1$s%1$s' .
+			'Users are identified by their username or certificate properties, depending on the VPN configuration. ' .
+			'This practice is discouraged security reasons, but may be necessary in some environments.', '<br />');
 
 	$form->add($section);
 
@@ -1644,7 +1648,7 @@ else:
 					<th><?=gettext("Interface")?></th>
 					<th data-sortable-type="alpha"><?=gettext("Protocol / Port")?></th>
 					<th><?=gettext("Tunnel Network")?></th>
-					<th><?=gettext("Crypto")?></th>
+					<th><?=gettext("Mode / Crypto")?></th>
 					<th><?=gettext("Description")?></th>
 					<th><?=gettext("Actions")?></th>
 				</tr>
@@ -1654,13 +1658,21 @@ else:
 <?php
 	$i = 0;
 	foreach ($a_server as $server):
+		$dc = openvpn_build_data_cipher_list($server['data_ciphers'], $server['data_ciphers_fallback'], ($server['ncp_enable'] != "disabled"));
+		$dca = explode(',', $dc);
+		if (count($dca) > 5) {
+			$dca = array_slice($dca, 0, 5);
+			$dca[] = '[...]';
+		}
+		$dc = implode(', ', $dca);
 ?>
 				<tr <?=isset($server['disable']) ? 'class="disabled"':''?>>
 					<td>
-						<?=convert_openvpn_interface_to_friendly_descr($server['interface'])?>
+						<?=htmlspecialchars(convert_openvpn_interface_to_friendly_descr($server['interface']))?>
 					</td>
 					<td data-value="<?=htmlspecialchars($server['local_port']) . '-' . htmlspecialchars($server['protocol'])?>">
 						<?=htmlspecialchars($server['protocol'])?> / <?=htmlspecialchars($server['local_port'])?>
+						<br/>(<?= htmlspecialchars(strtoupper(empty($server['dev_mode']) ? 'TUN' : $server['dev_mode'])) ?>)
 					</td>
 					<td>
 					<?php if (!empty($server['tunnel_network'])): ?>
@@ -1669,15 +1681,23 @@ else:
 						<?=htmlspecialchars($server['tunnel_networkv6'])?>
 					</td>
 					<td>
-						<?=sprintf('Crypto: %1$s/%2$s', $server['data_ciphers'], $server['digest']);?>
-					<?php if (is_numeric($server['dh_length'])): ?>
-						<?=sprintf("<br/>D-H Params: %d bits", $server['dh_length']);?>
-					<?php elseif ($server['dh_length'] == "none"): ?>
-						<br />D-H Disabled, using ECDH Only
+						<strong><?= gettext('Mode') ?>:</strong> <?= htmlspecialchars($openvpn_server_modes[$server['mode']]) ?>
+						<br/>
+						<strong><?= gettext('Data Ciphers') ?>:</strong> <?= htmlspecialchars($dc) ?>
+						<br/>
+						<strong><?= gettext('Digest') ?>:</strong> <?= htmlspecialchars($server['digest']) ?>
+					<?php if (!empty($server['dh_length'])): ?>
+						<br/>
+						<strong><?= gettext('D-H Params') ?>:</strong>
+						<?php if (is_numeric($server['dh_length'])): ?>
+							<?= htmlspecialchars($server['dh_length']) ?> <?= gettext('bits') ?>
+						<?php elseif ($server['dh_length'] == "none"): ?>
+							<?= gettext("Disabled, ECDH Only") ?>
+						<?php endif; ?>
 					<?php endif; ?>
 					</td>
 					<td>
-						<?=htmlspecialchars(sprintf('%1$s (%2$s)', $server['description'], $server['dev_mode']))?>
+						<?= htmlspecialchars($server['description']) ?>
 					</td>
 					<td>
 						<a class="fa fa-pencil"	title="<?=gettext('Edit Server')?>"	href="vpn_openvpn_server.php?act=edit&amp;id=<?=$i?>"></a>
@@ -2046,6 +2066,12 @@ events.push(function() {
 		hideInput('ocspurl', hide);
 	}
 
+	function allow_compression_change() {
+		var hide  = ($('#allow_compression').val() == 'no')
+		hideInput('compression', hide);
+		hideCheckbox('compression_push', hide);
+	}
+
 	// ---------- Monitor elements for change and call the appropriate display functions ------------------------------
 
 	// NTP
@@ -2135,6 +2161,11 @@ events.push(function() {
 		$('#certtype').html(errmsg);
 	});
 
+	// Compression Settings
+	$('#allow_compression').change(function () {
+		allow_compression_change();
+	});
+
 	function updateCipher(mem) {
 		var found = false;
 
@@ -2193,6 +2224,7 @@ events.push(function() {
 	tuntap_change();
 	ping_method_change();
 	ocspcheck_change();
+	allow_compression_change();
 });
 //]]>
 </script>

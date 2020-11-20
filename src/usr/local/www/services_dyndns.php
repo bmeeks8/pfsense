@@ -88,6 +88,7 @@ display_top_tabs($tab_array);
 				<table class="table table-striped table-hover table-condensed table-rowdblclickedit">
 					<thead>
 						<tr>
+							<th><?=gettext("Status")?></th>
 							<th><?=gettext("Interface")?></th>
 							<th><?=gettext("Service")?></th>
 							<th><?=gettext("Hostname")?></th>
@@ -105,8 +106,42 @@ foreach ($a_dyndns as $dyndns):
 	} else {
 		$hostname = $dyndns['host'];
 	}
+	$filename = "{$g['conf_path']}/dyndns_{$dyndns['interface']}{$dyndns['type']}" . escapeshellarg($hostname) . "{$dyndns['id']}.cache";
+	$filename_v6 = "{$g['conf_path']}/dyndns_{$dyndns['interface']}{$dyndns['type']}" . escapeshellarg($hostname) . "{$dyndns['id']}_v6.cache";
+	if (file_exists($filename)) {
+		$ipaddr = dyndnsCheckIP($dyndns['interface']);
+		$cached_ip_s = explode("|", file_get_contents($filename));
+		$cached_ip = $cached_ip_s[0];
+
+		if ($ipaddr == $cached_ip) {
+			$icon_class = "fa fa-check-circle";
+			$text_class = "text-success";
+			$icon_title = "Updated";
+		} else {
+			$icon_class = "fa fa-times-circle";
+			$text_class = "text-danger";
+			$icon_title = "Failed";
+		}
+	} else if (file_exists($filename_v6)) {
+		$ipv6addr = get_interface_ipv6($dyndns['interface']);
+		$cached_ipv6_s = explode("|", file_get_contents($filename_v6));
+		$cached_ipv6 = $cached_ipv6_s[0];
+
+		if ($ipv6addr == $cached_ipv6) {
+			$icon_class = "fa fa-check-circle";
+			$text_class = "text-success";
+			$icon_title = "Updated";
+		} else {
+			$icon_class = "fa fa-times-circle";
+			$text_class = "text-danger";
+			$icon_title = "Failed";
+		}
+	}
 ?>
 						<tr<?=!isset($dyndns['enable'])?' class="disabled"':''?>>
+							<td>
+							<i class="<?=$icon_class?> <?=$text_class?>" title="<?=$icon_title?>"></i>
+							</td>
 							<td>
 <?php
 	$iflist = get_configured_interface_with_descr();
@@ -148,32 +183,12 @@ foreach ($a_dyndns as $dyndns):
 							</td>
 							<td>
 <?php
-	$filename = "{$g['conf_path']}/dyndns_{$dyndns['interface']}{$dyndns['type']}" . escapeshellarg($hostname) . "{$dyndns['id']}.cache";
-	$filename_v6 = "{$g['conf_path']}/dyndns_{$dyndns['interface']}{$dyndns['type']}" . escapeshellarg($hostname) . "{$dyndns['id']}_v6.cache";
 	if (file_exists($filename)) {
-		$ipaddr = dyndnsCheckIP($dyndns['interface']);
-		$cached_ip_s = explode("|", file_get_contents($filename));
-		$cached_ip = $cached_ip_s[0];
-
-		if ($ipaddr != $cached_ip) {
-			print('<span class="text-danger">');
-		} else {
-			print('<span class="text-success">');
-		}
-
+		print("<span class='{$text_class}'>");
 		print(htmlspecialchars($cached_ip));
 		print('</span>');
-	} else if (file_exists($filename_v6)) {
-		$ipv6addr = get_interface_ipv6($dyndns['interface']);
-		$cached_ipv6_s = explode("|", file_get_contents($filename_v6));
-		$cached_ipv6 = $cached_ipv6_s[0];
-
-		if ($ipv6addr != $cached_ipv6) {
-			print('<span class="text-danger">');
-		} else {
-			print('<span class="text-success">');
-		}
-
+	} elseif (file_exists($filename_v6)) {
+		print("<span class='{$text_class}'>");
 		print(htmlspecialchars($cached_ipv6));
 		print('</span>');
 	} else {
@@ -219,8 +234,8 @@ foreach ($a_dyndns as $dyndns):
 </nav>
 
 <div>
-	<?=sprintf(gettext('IP addresses appearing in %1$sgreen%2$s are up to date with Dynamic DNS provider. '), '<span class="text-success">', '</span>')?>
-	<?=gettext('An update for an IP address can be forced on the edit page for that service.')?>
+	<?=sprintf(gettext('Entries with a %3$s status column icon and IP address appearing in %1$sgreen%2$s are up to date with Dynamic DNS provider. '), '<span class="text-success">', '</span>', '<i class="fa fa-check-circle text-success"></i>')?>
+	<?=gettext('An update can be forced on the edit page for an entry.')?>
 </div>
 
 <?php

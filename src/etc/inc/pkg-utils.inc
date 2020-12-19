@@ -85,7 +85,7 @@ function pkg_update($force = false) {
 function pkg_env($extra_env = array()) {
 	global $config, $g;
 
-	$user_agent = $g['product_name'] . '/' . $g['product_version'];
+	$user_agent = $g['product_label'] . '/' . $g['product_version'];
 	if (!isset($config['system']['do_not_send_uniqueid'])) {
 		$user_agent .= ':' . system_get_uniqueid();
 	}
@@ -1216,7 +1216,7 @@ function package_reinstall_all() {
 			file_notice(gettext("Package reinstall"),
 			    sprintf(gettext("Package %s does not exist in " .
 			    "current %s version and it has been removed."),
-			    $package, $g['product_name']));
+			    $package, $g['product_label']));
 			uninstall_package($package);
 		}
 	}
@@ -1312,8 +1312,8 @@ function get_base_pkg_name() {
 	global $g;
 
 	/* XXX: Use pkg annotation */
-	if (is_pkg_installed($g['product_name'] . '-base-' . $g['platform'])) {
-		return $g['product_name'] . '-base-' . $g['platform'];
+	if (is_pkg_installed($g['product_name'] . '-base-' . $g['product_name'])) {
+		return $g['product_name'] . '-base-' . $g['product_name'];
 	} else if (is_pkg_installed($g['product_name'] . '-base')) {
 		return $g['product_name'] . '-base';
 	}
@@ -1581,7 +1581,7 @@ function update_repos() {
 		    "{\"platform\":\"" . $platformname .
 		    "\",\"os\":\"" . $os .
 		    "\",\"osver\":\"" . $osver .
-		    "\",\"prod\":\"" . $g['product_name'] .
+		    "\",\"prod\":\"" . $g['product_label'] .
 		    "\",\"ver\":\"" . $g['product_version'] .
 		    "\",\"ed\":\"" . $ed .
 		    "\",\"pkgs\":[";
@@ -1615,7 +1615,7 @@ function update_repos() {
 		curl_setopt($ch, CURLOPT_HEADER, 0);
 		curl_setopt($ch, CURLOPT_VERBOSE, 0);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_name'] . '/' .
+		curl_setopt($ch, CURLOPT_USERAGENT, $g['product_label'] . '/' .
 		    $g['product_version']);
 		curl_setopt($ch, CURLOPT_URL, $FQDN);
 		curl_setopt($ch, CURLOPT_POST, true);

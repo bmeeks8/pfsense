@@ -52,11 +52,11 @@ if (function_exists("display_error_form")) {
 			/* They may never see the error since the connection will be cut off, but try to be nice anyhow. */
 			display_error_form("501", gettext("Access Denied<br/><br/>Access attempt from a temporarily locked out client address.<br /><br />Try accessing the firewall again after the lockout expires."));
 			/* If they are locked out, they shouldn't have a state. Disconnect their connections. */
-			$retval = pfSense_kill_states($_SERVER['REMOTE_ADDR']);
+			$retval = pfSense_kill_states(utf8_encode($_SERVER['REMOTE_ADDR']));
 			if (is_ipaddrv4($_SERVER['REMOTE_ADDR'])) {
-				$retval = pfSense_kill_states("0.0.0.0/0", $_SERVER['REMOTE_ADDR']);
+				$retval = pfSense_kill_states("0.0.0.0/0", utf8_encode($_SERVER['REMOTE_ADDR']));
 			} elseif (is_ipaddrv6($_SERVER['REMOTE_ADDR'])) {
-				$retval = pfSense_kill_states("::", $_SERVER['REMOTE_ADDR']);
+				$retval = pfSense_kill_states("::", utf8_encode($_SERVER['REMOTE_ADDR']));
 			}
 			exit;
 		}
@@ -1723,7 +1723,14 @@ function radius_backed($username, $password, $authcfg, &$attributes = array()) {
 			$nasip = get_interface_ip($nasip);
 
 			if (!is_ipaddr($nasip)) {
-				$nasip = get_interface_ip();//We use wan interface IP as fallback for NAS-IP-Address
+				/* use first interface with IP as fallback for NAS-IP-Address
+				 * see https://redmine.pfsense.org/issues/11109 */
+				foreach (get_configured_interface_list() as $if) {
+					$nasip = get_interface_ip($if);
+					if (is_ipaddr($nasip)) {
+						break;
+					}
+				}
 			}
 		}
 		$nasmac = get_interface_mac(find_ip_interface($nasip));
@@ -2170,7 +2177,7 @@ function session_auth() {
 function print_credit() {
 	global $g;
 
-	return  '<a target="_blank" href="https://pfsense.org">' . $g["product_name"] . '</a>' .
+	return  '<a target="_blank" href="https://pfsense.org">' . $g["product_label"] . '</a>' .
 			gettext(' is developed and maintained by ') .
 			'<a target="_blank" href="https://netgate.com">Netgate. </a>' . ' &copy; ESF ' . $g["product_copyright_years"] .
 			'<a target="_blank" href="https://pfsense.org/license">' .

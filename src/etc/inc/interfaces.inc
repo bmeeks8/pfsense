@@ -417,6 +417,8 @@ function interface_has_clones($if) {
 
 function interfaces_vlan_configure($parentif = "") {
 	global $config, $g;
+	$dhcp6c_list = array();
+
 	if (platform_booting()) {
 		echo gettext("Configuring VLAN interfaces...");
 	}
@@ -429,8 +431,19 @@ function interfaces_vlan_configure($parentif = "") {
 			if (!empty($parentif) && ($parentif != $vlan['if'])) {
 				continue;
 			}
+			/* configure dhcp6 enabled VLAN interfaces later
+			 * see https://redmine.pfsense.org/issues/3965 */
+			$if = convert_real_interface_to_friendly_interface_name($vlan['vlanif']);
+			if (!empty($config['interfaces'][$if]['ipaddrv6']) &&
+			    $config['interfaces'][$if]['ipaddrv6'] == "dhcp6") {
+				$dhcp6c_list[$if] = $vlan;
+				continue;
+			}
 
 			/* XXX: Maybe we should report any errors?! */
+			interface_vlan_configure($vlan, false);
+		}
+		foreach ($dhcp6c_list as $if => $vlan) {
 			interface_vlan_configure($vlan, false);
 		}
 	}
@@ -755,9 +768,12 @@ function interfaces_bridge_configure($checkmember = 0, $realif = "") {
 			}
 		}
 
-		if (($checkmember == 1) && $ifname &&
-		    ($config['interfaces'][$ifname]['ipaddrv6'] == "track6")) {
-			continue;
+		if ($ifname && ($config['interfaces'][$ifname]['ipaddrv6'] == "track6")) {
+			if ($checkmember == 1) {
+				continue;
+			} else {
+				$checkmember = 0;
+			}
 		} elseif (($checkmember == 2) && !$ifname) {
 			continue;
 		}
@@ -1524,7 +1540,7 @@ function interface_vxlan_configure(&$vxlan, $vxlankey = "", $flush = true) {
 		pfSense_interface_create2($vxlan['vxlanif']);
 		$vxlanif = $vxlan['vxlanif'];
 	} else {
-		$vxlanif = pfSense_interface_create2("vxlanif");
+		$vxlanif = pfSense_interface_create2("vxlan");
 	}
 
 	$ifconfigcmd = "/sbin/ifconfig " . escapeshellarg($vxlanif) .
@@ -1841,6 +1857,7 @@ function interfaces_configure() {
 	$delayed_list = array();
 	$bridge_list = array();
 	$track6_list = array();
+	$dhcp6c_list = array();
 
 	/* This is needed to speedup interfaces on bootup. */
 	$reload = false;
@@ -1866,6 +1883,20 @@ function interfaces_configure() {
 		    $config['interfaces'][$if]['ipaddrv6'] == "track6") {
 			$track6_list[$if] = $ifname;
 		} else {
+			/* do not run dhcp6c if track interface does not exists
+			 * see https://redmine.pfsense.org/issues/3965 */
+			if (!empty($config['interfaces'][$if]['ipaddrv6']) &&
+			    $config['interfaces'][$if]['ipaddrv6'] == "dhcp6") {
+				$tr6list = link_interface_to_track6($if);
+				if (is_array($tr6list) && !empty($tr6list)) {
+					foreach ($tr6list as $tr6if) {
+						if (!does_interface_exist($tr6if)) {
+							$dhcp6c_list[$if] = $ifname;
+							continue;
+						}
+					}
+				}
+			}
 			if (platform_booting()) {
 				printf(gettext("Configuring %s interface..."),
 				    $ifname);
@@ -1957,6 +1988,21 @@ function interfaces_configure() {
 		// redmine #3997
 		interface_reconfigure($if, $reload);
 		interfaces_vips_configure($if);
+
+		if (platform_booting()) {
+			echo gettext("done.") . "\n";
+		}
+	}
+
+	foreach ($dhcp6c_list as $if => $ifname) {
+		if (platform_booting()) {
+			printf(gettext("Configuring %s interface..."), $ifname);
+		}
+		if ($g['debug']) {
+			log_error(sprintf(gettext("Configuring %s"), $ifname));
+		}
+
+		interface_configure($if, $reload);
 
 		if (platform_booting()) {
 			echo gettext("done.") . "\n";
@@ -2194,7 +2240,9 @@ function interface_bring_down($interface = "wan", $destroy = false, $ifacecfg = 
 	unlink_if_exists("{$g['tmp_path']}/{$realif}_router");
 	unlink_if_exists("{$g['tmp_path']}/{$realif}_routerv6");
 	unlink_if_exists("{$g['varetc_path']}/nameserver_{$realif}");
+	unlink_if_exists("{$g['varetc_path']}/nameserver_v6{$interface}");
 	unlink_if_exists("{$g['varetc_path']}/searchdomain_{$realif}");
+	unlink_if_exists("{$g['varetc_path']}/searchdomain_v6{$interface}");
 
 	/* hostapd and wpa_supplicant do not need to be running when the interface is down.
 	 * They will also use 100% CPU if running after the wireless clone gets deleted. */
@@ -3490,7 +3538,7 @@ function interface_wireless_configure($if, &$wl, &$wlcfg) {
 
 	$fd_set = fopen("{$g['tmp_path']}/{$if}_setup.sh", "w");
 	fwrite($fd_set, "#!/bin/sh\n");
-	fwrite($fd_set, "# {$g['product_name']} wireless configuration script.\n\n");
+	fwrite($fd_set, "# {$g['product_label']} wireless configuration script.\n\n");
 
 	$wlan_setup_log = fopen("{$g['tmp_path']}/{$if}_setup.log", "w");
 
@@ -4431,7 +4479,9 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			/* Remove the check file. Should not be there but just in case */
 			unlink_if_exists("/tmp/{$wanif}_dhcp6_complete");
 			log_error(gettext("calling interface_dhcpv6_configure."));
-			if (!(isset($wancfg['dhcp6usev4iface']) || $wancfg['ipaddr']==='ppp')) {
+			if ((($wancfg['ipaddrv6'] == 'dhcp6') && !isset($wancfg['dhcp6usev4iface'])) ||
+			    (($wancfg['ipaddrv6'] == 'slaac') && !isset($wancfg['slaacusev4iface'])) ||
+			    !interface_isppp_type($interface)) {
 				interface_dhcpv6_configure($interface, $wancfg);
 			}
 			break;
@@ -5136,17 +5186,18 @@ function interface_dhcpv6_configure($interface = "wan", $wancfg) {
 			$dhcp6cscript .= "/usr/bin/logger -t dhcp6c \"dhcp6c rebind on {$wanif}\"\n";
 		}
 		$dhcp6cscript .= ";;\n";
+		$dhcp6cscript .= "REQUEST|";
 		if (isset($wancfg['dhcp6norelease'])) {
 			$dhcp6cscript .= "EXIT)\n";
 		} else {
 			$dhcp6cscript .= "RELEASE)\n";
 		}
 		if ($debugOption == '-D') {
-			$dhcp6cscript .= "/usr/bin/logger -t dhcp6c \"dhcp6c EXIT or RELEASE on {$wanif} running rc.newwanipv6\"\n";
+			$dhcp6cscript .= "/usr/bin/logger -t dhcp6c \"dhcp6c RELEASE, REQUEST or EXIT on {$wanif} running rc.newwanipv6\"\n";
 		}
 		$dhcp6cscript .= "/usr/local/sbin/fcgicli -f /etc/rc.newwanipv6 -d \"interface={$wanif}&dmnames=\${dmnames}&dmips=\${dmips}\"\n";
 		$dhcp6cscript .= ";;\n";
-		$dhcp6cscript .= "RENEW|REQUEST|INFO)\n";
+		$dhcp6cscript .= "RENEW|INFO)\n";
 		if ($debugOption == '-D') {
 			$dhcp6cscript .= "/usr/bin/logger -t dhcp6c \"dhcp6c renew, no change - bypassing update on {$wanif}\"\n";
 		}
@@ -7639,7 +7690,7 @@ function create_interface_list() {
 
 function is_pseudo_interface($inf, $tap=true) {
 	global $config;
-	$psifs = array('ovpn', 'ipsec', 'l2tp', 'pptp', 'gif', 'gre', 'ppp', 'pppoe');
+	$psifs = array('ovpn', 'ipsec', 'l2tp', 'pptp', 'gif', 'gre', 'ppp', 'pppoe', 'vxlan');
 	foreach ($psifs as $pif) {
 		if (substr($inf, 0, strlen($pif)) == $pif) {
 			if (($pif == 'ovpn') && $tap) {
@@ -7647,7 +7698,7 @@ function is_pseudo_interface($inf, $tap=true) {
 				$type = ($m[1] == 'c') ? 'client' : 'server';
 				foreach ($config['openvpn']['openvpn-'.$type] as $ovpn) {
 					if (($ovpn['vpnid'] == $m[2]) && ($ovpn['dev_mode'] == 'tap')) {
-						return false; 
+						return false;
 					} elseif ($ovpn['vpnid'] == $m[2]) {
 						return true;
 					}

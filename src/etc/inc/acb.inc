@@ -27,11 +27,32 @@ require_once("notices.inc");
 // If there is no ssh key in the system to identify this firewall, generate a pair now
 function get_device_key() {
 	if (!file_exists("/etc/ssh/ssh_host_ed25519_key.pub")) {
-		exec("/usr/bin/nice -n20 /usr/bin/ssh-keygen -t ed25519 -b 4096 -N '' -f /etc/ssh//ssh_host_ed25519_key");
+		// Remove any possible matching key so we don't get an overwrite prompt
+		if (file_exists('/etc/ssh/ssh_host_ed25519_key')) {
+			unlink('/etc/ssh/ssh_host_ed25519_key');
+		}
+
+		// Generate a new key pair
+		exec("/usr/bin/nice -n20 /usr/bin/ssh-keygen -t ed25519 -b 4096 -N '' -f /etc/ssh/ssh_host_ed25519_key");
+		sleep(2);
+
+		$cnt = 0;
+		while(!file_exists("/etc/ssh/ssh_host_ed25519_key.pub")) {
+			sleep(2);
+			if (++$cnt > 10) {
+				return "";
+			}
+		}
 	}
 
-	// The userkey (firewall identifier) is an sha256 hash of the ed25519 public key
-	return hash("sha256", file_get_contents("/etc/ssh/ssh_host_ed25519_key.pub"));
+	$pkey =  file_get_contents("/etc/ssh/ssh_host_ed25519_key.pub");
+
+	// Check that the key looks reasonable
+	if (substr($pkey, 0, 3) != "ssh") {
+		return "";
+	}
+
+	return hash("sha256", $pkey);
 }
 
 $origkey = get_device_key();
@@ -160,7 +181,7 @@ function test_connection($post) {
 	curl_setopt($curl_session, CURLOPT_RETURNTRANSFER, 1);
 	curl_setopt($curl_session, CURLOPT_CONNECTTIMEOUT, 55);
 	curl_setopt($curl_session, CURLOPT_TIMEOUT, 30);
-	curl_setopt($curl_session, CURLOPT_USERAGENT, $g['product_name'] . '/' . rtrim(file_get_contents("/etc/version")));
+	curl_setopt($curl_session, CURLOPT_USERAGENT, $g['product_label'] . '/' . rtrim(file_get_contents("/etc/version")));
 	// Proxy
 	curl_setopt_array($curl_session, configure_proxy());
 
@@ -273,7 +294,7 @@ function upload_config($manual = false) {
 			curl_setopt($curl_session, CURLOPT_SSL_VERIFYPEER, 1);
 			curl_setopt($curl_session, CURLOPT_CONNECTTIMEOUT, 55);
 			curl_setopt($curl_session, CURLOPT_TIMEOUT, 30);
-			curl_setopt($curl_session, CURLOPT_USERAGENT, $g['product_name'] . '/' . rtrim(file_get_contents("/etc/version")));
+			curl_setopt($curl_session, CURLOPT_USERAGENT, $g['product_label'] . '/' . rtrim(file_get_contents("/etc/version")));
 			// Proxy
 			curl_setopt_array($curl_session, configure_proxy());
 
@@ -292,7 +313,9 @@ function upload_config($manual = false) {
 			}
 
 			if (strpos($data, "500") != false) {
-				$notice_text = gettext("An error occurred while uploading your pfSense configuration to ") . $upload_url . " (" . htmlspecialchars($data) . ")";
+				$notice_text = sprintf(gettext(
+				    "An error occurred while uploading your %s configuration to "), $g['product_label']) .
+				    $upload_url . " (" . htmlspecialchars($data) . ")";
 				log_error($notice_text . " - " . $data);
 				file_notice("AutoConfigBackup", $notice_text);
 				update_filter_reload_status($notice_text);

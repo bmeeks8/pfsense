@@ -1281,7 +1281,7 @@ EOD;
 						}
 					}
 					if (!$ddnsduplicate) {
-						$sm_newzone['dns-servers'] = array($sm['ddnsdomainprimary']);
+						$sm_newzone['dns-servers'] = array($sm['ddnsdomainprimary'], $sm['ddnsdomainsecondary']);
 						$sm_newzone['domain-name'] = $sm['ddnsdomain'];
 						$sm_newzone['ddnsdomainkeyname'] = $sm['ddnsdomainkeyname'];
 						$sm_newzone['ddnsdomainkeyalgorithm'] = $sm['ddnsdomainkeyalgorithm'];
@@ -2578,8 +2578,8 @@ trap := "{$config['snmpd']['trapstring']}"
 EOD;
 		}
 
-		$sysDescr = "{$g['product_name']} {$config['system']['hostname']}.{$config['system']['domain']}" .
-			" {$g['product_version_string']} {$g['platform']} " . php_uname("s") .
+		$sysDescr = "{$g['product_label']} {$config['system']['hostname']}.{$config['system']['domain']}" .
+			" {$g['product_version_string']} " . php_uname("s") .
 			" " . php_uname("r") . " " . php_uname("m");
 
 		$snmpdconf .= <<<EOD

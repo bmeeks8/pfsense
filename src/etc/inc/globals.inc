@@ -64,6 +64,7 @@ $g = array(
 	"xml_rootobj" => "pfsense",
 	"admin_group" => "admins",
 	"product_name" => "pfSense",
+	"product_label" => "pfSense",
 	"product_version" => trim(file_get_contents("/etc/version"), " \n"),
 	"product_copyright_years" => "2004 - ".date("Y"),
 	"disablehelpmenu" => false,
@@ -114,9 +115,6 @@ $g['product_version_string'] = $g['product_version'];
 if (is_numeric($g["product_version_patch"]) && $g["product_version_patch"] != "0") {
 	$g['product_version_string'] .= "-p{$g['product_version_patch']}";
 }
-
-/* XXX: Backward compatible */
-$g['platform'] = $g['product_name'];
 
 if (file_exists("{$g['etc_path']}/default-config-flavor")) {
 	$flavor_array = file("{$g['etc_path']}/default-config-flavor");

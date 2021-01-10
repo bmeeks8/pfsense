@@ -5,7 +5,7 @@
  * part of pfSense (https://www.pfsense.org)
  * Copyright (c) 2004-2013 BSD Perimeter
  * Copyright (c) 2013-2016 Electric Sheep Fencing
- * Copyright (c) 2014-2020 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2014-2021 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * originally part of m0n0wall (http://m0n0.ch/wall)
@@ -2531,6 +2531,7 @@ function system_identify_specific_platform() {
 			return (array('name' => 'SG-5100', 'descr' => 'Netgate SG-5100'));
 			break;
 		case 'Minnowboard Turbot D0 PLATFORM':
+		case 'Minnowboard Turbot D0/D1 PLATFORM':
 			$result = array();
 			$result['name'] = 'Turbot Dual-E';
 			/* Detect specific model */

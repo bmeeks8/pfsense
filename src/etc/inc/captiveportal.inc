@@ -5,7 +5,7 @@
  * part of pfSense (https://www.pfsense.org)
  * Copyright (c) 2004-2013 BSD Perimeter
  * Copyright (c) 2013-2016 Electric Sheep Fencing
- * Copyright (c) 2014-2020 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2014-2021 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * originally part of m0n0wall (http://m0n0.ch/wall)
@@ -2402,12 +2402,6 @@ function portal_allow($clientip, $clientmac, $username, $password = null, $redir
 	$unsetindexes = array();
 
 	foreach ($cpdb as $cpentry) {
-		captiveportal_logportalauth($cpentry[4], $cpentry[3], $cpentry[2], "Entering for each loop $username = {$username}");	
-		if (isset($config['captiveportal'][$cpzone]['noconcurrentlogins'])) {
-			captiveportal_logportalauth($cpentry[4], $cpentry[3], $cpentry[2], "config['captiveportal'][$cpzone]['noconcurrentlogins'] exists = set");	
-		} else {
-			captiveportal_logportalauth($cpentry[4], $cpentry[3], $cpentry[2], "config['captiveportal'][$cpzone]['noconcurrentlogins'] does not exists = NOT set");
-		}
 		/* on the same ip */
 		if ($cpentry[2] == $clientip) {
 			if (isset($config['captiveportal'][$cpzone]['nomacfilter']) || $cpentry[3] == $clientmac) {

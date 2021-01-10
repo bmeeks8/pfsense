@@ -6,7 +6,7 @@
  * Copyright (c) 2005 Colin Smith (ethethlay@gmail.com)
  * Copyright (c) 2005-2013 BSD Perimeter
  * Copyright (c) 2013-2016 Electric Sheep Fencing
- * Copyright (c) 2014-2020 Rubicon Communications, LLC (Netgate)
+ * Copyright (c) 2014-2021 Rubicon Communications, LLC (Netgate)
  * All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -422,13 +422,20 @@ function send_smtp_message($message, $subject = "(no subject)", $force = false) 
 		"Date"    => date("r")
 	);
 
-	$smtp =& Mail::factory('smtp', $params);
-	$mail = $smtp->send($to, $headers, $message);
+	$error_text = 'Could not send the message to %1$s -- Error: %2$s';
+	try {
+		$smtp =& Mail::factory('smtp', $params);
+		$mail = @$smtp->send($to, $headers, $message);
 
-	if (PEAR::isError($mail)) {
-		$err_msg = sprintf(gettext(
-		    'Could not send the message to %1$s -- Error: %2$s'),
-		    $to, $mail->getMessage());
+		if (PEAR::isError($mail)) {
+			$err_msg = sprintf(gettext($error_text),
+			    $to, $mail->getMessage());
+		}
+	} catch (Exception $e) {
+		$err_msg = sprintf(gettext($error_text), $to, $e->getMessage());
+	}
+
+	if (!empty($err_msg)) {
 		log_error($err_msg);
 		return($err_msg);
 	}

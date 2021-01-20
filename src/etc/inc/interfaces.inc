@@ -2078,6 +2078,14 @@ function interface_bring_down($interface = "wan", $destroy = false, $ifacecfg = 
 		return;
 	}
 
+	if (substr($config['interfaces'][$interface]['if'], 0, 2) == 'wg') {
+		require_once('wg.inc');
+		if ($destroy) {
+			wg_destroy_if($config['interfaces'][$interface]['if']);
+		}
+		return;
+	}
+
 	if ($g['debug']) {
 		log_error(sprintf(gettext('Calling interface down for interface %1$s, destroy is %2$s'), $interface, (($destroy) ? 'true' : 'false')));
 	}
@@ -4238,6 +4246,11 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 		return;
 	}
 
+	if (substr($config['interfaces'][$interface]['if'], 0, 2) == 'wg') {
+		require_once('wg.inc');
+		wg_configure_if($config['interfaces'][$interface]['if']);
+	}
+
 	$realif = get_real_interface($interface);
 	$realhwif_array = get_parent_interface($interface);
 	// Need code to handle MLPPP if we ever use $realhwif for MLPPP handling
@@ -4254,7 +4267,10 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 		}
 	}
 
-	if (!platform_booting() && !(substr($realif, 0, 4) == "ovpn") && !(substr($realif, 0, 5) == "ipsec")) {
+	if (!platform_booting() &&
+	    (substr($realif, 0, 4) != "ovpn") &&
+	    (substr($realif, 0, 5) != "ipsec") &&
+	    (substr($realif, 0, 2) != "wg")) {
 		/* remove all IPv4 and IPv6 addresses */
 		$tmpifaces = pfSense_getall_interface_addresses($realif);
 		if (is_array($tmpifaces)) {
@@ -7086,7 +7102,7 @@ function is_altq_capable($int) {
 	$capable = array("ae", "age", "alc", "ale", "an", "aue", "axe", "bce",
 			"bfe", "bge", "bnxt", "bridge", "cas", "cpsw", "cxl", "dc", "de",
 			"ed", "em", "ep", "epair", "et", "fxp", "gem", "hme", "hn",
-			"igb", "ix", "jme", "l2tp", "le", "lem", "msk", "mxge", "my",
+			"igb", "igc", "ix", "jme", "l2tp", "le", "lem", "msk", "mxge", "my",
 			"ndis", "nfe", "ng", "nge", "npe", "nve", "ql", "ovpnc",
 			"ovpns", "ppp", "pppoe", "pptp", "re", "rl", "sf", "sge",
 			"sis", "sk", "ste", "stge", "ti", "tun", "txp", "udav",

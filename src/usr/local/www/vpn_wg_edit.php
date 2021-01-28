@@ -23,7 +23,7 @@
 ##|+PRIV
 ##|*IDENT=page-vpn-wg-edit
 ##|*NAME=VPN: WireGuard: Edit
-##|*DESCR=Edit wireGuard tunnele.
+##|*DESCR=Edit WireGuard tunnele.
 ##|*MATCH=vpn_wg_edit.php*
 ##|-PRIV
 
@@ -49,6 +49,9 @@ if ($_REQUEST['ajax']) {
 
 // All form save logic is in /etc/inc/wg.inc
 if ($_POST['save']) {
+	if (empty($_POST['listenport'])) {
+		$_POST['listenport'] = next_wg_port();
+	}
 	$res = wg_do_post($_POST);
 	$input_errors = $res['input_errors'];
 	$pconfig = $res['pconfig'];
@@ -58,7 +61,12 @@ if ($_POST['save']) {
 		wg_create_config_files();
 
 		// Setup and start the new WG tunnel
-		wg_configure_if($pconfig['name']);
+		if (isset($pconfig['enabled']) &&
+		    ($pconfig['enabled'] == 'yes')) {
+			wg_configure_if($pconfig['name']);
+		} else {
+			wg_destroy_if($pconfig['name']);
+		}
 
 		// Go back to the tunnel table
 		header("Location: vpn_wg.php");
@@ -110,7 +118,7 @@ $section->addInput(new Form_Input(
 	'Description',
 	'text',
 	$pconfig['descr']
-))->setHelp('A description may be entered here for administrative reference (not parsed).');
+))->setHelp('Tunnel description for administrative reference (not parsed)');
 
 
 $section->addInput(new Form_Input(
@@ -118,39 +126,39 @@ $section->addInput(new Form_Input(
 	'*Address',
 	'text',
 	$pconfig['interface']['address']
-))->setHelp('Comma separated list of CIDR addresses assigned to interface.');
+))->setHelp('Comma separated list of CIDR-masked IPv4 and IPv6 addresses assigned to the tunnel interface');
 
 
 $section->addInput(new Form_Input(
 	'listenport',
-	'*Listen port',
+	'Listen Port',
 	'text',
 	$pconfig['interface']['listenport'],
 	['placeholder' => next_wg_port()]
-))->setHelp('Port to listen on.');
+))->setHelp('Port used by this tunnel to communicate with peers');
 
 $group = new Form_Group('*Interface keys');
 
 $group->add(new Form_Input(
 	'privatekey',
-	'Private key',
+	'Private Key',
 	'text',
 	$pconfig['interface']['privatekey']
-))->setHelp('Private key for this interface.');
+))->setHelp('Private key for this tunnel (Required)');
 
 $group->add(new Form_Input(
 	'publickey',
-	'Public key',
+	'Public Key',
 	'text',
 	$pconfig['interface']['publickey']
-))->setHelp('Public key for this interface.');
+))->setHelp('Public key for this tunnel (%sCopy%s)', '<a id="copypubkey" href="#">', '</a>')->setReadonly();
 
 $group->add(new Form_Button(
 	'genkeys',
 	'Generate',
 	null,
 	'fa-key'
-))->setWidth(1)->addClass('btn-primary btn-xs')->setHelp('New');
+))->setWidth(1)->addClass('btn-primary btn-xs')->setHelp('New Keys');
 
 $section->add($group);
 $form->add($section);
@@ -170,61 +178,60 @@ $section2->addInput(new Form_Input(
 	'pdescr',
 	'Description',
 	'text'
-))->setHelp("Peer description - not parsed");
+))->setHelp("Peer description");
 
 $section2->addInput(new Form_Input(
 	'endpoint',
 	'Endpoint',
 	'text'
-))->setHelp("Hostname, IPv4 or IP46 address");
+))->setHelp('Hostname, IPv4, or IPv6 address of this peer.%1$s ' .
+		'Leave blank if unknown (dynamic endpoints).', '<br />');
 
 $section2->addInput(new Form_Input(
 	'port',
-	'Endpoint port',
+	'Endpoint Port',
 	'text'
-));
+))->setHelp('Port used by this peer. Ignored for dynamic endpoints. Leave blank for default (51820).');
 
 $section2->addInput(new Form_Input(
 	'persistentkeepalive',
-	'Keepalive',
+	'Keep Alive',
 	'text'
-))->setHelp("Keep alive value in seconds");
+))->setHelp('Interval (in seconds) for Keep Alive packets sent to this peer. ' .
+		'Default is empty (disabled).', '<br />');
 
 $section2->addInput(new Form_Input(
 	'ppublickey',
-	'*Public key',
+	'*Public Key',
 	'text'
-));
+))->setHelp('WireGuard Public Key for this peer.');
 
 $section2->addInput(new Form_Input(
 	'allowedips',
 	'Allowed IPs',
 	'text'
-))->setHelp("List of CIDR IPs allowed to connect");
+))->setHelp('List of CIDR-masked IPv4 and IPv6 subnets reached via this peer.%1$s ' .
+		'Routes for these subnets are automatically added to the routing table, except for default routes.', '<br/>');
 
 $section2->addInput(new Form_Input(
 	'peerwgaddr',
 	'Peer WireGuard Address',
 	'text'
-))->setHelp("IPv4/IPv6 specifies the wireGuard interface address of the peer, since it can differ from AllowedIPs");
-
-$section2->addInput(new Form_Input(
-	'peernwks',
-	'Peer Routed Networks',
-	'text'
-))->setHelp("Comma separated list of networks to route using the automatic gateway provided by \"Peer WireGuard Address\"");
+))->setHelp('IPv4/IPv6 WireGuard tunnel interface address of the peer since it can differ from Allowed IPs.%1$s ' .
+		'When the WireGuard interface is assigned, this value may be automatically selected as a gateway.', '<br/>');
 
 $group2 = new Form_Group('Pre-shared key');
 
 $group2->add(new Form_Input(
 	'presharedkey',
-	'Preshared key',
+	'Pre-Shared Key',
 	'text'
-))->setHelp("Optional pre-shared key");
+))->setHelp('Optional Pre-Shared Key for this peer.%1$s ' .
+		'Mixes symmetric-key cryptography into public-key cryptography for post-quantum resistance.', '<br/>');
 
 $group2->add(new Form_Button(
 	'genpsk',
-	'Generate key',
+	'Generate PSK',
 	null
 ))->addClass('btn btn-xs success');
 
@@ -279,19 +286,18 @@ $section2->add($group2);
 				$peer_num = 0;
 				if (!empty($pconfig['peers']['wgpeer'])) {
 					foreach ($pconfig['peers']['wgpeer'] as $peer) {
-						print('<tr class="peer_group_' . $peer_num . '">');
-						print("<td>{$peer_num}</td>\n");
-						print("<td>{$peer['descr']}</td>\n");
-						print("<td>{$peer['endpoint']}</td>\n");
-						print("<td>{$peer['port']}</td>\n");
-						print("<td>{$peer['publickey']}</td>\n");
+						print('<tr id="peer_row_' . $peer_num . '" class="peer_group_' . $peer_num . '">');
+						print("<td>" . htmlspecialchars($peer_num) . "</td>\n");
+						print("<td>" . htmlspecialchars($peer['descr']) . "</td>\n");
+						print("<td>" . htmlspecialchars($peer['endpoint']) . "</td>\n");
+						print("<td>" . htmlspecialchars($peer['port']) . "</td>\n");
+						print("<td>" . htmlspecialchars($peer['publickey']) . "</td>\n");
 
 						// hidden columns
-						print("<td style=\"display:none;\">{$peer['persistenkeepalive']}</td>\n");
-						print("<td style=\"display:none;\">{$peer['allowedips']}</td>\n");
-						print("<td style=\"display:none;\">{$peer['presharedkey']}</td>\n");
-						print("<td style=\"display:none;\">{$peer['peerwgaddr']}</td>\n");
-						print("<td style=\"display:none;\">{$peer['peernwks']}</td>\n");
+						print("<td style=\"display:none;\">" . htmlspecialchars($peer['persistentkeepalive']) . "</td>\n");
+						print("<td style=\"display:none;\">" . htmlspecialchars($peer['allowedips']) . "</td>\n");
+						print("<td style=\"display:none;\">" . htmlspecialchars($peer['presharedkey']) . "</td>\n");
+						print("<td style=\"display:none;\">" . htmlspecialchars($peer['peerwgaddr']) . "</td>\n");
 ?>
 						<td style="cursor: pointer;">
 							<a class="fa fa-pencil" href="#" id="editpeer_<?=$peer_num?>"title="<?=gettext("Edit peer"); ?>"></a>
@@ -320,7 +326,7 @@ $section2->add($group2);
 	</button>
 </nav>
 
-<?php $jpconfig = json_encode($pconfig); ?>
+<?php $jpconfig = json_encode($pconfig, JSON_HEX_APOS); ?>
 <?php $genkeywarning = gettext("Are you sure you want to overwrite keys?"); ?>
 
 <!-- ============== JavaScript =================================================================================================-->
@@ -328,6 +334,12 @@ $section2->add($group2);
 //<![CDATA[
 events.push(function() {
 	var pconfig = JSON.parse('<?=$jpconfig?>');
+
+	// Double-click handler for peer table
+	$('[id^=peer_row_]').dblclick(function() {
+		var peernum = this.id.slice('peer_row_'.length);
+		editPeer(peernum);
+	});
 
 	// Eliminate ghost lines in modal
 	$('.form-group').css({"border-bottom-width" : "0"});
@@ -395,7 +407,6 @@ events.push(function() {
 		$('.peer_group_' + peernum).find('td').eq(6).text($('#allowedips').val())
 		$('.peer_group_' + peernum).find('td').eq(7).text($('#presharedkey').val())
 		$('.peer_group_' + peernum).find('td').eq(8).text($('#peerwgaddr').val())
-		$('.peer_group_' + peernum).find('td').eq(9).text($('#peernwks').val())
 
 		$('#peermodal').modal('hide');
 	});
@@ -413,7 +424,6 @@ events.push(function() {
 			$('<input>').attr({type: 'hidden',name: 'allowedips' + idx, value: $(this).find('td').eq(6).text()}).appendTo(form);
 			$('<input>').attr({type: 'hidden',name: 'presharedkey' + idx, value: $(this).find('td').eq(7).text()}).appendTo(form);
 			$('<input>').attr({type: 'hidden',name: 'peerwgaddr' + idx, value: $(this).find('td').eq(8).text()}).appendTo(form);
-			$('<input>').attr({type: 'hidden',name: 'peernwks' + idx, value: $(this).find('td').eq(9).text()}).appendTo(form);
 		});
 
 		$('<input>').attr({type: 'hidden',name: 'save',value: 'save'}).appendTo(form);
@@ -421,6 +431,12 @@ events.push(function() {
 		// Recaculate the table has so the browser doesn't intercept the save
 		tableHash = hashCode($('#peertable').html());
 		$(form).submit();
+	});
+
+	$('#copypubkey').click(function () {
+		$('#publickey').focus();
+		$('#publickey').select();
+		document.execCommand("copy");
 	});
 
 	attachhandlers()
@@ -438,34 +454,35 @@ events.push(function() {
 		// Edit peer - Copy a row from the table to the edit form
 		$('[id^=editpeer_]').click(function () {
 			var peernum = this.id.slice('editpeer_'.length);
-
-			$('#peer_num').val(peernum);
-
-			// peer -1 means creating a new peer
-			if (peernum != "new") {
-				$('#pdescr').val(tabletext(peernum, 1));
-				$('#endpoint').val(tabletext(peernum, 2));
-				$('#port').val(tabletext(peernum, 3));
-				$('#ppublickey').val(tabletext(peernum, 4));
-				$('#persistentkeepalive').val(tabletext(peernum, 7));
-				$('#allowedips').val(tabletext(peernum, 6));
-				$('#presharedkey').val(tabletext(peernum, 7));
-				$('#peerwgaddr').val(tabletext(peernum, 8));
-				$('#peernwks').val(tabletext(peernum, 9));
-			} else { // Clear all the fields
-				$('#pdescr').val("");
-				$('#endpoint').val("");
-				$('#port').val('');
-				$('#persistentkeepalive').val('');
-				$('#ppublickey').val('');
-				$('#allowedips').val('');
-				$('#presharedkey').val('');
-				$('#peerwgaddr').val('');
-				$('#peernwks').val('');
-			}
-
-			$('#peermodal').modal('show');
+			editPeer(peernum);
 		});
+	}
+
+	function editPeer(peernum) {
+		$('#peer_num').val(peernum);
+
+		// peer -1 means creating a new peer
+		if (peernum != "new") {
+			$('#pdescr').val(tabletext(peernum, 1));
+			$('#endpoint').val(tabletext(peernum, 2));
+			$('#port').val(tabletext(peernum, 3));
+			$('#ppublickey').val(tabletext(peernum, 4));
+			$('#persistentkeepalive').val(tabletext(peernum, 5));
+			$('#allowedips').val(tabletext(peernum, 6));
+			$('#presharedkey').val(tabletext(peernum, 7));
+			$('#peerwgaddr').val(tabletext(peernum, 8));
+		} else { // Clear all the fields
+			$('#pdescr').val("");
+			$('#endpoint').val("");
+			$('#port').val('');
+			$('#persistentkeepalive').val('');
+			$('#ppublickey').val('');
+			$('#allowedips').val('');
+			$('#presharedkey').val('');
+			$('#peerwgaddr').val('');
+		}
+
+		$('#peermodal').modal('show');
 	}
 
 	// These are action buttons, not submit buttons

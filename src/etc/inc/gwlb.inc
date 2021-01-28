@@ -832,6 +832,11 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 							continue 2;
 						}
 					}
+				} elseif (substr($ifcfg['if'], 0, 2) == "wg") {
+					if (!find_interface_ip($ifcfg['if'])) {
+						continue 2;
+					}
+					$ctype = "WGv4";
 				} elseif ($tunnelif == "gif" || $tunnelif == "gre") {
 					$ctype = "TUNNELv4";
 				}
@@ -975,6 +980,11 @@ function return_gateways_array($disabled = false, $localhost = false, $inactive 
 							continue 2;
 						}
 					}
+				} elseif (substr($ifcfg['if'], 0, 2) == "wg") {
+					if (!find_interface_ipv6($ifcfg['if'])) {
+						continue 2;
+					}
+					$ctype = "WGv6";
 				} else if ($tunnelif == "gif" || $tunnelif == "gre") {
 					$ctype = "TUNNELv6";
 				}
@@ -1528,7 +1538,7 @@ function get_interface_gateway($interface, &$dynamic = false) {
 	if (($gw == NULL || !is_ipaddrv4($gw)) && !is_ipaddrv4($gwcfg['ipaddr'])) {
 		$realif = get_real_interface($interface);
 		if (file_exists("{$g['tmp_path']}/{$realif}_router")) {
-			$gw = trim(file_get_contents("{$g['tmp_path']}/{$realif}_router"), " \n");
+			$gw = trim(@file_get_contents("{$g['tmp_path']}/{$realif}_router"), " \n");
 			$dynamic = true;
 		}
 		if (file_exists("{$g['tmp_path']}/{$realif}_defaultgw")) {

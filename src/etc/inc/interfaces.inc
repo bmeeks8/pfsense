@@ -30,6 +30,7 @@ require_once("globals.inc");
 require_once("util.inc");
 require_once("gwlb.inc");
 require_once("ipsec.inc");
+require_once("wg.inc");
 
 function interfaces_bring_up($interface) {
 	if (!$interface) {
@@ -1259,10 +1260,10 @@ function interface_is_type($if = NULL, $type) {
 			$entry = 'lagg';
 			$entif = 'laggif';
 			break;
-		case "vxlan":
-			$list = 'vxlans';
-			$entry = 'vxlan';
-			$entif = 'vxlanif';
+		case "wg":
+			$list = 'wireguard';
+			$entry = 'tunnel';
+			$entif = 'name';
 			break;
 		default:
 			break;
@@ -1512,90 +1513,10 @@ function ipsec_del_vtimap($phase2) {
 	}
 }
 
-/* NOTE: $vxlankey is not used but useful for passing this function to array_walk. */
-function interface_vxlan_configure(&$vxlan, $vxlankey = "", $flush = true) {
-	global $config, $g;
-
-	if (!is_array($vxlan)) {
-		return -1;
-	}
-
-	$realif = convert_friendly_interface_to_real_interface_name($vxlan['if']);
-	if (!interface_is_vlan($realif)) {
-		$realif = get_real_interface($vxlan['if']);
-	}
-	$realifip = get_interface_ip($vxlan['if']);
-	$realifip6 = get_interface_ipv6($vxlan['if']);
-
-	/* make sure the parent interface is up */
-	if ($realif) {
-		interfaces_bring_up($realif);
-	} else {
-		log_error(gettext("could not bring parentif up -- variable not defined -- interface_vxlan_configure()"));
-	}
-
-	/* Interface is defined */
-	if (platform_booting() || !(empty($vxlan['vxlanif']))) {
-		pfSense_interface_destroy($vxlan['vxlanif']);
-		pfSense_interface_create2($vxlan['vxlanif']);
-		$vxlanif = $vxlan['vxlanif'];
-	} else {
-		$vxlanif = pfSense_interface_create2("vxlan");
-	}
-
-	$ifconfigcmd = "/sbin/ifconfig " . escapeshellarg($vxlanif) .
-	    " vxlanid " .  escapeshellarg($vxlan['vxlanid']);
-
-	if (is_mcast($vxlan['remote-addr'])) {
-		$ifconfigcmd .= " vxlangroup " .
-		    escapeshellarg($vxlan['remote-addr']) . " vxlandev " .
-		    escapeshellarg($realif);
-	} else {
-		$ifconfigcmd .= " vxlanremote " .
-		    escapeshellarg($vxlan['remote-addr']);
-	}
-
-	if (is_ipaddrv6($vxlan['remote-addr']) && $realifip6) {
-		$ifconfigcmd .= " vxlanlocal " . escapeshellarg($realifip6);
-	} elseif (is_ipaddrv4($vxlan['remote-addr']) && $realifip) {
-		$ifconfigcmd .= " vxlanlocal " . escapeshellarg($realifip);
-	} else {
-		return;
-	}
-
-	if (!empty($vxlan['vxlanlocalport'])) {
-		$ifconfigcmd .= " vxlanlocalport " . escapeshellarg($vxlan['vxlanlocalport']);
-	}
-
-	if (!empty($vxlan['vxlanremoteport'])) {
-		$ifconfigcmd .= " vxlanremoteport " . escapeshellarg($vxlan['vxlanremoteport']);
-	}
-
-	if (!empty($vxlan['vxlanttl'])) {
-		$ifconfigcmd .= " vxlanttl " . escapeshellarg($vxlan['vxlanttl']);
-	}
-
-	if (isset($vxlan['vxlanlearn'])) {
-		$ifconfigcmd .= " vxlanlearn ";
-	} else {
-		$ifconfigcmd .= " -vxlanlearn ";
-	}
-
-	mwexec($ifconfigcmd);
-
-	if ($flush) {
-		get_interface_arr(true);
-	}
-
-	interfaces_bring_up($vxlanif);
-
-	return $vxlanif;
-}
-
 function interfaces_tunnel_configure($checkparent = 0, $realif = "", $type = "") {
 	global $config;
 
-	if (!in_array($type, array('gre', 'gif', 'vxlan'))) {
+	if (!in_array($type, array('gre', 'gif'))) {
 		return;
 	}
 
@@ -1637,8 +1558,6 @@ function interfaces_tunnel_configure($checkparent = 0, $realif = "", $type = "")
 			interface_gif_configure($tunnel, "", false);
 		} elseif ($type == 'gre') {
 			interface_gre_configure($tunnel, "", false);
-		} elseif ($type == 'vxlan') {
-			interface_vxlan_configure($tunnel, "", false);
 		}
 	}
 
@@ -1873,8 +1792,6 @@ function interfaces_configure() {
 			$delayed_list[$if] = $ifname;
 		} elseif (strstr($realif, "gif")) {
 			$delayed_list[$if] = $ifname;
-		} elseif (strstr($realif, "vxlan")) {
-			$delayed_list[$if] = $ifname;
 		} elseif (strstr($realif, "ovpn")) {
 			continue;
 		} elseif (strstr($realif, "ipsec")) {
@@ -1925,9 +1842,6 @@ function interfaces_configure() {
 	/* set up GIF virtual interfaces */
 	interfaces_tunnel_configure(1,'','gif');
 
-	/* set up VXLAN virtual interfaces */
-	interfaces_tunnel_configure(1,'','vxlan');
-
 	/* set up BRIDGe virtual interfaces */
 	interfaces_bridge_configure(1);
 
@@ -1954,9 +1868,6 @@ function interfaces_configure() {
 
 	/* set up GIF virtual interfaces */
 	interfaces_tunnel_configure(2,'','gif');
-
-	/* set up VXLAN virtual interfaces */
-	interfaces_tunnel_configure(2,'','vxlan');
 
 	foreach ($delayed_list as $if => $ifname) {
 		if (platform_booting()) {
@@ -4409,8 +4320,10 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 	if (($wantedmtu == 0) && interface_is_type($mtuif, 'gif')) {
 		$wantedmtu = 1280;
 	}
-	if (($wantedmtu == 0) && interface_is_type($mtuif, 'vxlan')) {
-		$wantedmtu = 1450;
+	/* Default MTU for WireGuard is 1420
+	 * https://redmine.pfsense.org/issues/11291 */
+	if (($wantedmtu == 0) && interface_is_type($mtuif, 'wg')) {
+		$wantedmtu = 1420;
 	}
 
 	/* Set the MTU to 1500 if no explicit MTU configured. */
@@ -4478,7 +4391,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			break;
 		default:
 			/* XXX: Kludge for now related to #3280 */
-			if (!in_array($tunnelif, array("gif", "gre", "vxlan", "ovp", "ips"))) {
+			if (!in_array($tunnelif, array("gif", "gre", "ovp", "ips"))) {
 				if (is_ipaddrv4($wancfg['ipaddr']) && $wancfg['subnet'] <> "") {
 					pfSense_interface_setaddress($realif, "{$wancfg['ipaddr']}/{$wancfg['subnet']}");
 				}
@@ -4512,7 +4425,7 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			break;
 		default:
 			/* XXX: Kludge for now related to #3280 */
-			if (!in_array($tunnelif, array("gif", "gre", "vxlan", "ovp", "ips"))) {
+			if (!in_array($tunnelif, array("gif", "gre", "ovp", "ips"))) {
 				if (is_ipaddrv6($wancfg['ipaddrv6']) && $wancfg['subnetv6'] <> "") {
 					//pfSense_interface_setaddress($realif, "{$wancfg['ipaddrv6']}/{$wancfg['subnetv6']}");
 					// FIXME: Add IPv6 Support to the pfSense module
@@ -4540,14 +4453,6 @@ function interface_configure($interface = "wan", $reloadall = false, $linkupeven
 			$gif = link_interface_to_tunnelif($interface, 'gif');
 			if (!empty($gif)) {
 				array_walk($gif, 'interface_gif_configure');
-			}
-		}
-
-		if ($tunnelif != 'vxlan') {
-			unset($vxlan);
-			$vxlan = link_interface_to_tunnelif($interface, 'vxlan');
-			if (!empty($vxlan)) {
-				array_walk($vxlan, 'interface_vxlan_configure');
 			}
 		}
 
@@ -6330,11 +6235,9 @@ function interface_find_child_cfgmtu($realiface) {
 	if (!empty($interface)) {
 		$gifs = link_interface_to_tunnelif($interface, 'gif');
 		$gres = link_interface_to_tunnelif($interface, 'gre');
-		$vxlans = link_interface_to_tunnelif($interface, 'vxlan');
 	} else {
 		$gifs = array();
 		$gres = array();
-		$vxlans = array();
 	}
 
 	$mtu = 0;
@@ -6390,26 +6293,13 @@ function interface_find_child_cfgmtu($realiface) {
 			}
 		}
 	}
-	if (is_array($vxlans)) {
-		foreach ($vxlans as $vxlan) {
-			$ifass = convert_real_interface_to_friendly_interface_name($vxlan['vxlanif']);
-			if (empty($ifass)) {
-				continue;
-			}
-			if (!empty($config['interfaces'][$ifass]['mtu'])) {
-				if (intval($config['interfaces'][$ifass]['mtu']) > $mtu) {
-					$mtu = intval($config['interfaces'][$ifass]['mtu']);
-				}
-			}
-		}
-	}
 	$ifass = convert_real_interface_to_friendly_interface_name($bridge);
 	if (!empty($ifass) && !empty($config['interfaces'][$ifass]['mtu'])) {
 		if (intval($config['interfaces'][$ifass]['mtu']) > $mtu) {
 			$mtu = intval($config['interfaces'][$ifass]['mtu']);
 		}
 	}
-	unset($vlans, $bridge, $gifs, $gres, $vxlans, $ifass, $vlan);
+	unset($vlans, $bridge, $gifs, $gres, $ifass, $vlan);
 
 	return $mtu;
 }
@@ -6546,7 +6436,7 @@ function link_interface_to_group($int) {
 function link_interface_to_tunnelif($interface, $type) {
 	global $config;
 
-	if (!in_array($type, array('gre', 'gif', 'vxlan'))) {
+	if (!in_array($type, array('gre', 'gif'))) {
 		return;
 	}
 
@@ -7007,6 +6897,9 @@ function get_interfaces_with_gateway() {
 				} elseif (substr($ifname['if'], 0, 5) == "ipsec" ||
 				    !empty($ifname['gateway'])) {
 					$ints[$ifdescr] = $ifdescr;
+				} elseif (substr($ifname['if'], 0, 2) == "wg" ||
+				    !empty($ifname['gateway'])) {
+					$ints[$ifdescr] = $ifdescr;
 				}
 
 				break;
@@ -7031,7 +6924,8 @@ function interface_has_gateway($friendly) {
 			break;
 			default:
 				if ((substr($ifname['if'], 0, 4) == "ovpn") ||
-				    (substr($ifname['if'], 0, 5) == "ipsec")) {
+				    (substr($ifname['if'], 0, 5) == "ipsec") ||
+				    (substr($ifname['if'], 0, 2) == "wg")) {
 					return true;
 				}
 				$tunnelif = substr($ifname['if'], 0, 3);
@@ -7065,7 +6959,8 @@ function interface_has_gatewayv6($friendly) {
 				break;
 			default:
 				if ((substr($ifname['if'], 0, 4) == "ovpn") ||
-				    (substr($ifname['if'], 0, 5) == "ipsec")) {
+				    (substr($ifname['if'], 0, 5) == "ipsec") ||
+				    (substr($ifname['if'], 0, 2) == "wg")) {
 					return true;
 				}
 				$tunnelif = substr($ifname['if'], 0, 3);
@@ -7701,12 +7596,16 @@ function create_interface_list() {
 		$iflist["openvpn"] = gettext("OpenVPN");
 	}
 
+	if (is_wg_enabled() && have_ruleint_access("wireguard")) {
+		$iflist['wireguard'] = 'WireGuard';
+	}
+
 	return($iflist);
 }
 
 function is_pseudo_interface($inf, $tap=true) {
 	global $config;
-	$psifs = array('ovpn', 'ipsec', 'l2tp', 'pptp', 'gif', 'gre', 'ppp', 'pppoe', 'vxlan');
+	$psifs = array('ovpn', 'ipsec', 'l2tp', 'pptp', 'gif', 'gre', 'ppp', 'pppoe');
 	foreach ($psifs as $pif) {
 		if (substr($inf, 0, strlen($pif)) == $pif) {
 			if (($pif == 'ovpn') && $tap) {

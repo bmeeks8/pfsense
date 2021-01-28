@@ -40,9 +40,19 @@ $shortcut_section = "wireguard";
 include("head.inc");
 
 // Delete a tunnel?
-if (array_key_exists('delidx', $_POST)) {
-	deleteTunnel($_POST['delidx']);
-	header("Location: vpn_wg.php");
+if (array_key_exists('delidx', $_POST) &&
+    ($tunnels[$_POST['delidx']])) {
+	$iflist = get_configured_interface_list_by_realif();
+	if (!empty($iflist[$tunnels[$_POST['delidx']]['name']])) {
+		$input_errors[] = gettext('Cannot delete a WireGuard instance while it is assigned as an interface.');
+	} else {
+		deleteTunnel($_POST['delidx']);
+		header("Location: vpn_wg.php");
+	}
+}
+
+if ($input_errors) {
+	print_input_errors($input_errors);
 }
 ?>
 
@@ -80,12 +90,12 @@ if (array_key_exists('delidx', $_POST)) {
 				$tunnel['peers']['wgpeer'] = array();
 			}
 ?>
-					<tr id="fr<?=$i?>" id="frd<?=$i?>" class="<?= $entryStatus ?>">
+					<tr ondblclick="document.location='vpn_wg_edit.php?index=<?=$i?>';" class="<?= $entryStatus ?>">
 						<td class="peer-entries"><?=gettext('Interface')?></td>
-						<td><?=$tunnel['name']?></td>
-						<td><?=$tunnel['descr']?></td>
-						<td><?=$tunnel['interface']['address']?></td>
-						<td><?=$tunnel['interface']['listenport']?></td>
+						<td><?=htmlspecialchars($tunnel['name'])?></td>
+						<td><?=htmlspecialchars($tunnel['descr'])?></td>
+						<td><?=htmlspecialchars($tunnel['interface']['address'])?></td>
+						<td><?=htmlspecialchars($tunnel['interface']['listenport'])?></td>
 						<td><?=count($tunnel['peers']['wgpeer'])?></td>
 
 						<td style="cursor: pointer;">
@@ -94,15 +104,15 @@ if (array_key_exists('delidx', $_POST)) {
 						</td>
 					</tr>
 
-					<tr class="peer-entries" style="background-color:#ccf2ff;"> <!-- Move to pfSense.css -->
+					<tr class="peer-entries peerbg_color">
 						<td>Peers</td>
 <?php
 			if (count($tunnel['peers']['wgpeer']) > 0):
 ?>
 						<td colspan="6">
-							<table class="table table-hover" style="background-color:#ccf2ff;"> <!-- Move to pfSense.css -->
+							<table class="table table-hover peerbg_color">
 								<thead>
-									<tr>
+									<tr class="peerbg_color">
 										<th>Description</th>
 										<th>Endpoint</th>
 										<th>Allowed IPs</th>
@@ -114,11 +124,17 @@ if (array_key_exists('delidx', $_POST)) {
 <?php
 				foreach ($tunnel['peers']['wgpeer'] as $peer):
 ?>
-									<tr>
-										<td><?=$peer['descr']?></td>
-										<td><?=$peer['endpoint']?>:<?=$peer['port']?></td>
-										<td><?=$peer['allowedips']?></td>
-										<td><?=$peer['publickey']?></td>
+									<tr class="peerbg_color">
+										<td><?=htmlspecialchars($peer['descr'])?></td>
+										<td>
+										<?php if (!empty($peer["endpoint"])): ?>
+											<?=htmlspecialchars($peer['endpoint'])?>:<?=((empty($peer["port"])) ? '51820' : htmlspecialchars($peer["port"]))?>
+										<?php else: ?>
+											<?=gettext("Dynamic")?>
+										<?php endif; ?>
+										</td>
+										<td><?=htmlspecialchars($peer['allowedips'])?></td>
+										<td><?=htmlspecialchars($peer['publickey'])?></td>
 									</tr>
 <?php
 				endforeach;

@@ -464,6 +464,12 @@ function ip_greater_than($ip1, $ip2) {
 
 /* compare two IP addresses */
 function ipcmp($a, $b) {
+	if (is_subnet($a)) {
+		list($a, $amask) = explode('/', $a);
+	}
+	if (is_subnet($b)) {
+		list($b, $bmask) = explode('/', $b);
+	}
 	if (ip_less_than($a, $b)) {
 		return -1;
 	} else if (ip_greater_than($a, $b)) {
@@ -1616,8 +1622,7 @@ function get_interface_list($mode = "active", $keyby = "physical", $vfaces = "")
 				'tun',
 				'lagg',
 				'vip',
-				'ipfw',
-				'vxlan'
+				'ipfw'
 		);
 	} else {
 		$vfaces = array(
@@ -2361,7 +2366,7 @@ function is_interface_mismatch() {
 		foreach ($config['interfaces'] as $ifname => $ifcfg) {
 			if (interface_is_vlan($ifcfg['if']) != NULL ||
 			    interface_is_qinq($ifcfg['if']) != NULL ||
-			    preg_match("/^enc|^cua|^tun|^tap|^l2tp|^pptp|^ppp|^ovpn|^ipsec|^gif|^gre|^lagg|^bridge|^vxlan|vlan|_wlan|_\d{0,4}_\d{0,4}$/i", $ifcfg['if'])) {
+			    preg_match("/^enc|^cua|^tun|^tap|^l2tp|^pptp|^ppp|^ovpn|^ipsec|^gif|^gre|^lagg|^bridge|vlan|^wg|_wlan|_\d{0,4}_\d{0,4}$/i", $ifcfg['if'])) {
 				// Do not check these interfaces.
 				$i++;
 				continue;

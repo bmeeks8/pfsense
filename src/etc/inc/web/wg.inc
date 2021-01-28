@@ -31,7 +31,7 @@ function gerneratePSK() {
 	return exec("{$wgbinpath} genpsk");
 }
 
-// Return the next available wWreguard port
+// Return the next available WireGuard port
 function next_wg_port() {
 	global $config;
 
@@ -57,6 +57,26 @@ function next_wg_port() {
 	return 51820;
 }
 
+// Return the next available WireGuard interface
+function next_wg_if() {
+	global $config;
+	init_config_arr(array('wireguard', 'tunnel'));
+	$tunnels = &$config['wireguard']['tunnel'];
+
+	$used_ifs = array();
+	foreach ($tunnels as $tunnel) {
+		$used_ifs[] = $tunnel['name'];
+	}
+
+	for ($ifnum = 0; $ifnum < 32768; $ifnum++) {
+		$want_if = "wg{$ifnum}";
+		if (!in_array($want_if, $used_ifs)) {
+			return $want_if;
+		}
+	}
+	return -1;
+}
+
 // Validate the user's input and return error messages if not acceptable
 function wg_validate_post($pconfig) {
 	$input_errors = array();
@@ -76,6 +96,10 @@ function wg_validate_post($pconfig) {
 
 		$skip = '';
 		if (!empty($iflist[$pconfig['name']])) {
+			if (!isset($pconfig['enabled']) ||
+			    ($pconfig['enabled'] != 'yes')) {
+				$input_errors[] = gettext('Cannot disable a WireGuard instance while it is assigned as an interface.');
+			}
 			$skip = $iflist[$pconfig['name']];
 		}
 
@@ -96,15 +120,13 @@ function wg_validate_post($pconfig) {
 
 	// Check listen port
 	$lport = $pconfig['interface']['listenport'];
-	if (empty($lport) || $lport > 65535 || $lport < 512 ) {
+	if (!empty($lport) && (!ctype_digit($lport) || !is_port($lport))) {
 		$input_errors[] = gettext("Invalid interface listen port.");
 	}
 
 	// Check keys
-	if (empty($pconfig['interface']['privatekey']) ||
-	    empty($pconfig['interface']['publickey'])) {
-		$input_errors[] = gettext("Both a public and private key " .
-		    "must be specified");
+	if (empty($pconfig['interface']['privatekey'])) {
+		$input_errors[] = gettext("Private key must be specified");
 	}
 
 	// Now the peers
@@ -126,7 +148,7 @@ function wg_validate_peer($idx, $peer) {
 
 	// Check remote port
 	$rport = $peer['port'];
-	if (!empty($rport) && ($rport > 65535 || $rport < 512 )) {
+	if (!empty($rport) && (!ctype_digit($rport) || !is_port($rport))) {
 		$input_errors[] = sprintf(gettext(
 		    'Peer %1$s: Invalid remote port. (%2$s)'), $idx, $rport);
 	}
@@ -177,6 +199,8 @@ function wg_configure() {
 	foreach ($config["wireguard"]["tunnel"] as $tunnel) {
 		if (isset($tunnel['enabled']) && $tunnel['enabled'] == 'yes') {
 			wg_configure_if($tunnel['name']);
+		} else {
+			wg_destroy_if($tunnel['name']);
 		}
 	}
 
@@ -227,6 +251,9 @@ function wg_configure_if($wg_ifname) {
 			    escapeshellarg($ip) . " netmask " .
 			    escapeshellarg(gen_subnet_mask($mask)) .
 			    ($ip4_first ? "" : " alias"));
+			if ($ip4_first) {
+				file_put_contents("/tmp/{$tunnel['name']}_router", wg_find_tunnel_gw($tunnel, $addr));
+			}
 			$ip4_first = false;
 		} elseif (is_ipaddrv6($ip)) {
 			mwexec("/sbin/ifconfig " .
@@ -234,12 +261,32 @@ function wg_configure_if($wg_ifname) {
 			    escapeshellarg($ip) . " netmask " .
 			    escapeshellarg(gen_subnet_mask($mask)) .
 			    ($ip6_first ? "" : " alias"));
+			if ($ip6_first) {
+				file_put_contents("/tmp/{$tunnel['name']}_routerv6", wg_find_tunnel_gw($tunnel, $addr));
+			}
 			$ip6_first = false;
 		}
 	}
 
 	system_routing_configure(
 	    convert_real_interface_to_friendly_interface_name($wg_ifname));
+
+	if (is_array($tunnel['peers']) && is_array($tunnel['peers']['wgpeer']) &&
+	    count($tunnel['peers']['wgpeer']) > 0) {
+		foreach ($tunnel['peers']['wgpeer'] as $peer) {
+			if (!empty($peer['allowedips'])) {
+				foreach (explode(",", $peer['allowedips']) as $ip) {
+					$ip = trim($ip);
+					if (empty($ip) ||
+					    ($ip == '0.0.0.0/0') ||
+					    ($ip == '::/0')) {
+						continue;
+					}
+					route_add_or_change($ip, $tunnel['name'], $tunnel['name']);
+				}
+			}
+		}
+	}
 }
 
 // Remove WireGuard tunnel
@@ -265,10 +312,11 @@ function genPubKey($privkey) {
 	return (exec("echo {$privkey} | {$wgbinpath} pubkey"));
 }
 
-// Return the next wireGuard interface name that is not currently in use
+// Return the next WireGuard interface name that is not currently in use
 function nextFreeWGInterfaceName() {
 	global $config;
 
+	init_config_arr(array('wireguard', 'tunnel'));
 	$tunnels = $config['wireguard']['tunnel'];
 	$num = count($tunnels);
 
@@ -321,7 +369,9 @@ function wg_do_post($post, $json = false) {
 
 	$pconfig = &$config['wireguard']['tunnel'][$index];
 
-	$pconfig['name'] = "wg" . $index;
+	if (empty($pconfig['name'])) {
+		$pconfig['name'] = next_wg_if();
+	}
 	$pconfig['enabled'] = empty($post['enabled']) ? 'no':'yes';
 	$pconfig['descr'] = $post['descr'];
 
@@ -329,7 +379,7 @@ function wg_do_post($post, $json = false) {
 	$pconfig['interface']['address'] = $post['address'];
 	$pconfig['interface']['listenport'] = $post['listenport'];
 	$pconfig['interface']['privatekey'] = $post['privatekey'];
-	$pconfig['interface']['publickey'] = $post['publickey'];
+	$pconfig['interface']['publickey'] = genPubKey($post['privatekey']);
 
 	if (isset($post['endpoint0'])) {
 		// Peers section
@@ -357,7 +407,6 @@ function wg_do_post($post, $json = false) {
 			$peer['presharedkey'] = $post['presharedkey' . $idx];
 			$peer['port'] = $post['port' . $idx];
 			$peer['peerwgaddr'] = $post['peerwgaddr' . $idx];
-			$peer['peernwks'] = $post['peernwks' . $idx];
 
 			$pconfig['peers']['wgpeer'][] = $peer;
 			$idx++;
@@ -439,10 +488,9 @@ function make_wg_conf($tunnel) {
 				$txt .= "PublicKey = {$peer['publickey']}\n";
 			}
 
-			if (!empty($peer["endpoint"]) &&
-			    !empty($peer["port"])) {
+			if (!empty($peer["endpoint"])) {
 				$txt .= "EndPoint = " .
-				    "{$peer['endpoint']}:{$peer['port']}\n";
+				    "{$peer['endpoint']}:" . ((empty($peer["port"])) ? '51820' : $peer["port"]) . "\n";
 			}
 
 			if (!empty($peer["allowedips"])) {
@@ -489,4 +537,63 @@ function is_wg_enabled() {
 	}
 
 	return false;
+}
+
+/* Return WireGuard tunnel networks for a given address family */
+function wg_get_tunnel_networks($family = 'both') {
+	global $config;
+	$wg_tunnel_networks = array();
+	init_config_arr(array('wireguard', 'tunnel'));
+	if (is_wg_enabled()) {
+		foreach ($config['wireguard']['tunnel'] as $wg) {
+			if (empty($wg['enabled']) ||
+			    empty($wg['interface']['address'])) {
+				continue;
+			}
+			foreach(explode(',', $wg['interface']['address']) as $wga) {
+				list($wgnet, $wgmask) = explode('/', trim($wga));
+				if ((is_ipaddrv6($wgnet) && ($family == 'ipv4')) ||
+				    (is_ipaddrv4($wgnet) && ($family == 'ipv6'))) {
+					continue;
+				}
+				$network = gen_subnet($wgnet, $wgmask);
+				$wg_tunnel_networks[] = "{$network}/{$wgmask}";
+			}
+		}
+	}
+	return $wg_tunnel_networks;
+}
+
+/* Locate a viable remote gateway address for a WireGuard tunnel
+ * Fall back to using the tunnel address itself.
+ * https://redmine.pfsense.org/issues/11300 */
+function wg_find_tunnel_gw($tunnel, $addr) {
+	list($ip, $mask) = explode("/", trim($addr));
+	/* Loop through peers looking for a viable remote gateway address */
+	if (is_array($tunnel['peers']) &&
+	    is_array($tunnel['peers']['wgpeer']) &&
+	    count($tunnel['peers']['wgpeer']) > 0) {
+		foreach ($tunnel['peers']['wgpeer'] as $peer) {
+			/* If this peer has no configured Peer WireGuard Address, skip it. */
+			if (empty($peer['peerwgaddr'])) {
+				continue;
+			}
+			/* Check each Peer WireGuard Address entry */
+			foreach (explode(',', $peer['peerwgaddr']) as $pwga) {
+				/* Ensure the address family of this entry matches the one we're seeking */
+				if (is_v4($ip) !== is_v4($pwga)) {
+					continue;
+				}
+				/* If there is a subnet mask, ditch it. */
+				list($pip, $pmask) = explode('/', trim($pwga));
+				/* Check that this address is in the desired subnet */
+				if (ip_in_subnet($pip, trim($addr))) {
+					/* We found a good candidate, return it */
+					return $pip;
+				}
+			}
+		}
+	}
+	/* If no viable candidate is found, return the tunnel address */
+	return $ip;
 }

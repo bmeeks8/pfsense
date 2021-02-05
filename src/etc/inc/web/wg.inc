@@ -230,7 +230,6 @@ function wg_configure_if($wg_ifname) {
 		return;
 	}
 
-	echo $tunnel['name'] . " ";
 	wg_destroy_if($tunnel['name']);
 	//$if = pfSense_interface_create($tunnel['name']);
 	$conf_path = $g["wg_conf_path"] . "/" . $tunnel['name'] . ".conf";
@@ -489,8 +488,9 @@ function make_wg_conf($tunnel) {
 			}
 
 			if (!empty($peer["endpoint"])) {
-				$txt .= "EndPoint = " .
-				    "{$peer['endpoint']}:" . ((empty($peer["port"])) ? '51820' : $peer["port"]) . "\n";
+				$txt .= "EndPoint = ";
+				$txt .= is_ipaddrv6($peer["endpoint"]) ? "[{$peer['endpoint']}]" : $peer['endpoint'];
+				$txt .= ":" . ((empty($peer["port"])) ? '51820' : $peer["port"]) . "\n";
 			}
 
 			if (!empty($peer["allowedips"])) {

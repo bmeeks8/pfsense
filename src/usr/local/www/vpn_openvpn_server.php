@@ -467,12 +467,15 @@ if ($_POST['save']) {
 		}
 
 		if (!empty($pconfig['dh_length']) && !in_array($pconfig['dh_length'], array_keys($openvpn_dh_lengths))) {
-			$input_errors[] = gettext("The specified DH Parameter length is invalid or the DH file does not exist.");
+			$input_errors[] = gettext("The specified DH Parameter length is invalid or " .
+				"the DH file does not exist.");
 		}
 
 		if (!empty($pconfig['ecdh_curve']) && !openvpn_validate_curve($pconfig['ecdh_curve'])) {
 			$input_errors[] = gettext("The specified ECDH Curve is invalid.");
 		}
+		$reqdfields = explode(" ", "caref certref");
+		$reqdfieldsn = array(gettext("Certificate Authority"), gettext("Certificate"));
 
 		if (($pconfig['ncp_enable'] != "disabled") && !empty($pconfig['data_ciphers']) && is_array($pconfig['data_ciphers'])) {
 			foreach ($pconfig['data_ciphers'] as $dc) {
@@ -481,9 +484,6 @@ if ($_POST['save']) {
 				}
 			}
 		}
-
-		$reqdfields = explode(" ", "caref certref");
-		$reqdfieldsn = array(gettext("Certificate Authority"), gettext("Certificate"));
 	} elseif (!$pconfig['autokey_enable']) {
 		/* We only need the shared key filled in if we are in shared key mode and autokey is not selected. */
 		$reqdfields = array('shared_key');
@@ -1759,8 +1759,8 @@ events.push(function() {
 		switch (value) {
 			case "p2p_tls":
 			case "server_tls":
+			case "server_user":
 				hideInput('tls', false);
-				hideInput('tls_type', false);
 				hideInput('certref', false);
 				hideInput('dh_length', false);
 				hideInput('ecdh_curve', false);
@@ -1771,29 +1771,9 @@ events.push(function() {
 				hideInput('topology', false);
 				hideCheckbox('compression_push', false);
 				hideCheckbox('duplicate_cn', false);
-				hideCheckbox('ocspcheck', false);
-			break;
-			case "server_user":
-				hideInput('caref', true);
-				hideInput('crlref', true);
-				hideLabel('Peer Certificate Revocation list', true);
-				hideLabel('Peer Certificate Authority', true);
-				hideInput('certref', true);
-				hideCheckbox('tlsauth_enable', false);
-				hideInput('dh_length', true);
-				hideInput('ecdh_curve', true);
-				hideInput('cert_depth', true);
-				hideCheckbox('strictusercn', true);
-				hideCheckbox('autokey_enable', true);
-				hideInput('shared_key', false);
-				hideInput('topology', false);
-				hideCheckbox('compression_push', false);
-				hideCheckbox('duplicate_cn', false);
-				hideCheckbox('ocspcheck', true);
 			break;
 			case "server_tls_user":
 				hideInput('tls', false);
-				hideInput('tls_type', false);
 				hideInput('certref', false);
 				hideInput('dh_length', false);
 				hideInput('ecdh_curve', false);
@@ -1804,11 +1784,9 @@ events.push(function() {
 				hideInput('topology', false);
 				hideCheckbox('compression_push', false);
 				hideCheckbox('duplicate_cn', false);
-				hideCheckbox('ocspcheck', false);
 			break;
 			case "p2p_shared_key":
 				hideInput('tls', true);
-				hideInput('tls_type', true);
 				hideInput('caref', true);
 				hideInput('crlref', true);
 				hideLabel('Peer Certificate Revocation list', true);
@@ -1893,10 +1871,12 @@ events.push(function() {
 	}
 
 	function protocol_change() {
-		hideInput('interface', (($('#protocol').val().toLowerCase() == 'udp') || ($('#protocol').val().toLowerCase() == 'tcp')));
-		var notudp = !($('#protocol').val().substring(0, 3).toLowerCase() == 'udp');
-		hideCheckbox('udp_fast_io', notudp);
-		hideInput('exit_notify', notudp);
+		if ($('#protocol').val() != undefined) {
+			hideInput('interface', (($('#protocol').val().toLowerCase() == 'udp') || ($('#protocol').val().toLowerCase() == 'tcp')));
+			var notudp = !($('#protocol').val().substring(0, 3).toLowerCase() == 'udp');
+			hideCheckbox('udp_fast_io', notudp);
+			hideInput('exit_notify', notudp);
+		}
 	}
 
 	// Process "Enable authentication of TLS packets" checkbox
@@ -1911,11 +1891,13 @@ events.push(function() {
 		if (($('#mode').val() == 'p2p_shared_key') || (!$('#tlsauth_enable').prop('checked'))) {
 			hideInput('tls', true);
 			hideInput('tls_type', true);
+			hideInput('tlsauth_keydir', true);
 			hideInput('autotls_enable', true);
 		} else {
 			hideInput('autotls_enable', false);
 			hideInput('tls', $('#autotls_enable').prop('checked') || !$('#tlsauth_enable').prop('checked'));
 			hideInput('tls_type', $('#autotls_enable').prop('checked') || !$('#tlsauth_enable').prop('checked'));
+			hideInput('tlsauth_keydir', $('#autotls_enable').prop('checked') || !$('#tlsauth_enable').prop('checked'));
 		}
 	}
 
@@ -2225,7 +2207,7 @@ events.push(function() {
 	// and select all of the chosen ciphers so that they are submitted
 	$('form').submit(function() {
 		$("#availciphers" ).prop( "disabled", true);
-		$('[id="data_ciphers[]"] option').attr("selected", "selected");
+		$('[id="data_ciphers[]"] option').prop("selected", true);
 	});
 
 	// ---------- Set initial page display state ----------------------------------------------------------------------

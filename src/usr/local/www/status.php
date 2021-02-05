@@ -65,7 +65,7 @@ $filtered_tags = array(
 	'accountkey', 'authorizedkeys', 'auth_pass',
 	'auth_server_shared_secret', 'auth_server_shared_secret2', 'auth_user',
 	'barnyard_dbpwd', 'bcrypt-hash', 'cert_key', 'community', 'crypto_password',
-	'crypto_password2', 'dns_nsupdatensupdate_key', 'encryption_password',
+	'crypto_password2', 'dns_nsupdatensupdate_key', 'ddnsdomainkey', 'encryption_password',
 	'etpro_code', 'etprocode', 'gold_encryption_password', 'gold_password',
 	'influx_pass', 'ipsecpsk', 'ldap_bindpw', 'ldapbindpass', 'ldap_pass',
 	'lighttpd_ls_password', 'maxmind_geoipdb_key', 'maxmind_key', 'md5-hash',
@@ -73,8 +73,8 @@ $filtered_tags = array(
 	'oinkmastercode', 'passphrase', 'password', 'passwordagain',
 	'pkcs11pin', 'postgresqlpasswordenc', 'presharedkey', 'pre-shared-key', 'privatekey', 'proxypass',
 	'proxy_passwd', 'proxyuser', 'proxy_user', 'prv', 'radius_secret',
-	'redis_password', 'redis_passwordagain', 'rocommunity',	'secret', 'secret2', 'serverauthkey',
-	'shared_key', 'stats_password', 'tls', 'tlspskidentity', 'tlspskfile',
+	'redis_password', 'redis_passwordagain', 'rocommunity',	'secret', 'secret2', 'securiteinfo_id',
+       	'serverauthkey', 'shared_key', 'stats_password', 'tls', 'tlspskidentity', 'tlspskfile',
 	'varclientpasswordinput', 'varclientsharedsecret', 'varsqlconfpassword',
 	'varsqlconf2password', 	'varsyncpassword', 'varmodulesldappassword', 'varmodulesldap2password',
 	'varusersmotpinitsecret', 'varusersmotppin', 'varuserspassword', 'webrootftppassword'
@@ -331,10 +331,10 @@ defCmdT("DNS-Resolver Access Lists", "/bin/cat /var/unbound/access_lists.conf");
 defCmdT("DNS-Resolver Configuration", "/bin/cat /var/unbound/unbound.conf");
 defCmdT("DNS-Resolver Domain Overrides", "/bin/cat /var/unbound/domainoverrides.conf");
 defCmdT("DNS-Resolver Host Overrides", "/bin/cat /var/unbound/host_entries.conf");
-defCmdT("DHCP-IPv4 Configuration", "/bin/cat /var/dhcpd/etc/dhcpd.conf");
-defCmdT("DHCP-IPv6-Configuration", "/bin/cat /var/dhcpd/etc/dhcpdv6.conf");
+defCmdT("DHCP-IPv4 Configuration", '/usr/bin/sed "s/\([[:blank:]]secret \).*/\1<redacted>/" /var/dhcpd/etc/dhcpd.conf');
+defCmdT("DHCP-IPv6-Configuration", '/usr/bin/sed "s/\([[:blank:]]secret \).*/\1<redacted>/" /var/dhcpd/etc/dhcpdv6.conf');
 defCmdT("IPsec-strongSwan Configuration", '/usr/bin/sed "s/\([[:blank:]]secret = \).*/\1<redacted>/" /var/etc/ipsec/strongswan.conf');
-defCmdT("IPsec-Configuration", '/usr/bin/sed "s/\([[:blank:]]secret = \).*/\1<redacted>/" /var/etc/ipsec/swanctl.conf');
+defCmdT("IPsec-Configuration", '/usr/bin/sed -E "s/([[:blank:]]*(secret|pin) = ).*/\1<redacted>/" /var/etc/ipsec/swanctl.conf');
 defCmdT("IPsec-Status-Statistics", "/usr/local/sbin/swanctl --stats --pretty");
 defCmdT("IPsec-Status-Connections", "/usr/local/sbin/swanctl --list-conns");
 defCmdT("IPsec-Status-Active SAs", "/usr/local/sbin/swanctl --list-sas");
@@ -375,7 +375,7 @@ if (is_dir("/etc/wg")) {
 		if (!count($wgfile) || (count($wgfile) < 4)) {
 			continue;
 		}
-		defCmdT("WireGuard-Configuration File {$wgfile[3]}", '/usr/bin/sed -E "s/([[:blank:]]*(PrivateKey = )).*/\1<redacted>/" ' . escapeshellarg($file) );
+		defCmdT("WireGuard-Configuration File {$wgfile[3]}", '/usr/bin/sed -E "s/([[:blank:]]*((PrivateKey|PresharedKey) = )).*/\1<redacted>/" ' . escapeshellarg($file) );
 	}
 }
 defCmdT("WireGuard-Active Configuration", "/usr/local/bin/wg");

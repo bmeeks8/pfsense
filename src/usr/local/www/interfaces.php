@@ -619,8 +619,17 @@ if ($_POST['apply']) {
 			    "then change the interface configuration.");
 		}
 	}
-	if (isset($config['dhcpdv6']) && isset($config['dhcpdv6'][$if]['enable']) && ($_POST['type6'] != "staticv6" && $_POST['type6'] != "track6")) {
-		$input_errors[] = gettext("The DHCP6 Server is active on this interface and it can be used only with a static IPv6 configuration. Please disable the DHCPv6 Server service on this interface first, then change the interface configuration.");
+	if (isset($config['dhcpdv6']) && ($_POST['type6'] != "staticv6" && $_POST['type6'] != "track6")) {
+		if (isset($config['dhcpdv6'][$if]['enable'])) {
+			$input_errors[] = gettext("The DHCP6 Server is active on this interface and it can be used only " .
+			    "with a static IPv6 configuration. Please disable the DHCPv6 Server service on this " .
+			    "interface first, then change the interface configuration.");
+		}
+		if (isset($config['dhcpdv6'][$if]['ramode']) && ($config['dhcpdv6'][$if]['ramode'] != "disabled")) {
+			$input_errors[] = gettext("The Router Advertisements Server is active on this interface and it can " .
+			    "be used only with a static IPv6 configuration. Please disable the Router Advertisements " .
+			    "Server service on this interface first, then change the interface configuration.");
+		}
 	}
 
 	switch (strtolower($_POST['type'])) {
@@ -1818,15 +1827,17 @@ function check_wireless_mode() {
 // Find all possible media options for the interface
 $mediaopts_list = array();
 $intrealname = $config['interfaces'][$if]['if'];
-exec("/sbin/ifconfig -m $intrealname | grep \"media \"", $mediaopts);
-foreach ($mediaopts as $mediaopt) {
-	preg_match("/media (.*)/", $mediaopt, $matches);
-	if (preg_match("/(.*) mediaopt (.*)/", $matches[1], $matches1)) {
-		// there is media + mediaopt like "media 1000baseT mediaopt full-duplex"
-		array_push($mediaopts_list, $matches1[1] . " " . $matches1[2]);
-	} else {
-		// there is only media like "media 1000baseT"
-		array_push($mediaopts_list, $matches[1]);
+if (!is_pseudo_interface($intrealname, false)) {
+	exec("/sbin/ifconfig -m $intrealname | grep \"media \"", $mediaopts);
+	foreach ($mediaopts as $mediaopt) {
+		preg_match("/media (.*)/", $mediaopt, $matches);
+		if (preg_match("/(.*) mediaopt (.*)/", $matches[1], $matches1)) {
+			// there is media + mediaopt like "media 1000baseT mediaopt full-duplex"
+			array_push($mediaopts_list, $matches1[1] . " " . $matches1[2]);
+		} else {
+			// there is only media like "media 1000baseT"
+			array_push($mediaopts_list, $matches[1]);
+		}
 	}
 }
 

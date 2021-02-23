@@ -1436,9 +1436,22 @@ function ipsec_setup_strongswan() {
 		$ssconf['charon']['plugins']['eap-radius']['eap_start'] = "no";
 		/* Activate RADIUS accounting only if it was selected on the IPsec Mobile Clients tab */
 		if ($auth_server && isset($auth_server['radius_acct_port']) &&
-		    (is_array($a_client) && ($a_client['radiusaccounting'] == "enabled"))){
+		    (is_array($a_client) && ($a_client['radiusaccounting'] == "enabled"))) {
 			$ssconf['charon']['plugins']['eap-radius']['accounting'] = "yes";
 			$ssconf['charon']['plugins']['eap-radius']['accounting_close_on_timeout'] = "no";
+		}
+		/* advanced parameters, see https://redmine.pfsense.org/issues/11211 */
+		if (isset($a_client['radius_retransmit_base'])) {
+			$ssconf['charon']['plugins']['eap-radius']['retransmit_base'] = $a_client['radius_retransmit_base'];
+		}
+		if (isset($a_client['radius_retransmit_timeout'])) {
+			$ssconf['charon']['plugins']['eap-radius']['retransmit_timeout'] = $a_client['radius_retransmit_timeout'];
+		}
+		if (isset($a_client['radius_retransmit_tries'])) {
+			$ssconf['charon']['plugins']['eap-radius']['retransmit_tries'] = $a_client['radius_retransmit_tries'];
+		}
+		if (isset($a_client['radius_sockets'])) {
+			$ssconf['charon']['plugins']['eap-radius']['sockets'] = $a_client['radius_sockets'];
 		}
 		$ssconf['charon']['plugins']['eap-radius']['servers'] = $radius_servers;
 	}
@@ -2343,7 +2356,13 @@ function ipsec_setup_tunnels() {
 			if (!isset($ph1ent['mobile']) && (($ikeversion == 1) || isset($ph1ent['splitconn']))) {
 				if (!empty($remote_ts)) {
 					/* Setup child sub-connections using unique names with a suffix */
-					$subconname = "con" . get_ipsecifnum($ph1ent['ikeid'], $idx) . $suffix;
+					if (get_ipsecifnum($ph1ent['ikeid'], $idx)) {
+						$subconnum = get_ipsecifnum($ph1ent['ikeid'], $idx);
+					} else {
+						$subconnum = "{$ph1ent['ikeid']}00000";
+					}
+
+					$subconname = "con" . ($subconnum + $suffix);
 					$children[$subconname] = $child;
 					$children[$subconname]['local_ts'] = $local_ts;
 					$children[$subconname]['remote_ts'] = $remote_ts;
@@ -2386,7 +2405,9 @@ function ipsec_setup_tunnels() {
 				}
 			}
 		}
-		$conn['pools'] = implode(', ', $pools);
+		if (!empty($pools)) {
+			$conn['pools'] = implode(', ', $pools);
+		}
 
 		/* For IKEv2 without Split Connections, setup combined sets of
 		 * local/remote traffic selectors and propsals */
@@ -2523,16 +2544,8 @@ function ipsec_setup_secrets() {
 					continue;
 				}
 
-				if ($myid_type == 'fqdn' && !empty($myid)) {
-					$myid = "@{$myid}";
-				}
-
 				$myid = isset($ph1ent['mobile']) ? ipsec_fixup_id($myid_type, trim($myid_data)) : "%any";
 				$peerid = ($peerid_data != 'allusers') ? ipsec_fixup_id($peerid_type, trim($peerid_data)) : '';
-
-				if ($peerid_type == 'fqdn' && !empty($peerid)) {
-					$peerid = "@{$peerid}";
-				}
 
 				if (!empty($ph1ent['pre-shared-key'])) {
 					$scconf['secrets']['ike-' . $suffix++] = array(

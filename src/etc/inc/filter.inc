@@ -97,8 +97,14 @@ $icmptypes = array(
  * Specify the driver prefix to match (from the left)
  * https://redmine.pfsense.org/issues/8685
  */
-global $filter_interface_blacklist;
-$filter_interface_blacklist = array("ipsec");
+global $filter_interface_remove;
+$filter_interface_remove = array();
+
+if ($config['ipsec']['filtermode'] == 'if_ipsec') {
+	$filter_interface_remove[] = 'enc';
+} else {
+	$filter_interface_remove[] = 'ipsec';
+}
 
 /*
  * Fixed tracker values (used to group and track usage in GUI):
@@ -628,12 +634,20 @@ function filter_generate_scrubing() {
 		if (isset($scrubcfg['virtual']) || empty($scrubcfg['descr'])) {
 			continue;
 		}
+		if (($scrubcfg['type6'] == '6rd') || ($scrubcfg['type6'] == '6to4')) {
+			$scrubifname6 = $scrubcfg['descr'] . "_STF";
+		} else {
+			$scrubifname6 = $scrubcfg['descr'];
+		}
 		/* set up MSS clamping */
 		if (($scrubcfg['mss'] <> "") &&
 		    (is_numeric($scrubcfg['mss']))) {
-			$mssclamp = "max-mss " . (intval($scrubcfg['mss'] - 40));
+			/* different size of IPv4/IPv6 header, https://redmine.pfsense.org/issues/11409 */
+			$mssclamp4 = "max-mss " . (intval($scrubcfg['mss'] - 40));
+			$mssclamp6 = "max-mss " . (intval($scrubcfg['mss'] - 60));
 		} else {
-			$mssclamp = "";
+			$mssclamp4 = "";
+			$mssclamp6 = "";
 		}
 		/* configure no-df for linux nfs and others */
 		if ($config['system']['scrubnodf']) {
@@ -647,9 +661,13 @@ function filter_generate_scrubing() {
 			$scrubrnid = "";
 		}
 		if (!isset($config['system']['disablescrub'])) {
-			$scrubrules .= "scrub on \${$scrubcfg['descr']} all {$scrubnodf} {$scrubrnid} {$mssclamp} fragment reassemble\n"; // reassemble all directions
-		} else if (!empty($mssclamp)) {
-			$scrubrules .= "scrub on \${$scrubcfg['descr']} {$mssclamp}\n";
+			$scrubrules .= "scrub on \${$scrubcfg['descr']} inet all {$scrubnodf} {$scrubrnid} {$mssclamp4} " .
+			    "fragment reassemble\n"; // reassemble all directions
+			$scrubrules .= "scrub on \${$scrubifname6} inet6 all {$scrubnodf} {$scrubrnid} {$mssclamp6} " .
+			    "fragment reassemble\n";
+		} else if (!empty($mssclamp4)) {
+			$scrubrules .= "scrub on \${$scrubcfg['descr']} inet {$mssclamp4}\n";
+			$scrubrules .= "scrub on \${$scrubifname6} inet6 {$mssclamp6}\n";
 		}
 	}
 	return $scrubrules;
@@ -2890,7 +2908,13 @@ function filter_generate_address(& $rule, $target = "source", $isnat = false) {
 			filter_address_add_vips_subnets($src, $rule[$target]['network'], isset($rule[$target]['not']));
 		}
 	} else if ($rule[$target]['address']) {
-		$expsrc = alias_expand($rule[$target]['address']);
+		/* static host portion of IPv6, see https://redmine.pfsense.org/issues/6626 */
+		if (substr($rule[$target]['address'], 0, 2) == '::') {
+			$expsrc = merge_ipv6_delegated_prefix(get_interface_ipv6($rule['interface']),
+			    $rule[$target]['address'], get_interface_subnetv6($rule['interface']));
+		} else {
+			$expsrc = alias_expand($rule[$target]['address']);
+		}
 		if (isset($rule[$target]['not'])) {
 			$not = "!";
 		} else {
@@ -4700,13 +4724,13 @@ function move_separators(&$a_separators, $ridx, $mvnrows) {
 }
 
 function filter_get_interface_list() {
-	global $filter_interface_blacklist;
+	global $filter_interface_remove;
 	$iflist = create_interface_list();
 	$filter_ifs = array();
 	foreach ($iflist as $ifent => $ifname) {
 		$realifname = get_real_interface($ifent);
-		foreach ($filter_interface_blacklist as $ifbl) {
-			if (substr($realifname, 0, strlen($ifbl)) == $ifbl) {
+		foreach ($filter_interface_remove as $ifr) {
+			if (substr($realifname, 0, strlen($ifr)) == $ifr) {
 				continue 2;
 			}
 		}

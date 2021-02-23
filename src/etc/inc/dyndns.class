@@ -264,6 +264,8 @@
 			case 'digitalocean-v6':
 			case 'linode':
 			case 'linode-v6':
+			case 'gandi-livedns':
+			case 'gandi-livedns-v6':
 				if (!$dnsPass) $this->_error(4);
 				if (!$dnsHost) $this->_error(5);
 				if (!$dnsDomain) $this->_error(5);
@@ -276,12 +278,6 @@
 				if (!$dnsHost) $this->_error(5);
 				if (!$dnsZoneID) $this->_error(8);
 				if (!$dnsTTL) $this->_error(9);
-				break;
-			case 'gandi-livedns': // NOTE: same as digitalocean
-				if (!$dnsPass) $this->_error(4);//API key
-				if (!$dnsHost) $this->_error(5); //DNS Record to update
-				if (!$dnsDomain) $this->_error(5);//domain
-				if (!$dnsTTL) $this->_error(9);//ttl
 				break;
 			case 'custom':
 			case 'custom-v6':
@@ -308,10 +304,12 @@
 				case 'godaddy-v6':
 				case 'azurev6':
 				case 'linode-v6':
+				case 'mythicbeasts-v6':
 				case 'noip-v6':
 				case 'noip-free-v6':
 				case 'dynv6-v6':
 				case 'easydns-v6':
+				case 'gandi-livedns-v6':
 					$this->_useIPv6 = true;
 					break;
 				default:
@@ -415,8 +413,11 @@
 					case 'linode':
 					case 'linode-v6':
 					case 'gandi-livedns':
+					case 'gandi-livedns-v6':
 					case 'dynv6':
 					case 'dynv6-v6':
+					case 'mythicbeasts':
+					case 'mythicbeasts-v6':
 						$this->_update();
 						if ($this->_dnsDummyUpdateDone == true) {
 							// If a dummy update was needed, then sleep a while and do the update again to put the proper address back.
@@ -770,6 +771,23 @@
 					*/
 					$needsIP = FALSE;
 					$server = "https://{$this->_dnsUser}:{$this->_dnsPass}@api.domeneshop.no/v0/dyndns/update?hostname={$this->_dnsHost}&myip={$this->_dnsIP}";
+					curl_setopt($ch, CURLOPT_URL, $server);
+					break;
+				case 'mythicbeasts':
+				case 'mythicbeasts-v6':
+					/* Example:
+						https://{login}:{password}@https://api.mythic-beasts.com/dns/v2/zones/example.com/records/test1/A -d data=1.2.3.4
+					*/
+					$needsIP = FALSE;
+					if ($this->_useIPv6) {
+						$record = "AAAA"; 
+					} else {
+						$record = "A"; 
+					}
+					$post_data['data'] = $this->_dnsIP;
+					$server = "https://api.mythic-beasts.com/dns/v2/zones/{$this->_dnsDomain}/records/{$this->_dnsHost}/{$record}";
+					curl_setopt($ch, CURLOPT_USERPWD, $this->_dnsUser . ':' . $this->_dnsPass);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
 					curl_setopt($ch, CURLOPT_URL, $server);
 					break;
 				case 'namecheap':
@@ -1384,42 +1402,27 @@
 					$needIP = TRUE;
 					curl_setopt($ch, CURLOPT_URL, 'https://dynv6.com/api/update?ipv6=' . $this->_dnsIP . '&hostname=' . $this->_dnsHost . '&token=' . $this->_dnsPass);
 					break;
-			case 'gandi-livedns':
-				// NOTE: quite similar to digitalocean case but with json content like azure case
-				// Get record href
-				$server = 'https://api.gandi.net/v5/livedns/domains/';
-				$url = $server . $this->_dnsDomain . '/records';
-				curl_setopt($ch, CURLOPT_HTTPHEADER, array("Authorization: Apikey {$this->_dnsPass}"));
-				curl_setopt($ch, CURLOPT_URL, $url);
-				$output = json_decode(curl_exec($ch));
-				if (!is_array($output)) {
-					$output = array();
-				}
-				foreach($output as $dnsRecord) {
-					// NS records are named @ in DO's API, so check type as well
-					if ($this->_dnsHost == $dnsRecord->rrset_name && $dnsRecord->rrset_type == 'A') {
-						$recordHref = $dnsRecord->rrset_href;
-						break;
-					}
-				}
-				$request_headers = array();
-				//$request_headers[] = 'Accept: application/json';
-				$request_headers[] = 'Authorization: Apikey ' . $this->_dnsPass;
-				$request_headers[] = 'Content-Type: application/json';
-				//create or update record
-				if ($recordHref == null) {
-					//create record
-					$url = $server . $this->_dnsDomain . '/records';
-					$body = '{"rrset_type": "A", "rrset_ttl": ' . $this->_dnsTTL . ', "rrset_name": "' . $this->_dnsHost . '", "rrset_values": ["' . $this->_dnsIP . '"]}';
-				} else {
-					//update record
-					$url = $recordHref;
-					$body = '{"rrset_ttl": ' . $this->_dnsTTL . ', "rrset_values": ["' . $this->_dnsIP . '"]}';
+				case 'gandi-livedns':
+				case 'gandi-livedns-v6':
+					// https://api.gandi.net/docs/livedns/#v5-livedns-domains-fqdn-records-rrset_name-rrset_type
+					// PUT overrides the existing record or creates if none exists
+					$gandi_api = 'https://api.gandi.net/v5/livedns/domains/';
+					$record_type = $this->_useIPv6 ? "AAAA" : "A";
+					$url = "{$gandi_api}{$this->_dnsDomain}/records/{$this->_dnsHost}/{$record_type}";
+
+					$headers = array(
+						'Authorization: Apikey ' . $this->_dnsPass,
+						'Content-Type: application/json'
+					);
+					$body = array(
+						"rrset_ttl"  => $this->_dnsTTL,
+						"rrset_values" => array($this->_dnsIP),
+					);
+
+					curl_setopt($ch, CURLOPT_URL, $url);
 					curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-				}
-				curl_setopt($ch, CURLOPT_URL, $url);
-				curl_setopt($ch, CURLOPT_HTTPHEADER, $request_headers);
-				curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+					curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+					curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
 					break;
 				default:
 					break;
@@ -2019,6 +2022,17 @@
 						$this->_debug($data);
 					}
 					break;
+				case 'mythicbeasts':
+				case 'mythicbeasts-v6':
+					/* https://www.mythic-beasts.com/support/api/dnsv2/tutorial */
+					$result = json_decode($data, true);
+					if ($result['message'] == '1 records added') {
+						$status = $status_intro . $success_str . gettext("IP Address Updated Successfully!");
+						$successful_update = true;
+					} else {
+						log_error($status_intro . " ( " . gettext("Error message: ") . $result['error'] . " )");
+					}
+					break;
 				case 'namecheap':
 					$tmp = str_replace("^M", "", $data);
 					$ncresponse = @xml2array($tmp);
@@ -2457,15 +2471,11 @@
 					}
 					break;
 				case 'gandi-livedns':
-					// NOTE: same as azure
-					// Creating new records returns an HTTP 201, updating existing records get 200
+				case 'gandi-livedns-v6':
 					$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 					if ($http_code == 401) {
 						$status = $status_intro . $error_str . gettext("User Authorization Failed");
-					} else if ($http_code == 201) {
-						$status = $status_intro . $success_str . gettext("IP Address Changed Successfully!");
-						$successful_update = true;
-					} else if ($http_code == 200) {
+					} else if ($http_code == 200 || $http_code == 201) {
 						$status = $status_intro . $success_str . gettext("IP Address Changed Successfully!");
 						$successful_update = true;
 					} else {

@@ -1772,7 +1772,7 @@ function interfaces_configure() {
 	/* set up IPsec VTI interfaces */
 	interfaces_ipsec_vti_configure();
 
-	$iflist = get_configured_interface_with_descr();
+	$iflist = get_configured_interface_with_descr(true);
 	$delayed_list = array();
 	$bridge_list = array();
 	$track6_list = array();
@@ -1786,7 +1786,9 @@ function interfaces_configure() {
 
 	foreach ($iflist as $if => $ifname) {
 		$realif = $config['interfaces'][$if]['if'];
-		if (strstr($realif, "bridge")) {
+		if (!isset($config['interfaces'][$if]['enable'])) {
+			interface_bring_down($if, true);
+		} elseif (strstr($realif, "bridge")) {
 			$bridge_list[$if] = $ifname;
 		} elseif (strstr($realif, "gre")) {
 			$delayed_list[$if] = $ifname;
@@ -1842,7 +1844,7 @@ function interfaces_configure() {
 	/* set up GIF virtual interfaces */
 	interfaces_tunnel_configure(1,'','gif');
 
-	/* set up BRIDGe virtual interfaces */
+	/* set up BRIDGE virtual interfaces */
 	interfaces_bridge_configure(1);
 
 	foreach ($track6_list as $if => $ifname) {
@@ -1884,7 +1886,7 @@ function interfaces_configure() {
 		}
 	}
 
-	/* set up BRIDGe virtual interfaces */
+	/* set up BRIDGE virtual interfaces */
 	interfaces_bridge_configure(2);
 
 	foreach ($bridge_list as $if => $ifname) {
@@ -6915,12 +6917,17 @@ function interface_has_gateway($friendly) {
 		$ifname = &$config['interfaces'][$friendly];
 		switch ($ifname['ipaddr']) {
 			case "dhcp":
+				/* see https://redmine.pfsense.org/issues/5135 */
+				if (get_interface_gateway($friendly)) {
+					return true;
+				}
+				break;
 			case "pppoe":
 			case "pptp":
 			case "l2tp":
 			case "ppp":
 				return true;
-			break;
+				break;
 			default:
 				if ((substr($ifname['if'], 0, 4) == "ovpn") ||
 				    (substr($ifname['if'], 0, 5) == "ipsec") ||
@@ -6936,7 +6943,7 @@ function interface_has_gateway($friendly) {
 				if (!empty($ifname['gateway'])) {
 					return true;
 				}
-			break;
+				break;
 		}
 	}
 

@@ -102,7 +102,14 @@ function system_get_sysctls() {
 }
 
 function activate_sysctls() {
-	global $config, $g, $sysctls;
+	global $config, $g, $sysctls, $ipsec_filter_sysctl;
+
+	if (!is_array($sysctls)) {
+		$sysctls = array();
+	}
+
+	$ipsec_filtermode = empty($config['ipsec']['filtermode']) ? 'enc' : $config['ipsec']['filtermode'];
+	$sysctls = array_merge($sysctls, $ipsec_filter_sysctl[$ipsec_filtermode]);
 
 	if (is_array($config['sysctl']) && is_array($config['sysctl']['item'])) {
 		foreach ($config['sysctl']['item'] as $tunable) {
@@ -920,6 +927,7 @@ function system_staticroutes_configure($interface = "", $update_dns = false) {
 	$static_routes = get_staticroutes(false, true);
 	if (count($static_routes)) {
 		$gateways_arr = return_gateways_array(false, true);
+		$gateways_status = return_gateways_status(true);
 
 		foreach ($static_routes as $rtent) {
 			if (empty($gateways_arr[$rtent['gateway']])) {
@@ -970,7 +978,8 @@ function system_staticroutes_configure($interface = "", $update_dns = false) {
 				route_del($ip);
 			}
 
-			if (isset($rtent['disabled'])) {
+			if (isset($rtent['disabled']) || (!isset($gateway['action_disable']) &&
+			    ($gateways_status[$gateway['name']]['status'] == 'down'))) {
 				/*
 				 * XXX: This can break things by deleting
 				 * routes that shouldn't be deleted - OpenVPN,

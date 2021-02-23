@@ -50,24 +50,33 @@ if (($_POST['act'] == 'connect') || ($_POST['act'] == 'childconnect')) {
 		$ph1ent = ipsec_get_phase1($_POST['ikeid']);
 		if (!empty($ph1ent)) {
 			if (empty($ph1ent['iketype']) || ($ph1ent['iketype'] == 'ikev1') || isset($ph1ent['splitconn'])) {
-				$ph2entries = ipsec_get_number_of_phase2($_POST['ikeid']);
+				$ph2entries = ipsec_get_number_of_phase2($ph1ent['ikeid']);
 				for ($i = 0; $i < $ph2entries; $i++) {
-					$connid = escapeshellarg("con{$_POST['ikeid']}00{$i}");
+					if (get_ipsecifnum($ph1ent['ikeid'], $i)) {
+						$connum = get_ipsecifnum($ph1ent['ikeid'], $i);
+					} else {
+						$connum = "{$ph1ent['ikeid']}00000";
+					}
+					$connid = escapeshellarg("con" . $connum);
 					if ($_POST['act'] != 'childconnect') {
 						mwexec_bg("/usr/local/sbin/swanctl --terminate --child {$connid}");
 					}
 					mwexec_bg("/usr/local/sbin/swanctl --initiate --child {$connid}");
 				}
 			} else {
-				if ($_POST['act'] != 'childconnect') {
-					mwexec_bg("/usr/local/sbin/swanctl --terminate --ike con" . escapeshellarg($_POST['ikeid'] . '000'));
+				if (get_ipsecifnum($ph1ent['ikeid'], 0)) {
+					$connum = get_ipsecifnum($ph1ent['ikeid'], 0);
+				} else {
+					$connum = "{$ph1ent['ikeid']}00000";
 				}
-				mwexec_bg("/usr/local/sbin/swanctl --initiate --child con" . escapeshellarg($_POST['ikeid'] . '000'));
+				if ($_POST['act'] != 'childconnect') {
+					mwexec_bg("/usr/local/sbin/swanctl --terminate --ike " . escapeshellarg("con{$connum}"));
+				}
+				mwexec_bg("/usr/local/sbin/swanctl --initiate --child " . escapeshellarg("con{$connum}"));
 			}
 		}
 	}
 } else if ($_POST['act'] == 'ikedisconnect') {
-
 	if (!empty($_POST['ikesaid']) && ctype_digit($_POST['ikesaid'])) {
 		mwexec_bg("/usr/local/sbin/swanctl --terminate --ike " . escapeshellarg($_POST['ikeid']) . " --ike-id " .escapeshellarg($_POST['ikesaid']));
 	} else {
@@ -84,23 +93,34 @@ if (($_POST['act'] == 'connect') || ($_POST['act'] == 'childconnect')) {
 function print_ipsec_body() {
 	global $config;
 	$a_phase1 = &$config['ipsec']['phase1'];
+	$conmap = array();
+	foreach ($a_phase1 as $ph1ent) {
+		if (get_ipsecifnum($ph1ent['ikeid'], 0)) {
+			$cname = "con" . get_ipsecifnum($ph1ent['ikeid'], 0);
+		} else {
+			$cname = "con{$ph1ent['ikeid']}00000";
+		}
+		$conmap[$cname] = $ph1ent['ikeid'];
+	}
+
 	$status = ipsec_list_sa();
 	$ipsecconnected = array();
 	if (is_array($status)) {
 		foreach ($status as $ikeid => $ikesa) {
 			//check which array format
-			if(isset($ikesa['con-id'])){
-				$con_id = substr($ikesa['con-id'],3);
-			}else{
+			if (isset($ikesa['con-id'])) {
+				$con_id = substr($ikesa['con-id'], 3);
+			} else {
 				$con_id = filter_var($ikeid, FILTER_SANITIZE_NUMBER_INT);
 			}
+			$con_name = "con" . $con_id;
 			if ($ikesa['version'] == 1) {
-				$ph1idx = substr($con_id, 0, strrpos(substr($con_id, 0, -1), '00'));
+				$ph1idx = $conmap[$con_name];
 				$ipsecconnected[$ph1idx] = $ph1idx;
 			} else {
 				if (!ipsec_ikeid_used($con_id)) {
 					// probably a v2 with split connection then
-					$ph1idx = substr($con_id, 0, strrpos(substr($con_id, 0, -1), '00'));
+					$ph1idx = $conmap[$con_name];
 					$ipsecconnected[$ph1idx] = $ph1idx;
 				} else {
 					$ipsecconnected[$con_id] = $ph1idx = $con_id;
@@ -117,7 +137,7 @@ function print_ipsec_body() {
 			print("<td>\n");
 			if (is_array($a_phase1) && htmlspecialchars(ipsec_get_descr($ph1idx)) == "") {
 				foreach ($a_phase1 as $ph1) {
-					if($con_id == $ph1['ikeid'] && isset($ph1['mobile']) ){
+					if ($con_id == $ph1['ikeid'] && isset($ph1['mobile'])) {
 						print(htmlspecialchars($ph1['descr']));
 						break;
 					}

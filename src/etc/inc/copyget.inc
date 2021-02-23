@@ -36,11 +36,11 @@ $refreshinterval = (24 * 3600);	// 24 hours
 // Poll the Netgate server to obtain the JSON/HTML formatted support information
 // and write it to the JSON file
 function updatecopyright() {
-	global $g, $copyrightfile, $tmpfile, $idfile, $FQDN;
+	global $g, $copyrightfile, $tmpfile, $idfile, $FQDN, $config;
 
 	if (file_exists($idfile)) {
 		if (function_exists('curl_version')) {
-			$post = ['uid' => file_get_contents($idfile), 'language' => '0', 'edition' => 'community', 'version' => '1'];
+			$post = ['uid' => file_get_contents($idfile), 'language' => '0', 'edition' => 'community', 'version' => '2'];
 			$url = $FQDN;
 
 			$ch = curl_init();
@@ -52,6 +52,18 @@ function updatecopyright() {
 			curl_setopt($ch, CURLOPT_POST, true);
 			curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
 			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT ,4);
+
+			if (!empty($config['system']['proxyurl'])) {
+				curl_setopt($ch, CURLOPT_PROXY, $config['system']['proxyurl']);
+				if (!empty($config['system']['proxyport'])) {
+					curl_setopt($ch, CURLOPT_PROXYPORT, $config['system']['proxyport']);
+				}
+				if (!empty($config['system']['proxyuser']) && !empty($config['system']['proxypass'])) {
+					@curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_ANY | CURLAUTH_ANYSAFE);
+					curl_setopt($ch, CURLOPT_PROXYUSERPWD, "{$config['system']['proxyuser']}:{$config['system']['proxypass']}");
+				}
+			}
+
 			$response = curl_exec($ch);
 			$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 			curl_close($ch);
@@ -73,7 +85,7 @@ function updatecopyright() {
 // Retrieve the copyright data from Netgate.com if
 // the support data file does not exist, or
 // if it is more than a day old and the URL seems resolvable
-if (!file_exists($copyrightfile) ||
+if (!file_exists($copyrightfile) || (filesize($copyrightfile) == 0) ||
     ((time()-filemtime($copyrightfile) > $refreshinterval) && is_url_hostname_resolvable($FQDN))) {
 	updateCopyright();
 }

@@ -2649,7 +2649,9 @@ function route_table() {
 }
 
 /* Get static route for specific destination */
-function route_get($target, $ipprotocol = '') {
+function route_get($target, $ipprotocol = '', $useroute = false) {
+	global $config;
+
 	if (!empty($ipprotocol)) {
 		$family = $ipprotocol;
 	} else if (is_v4($target)) {
@@ -2662,17 +2664,45 @@ function route_get($target, $ipprotocol = '') {
 		return array();
 	}
 
-	$rtable = route_table();
+	if ($useroute) {
+		if ($family == 'inet') {
+			$inet = '4';
+		} else {
+			$inet = '6';
+		}
+		$interface = exec("/sbin/route -n{$inet} get {$target} | /usr/bin/awk '/interface:/{print $2}'");
+		if (empty($interface)) {
+			return array();
+		} elseif ($interface == 'lo0') {
+			// interface assigned IP address
+			foreach ($config['interfaces'] as $intf => $infconf) {
+				if ((($inet == '4') && (get_interface_ip($intf) == $target)) ||
+				    (($inet == '6') && (get_interface_ipv6($intf) == $target))) {
+					$interface = convert_friendly_interface_to_real_interface_name($intf);
+					$gateway = $interface;
+					break;
+				}
+			}
+		} else {
+			$gateway = exec("/sbin/route -n{$inet} get {$target} | /usr/bin/awk '/gateway:/{print $2}'");
+			if (!$gateway) {
+				// non-local gateway
+				$gateway = get_interface_mac($interface);
+			}
+		}
+		$result[] = array('gateway' => $gateway, 'interface-name' => $interface);
+	} else {
+		$rtable = route_table();
+		if (empty($rtable)) {
+			return array();
+		}
 
-	if (empty($rtable)) {
-		return array();
-	}
-
-	$result = array();
-	foreach ($rtable[$family] as $item) {
-		if ($item['destination'] == $target ||
-		    ip_in_subnet($target, $item['destination'])) {
-			$result[] = $item;
+		$result = array();
+		foreach ($rtable[$family] as $item) {
+			if ($item['destination'] == $target ||
+			    ip_in_subnet($target, $item['destination'])) {
+				$result[] = $item;
+			}
 		}
 	}
 
@@ -2686,7 +2716,7 @@ function route_get_default($ipprotocol) {
 		return '';
 	}
 
-	$route = route_get('default', $ipprotocol);
+	$route = route_get('default', $ipprotocol, true);
 
 	if (empty($route)) {
 		return '';
@@ -2712,7 +2742,7 @@ function route_del($target, $ipprotocol = '') {
 		return false;
 	}
 
-	$route = route_get($target, $ipprotocol);
+	$route = route_get($target, $ipprotocol, true);
 
 	if (empty($route)) {
 		return;
@@ -2784,7 +2814,8 @@ function route_add_or_change($target, $gw, $iface = '', $args = '',
 		return false;
 	}
 
-	if (is_subnet($target)) {
+	/* use '-host' for IPv6 /128 routes, see https://redmine.pfsense.org/issues/11594 */
+	if (is_subnetv4($target) || (is_subnetv6($target) && (subnet_size($target) > 1))) {
 		$target_prefix = '-net';
 	} else if (is_ipaddr($target)) {
 		$target_prefix = '-host';
@@ -3372,7 +3403,8 @@ function parse_cisco_acl_rule($rule, $devname, $dir, $proto) {
 	if (trim($rule[$index]) == "host") {
 		$index++;
 		if ((is_ipaddrv4(trim($rule[$index])) && ($proto == "inet")) ||
-		    (is_ipaddrv6(trim($rule[$index])) && ($proto == "inet6"))) {
+		    (is_ipaddrv6(trim($rule[$index])) && ($proto == "inet6")) ||
+		    (trim($rule[$index]) == "{clientip}")) {
 			$tmprule .= "from {$rule[$index]} ";
 			$index++;
 		} else {
@@ -3396,7 +3428,7 @@ function parse_cisco_acl_rule($rule, $devname, $dir, $proto) {
 				syslog(LOG_WARNING, "Error parsing rule {$rule_orig}: Invalid source netmask '$netmask'.");
 				return;
 			}
-			$tmprule .= "from {$network}/{$netmask}";
+			$tmprule .= "from {$network}/{$netmask} ";
 		} else {
 			syslog(LOG_WARNING, "Error parsing rule {$rule_orig}: Invalid source network '$network'.");
 			return;
@@ -3447,7 +3479,8 @@ function parse_cisco_acl_rule($rule, $devname, $dir, $proto) {
 	if (trim($rule[$index]) == "host") {
 		$index++;
 		if ((is_ipaddrv4(trim($rule[$index])) && ($proto == "inet")) ||
-		    (is_ipaddrv6(trim($rule[$index])) && ($proto == "inet6"))) {
+		    (is_ipaddrv6(trim($rule[$index])) && ($proto == "inet6")) ||
+		    (trim($rule[$index]) == "{clientip}")) {
 			$tmprule .= "to {$rule[$index]} ";
 			$index++;
 		} else {
@@ -3471,7 +3504,7 @@ function parse_cisco_acl_rule($rule, $devname, $dir, $proto) {
 				syslog(LOG_WARNING, "Error parsing rule {$rule_orig}: Invalid destination network '$network'.");
 				return;
 			}
-			$tmprule .= "to {$network}/{$netmask}";
+			$tmprule .= "to {$network}/{$netmask} ";
 		} else {
 			syslog(LOG_WARNING, "Error parsing rule {$rule_orig}: Invalid destination network '$network'.");
 			return;
@@ -3606,4 +3639,94 @@ function alias_idn_to_ascii($alias) {
 	}
 }
 
+// These funtions were in guiconfig.inc but have been moved here so non GUI processes can use them
+function address_to_pconfig($adr, &$padr, &$pmask, &$pnot, &$pbeginport, &$pendport) {
+	if (isset($adr['any'])) {
+		$padr = "any";
+	} else if ($adr['network']) {
+		$padr = $adr['network'];
+	} else if ($adr['address']) {
+		list($padr, $pmask) = explode("/", $adr['address']);
+		if (!$pmask) {
+			if (is_ipaddrv6($padr)) {
+				$pmask = 128;
+			} else {
+				$pmask = 32;
+			}
+		}
+	}
+
+	if (isset($adr['not'])) {
+		$pnot = 1;
+	} else {
+		$pnot = 0;
+	}
+
+	if ($adr['port']) {
+		list($pbeginport, $pendport) = explode("-", $adr['port']);
+		if (!$pendport) {
+			$pendport = $pbeginport;
+		}
+	} else if (!is_alias($pbeginport) && !is_alias($pendport)) {
+		$pbeginport = "any";
+		$pendport = "any";
+	}
+}
+
+function pconfig_to_address(&$adr, $padr, $pmask, $pnot = false, $pbeginport = 0, $pendport = 0) {
+	$adr = array();
+
+	if ($padr == "any") {
+		$adr['any'] = true;
+	} else if (is_specialnet($padr)) {
+		$adr['network'] = $padr;
+	} else {
+		$adr['address'] = $padr;
+		if (is_ipaddrv6($padr)) {
+			if ($pmask != 128) {
+				$adr['address'] .= "/" . $pmask;
+			}
+		} else {
+			if ($pmask != 32) {
+				$adr['address'] .= "/" . $pmask;
+			}
+		}
+	}
+
+	if ($pnot) {
+		$adr['not'] = true;
+	} else {
+		unset($adr['not']);
+	}
+
+	if (($pbeginport != 0) && ($pbeginport != "any")) {
+		if ($pbeginport != $pendport) {
+			$adr['port'] = $pbeginport . "-" . $pendport;
+		} else {
+			$adr['port'] = $pbeginport;
+		}
+	}
+
+	/*
+	 * If the port is still unset, then it must not be numeric, but could
+	 * be an alias or a well-known/registered service.
+	 * See https://redmine.pfsense.org/issues/8410
+	 */
+	if (!isset($adr['port']) && is_port_or_alias($pbeginport)) {
+		$adr['port'] = $pbeginport;
+	}
+}
+
+function is_specialnet($net) {
+	global $specialsrcdst;
+
+	if (!$net) {
+		return false;
+	}
+	if (in_array($net, $specialsrcdst)) {
+		return true;
+	} else {
+		return false;
+	}
+}
 ?>

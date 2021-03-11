@@ -99,6 +99,7 @@ if ($act == "new") {
 	$pconfig['digest'] = "SHA256";
 	$pconfig['allow_compression'] = "no";
 	$pconfig['compression'] = "";
+	$pconfig['exit_notify'] = 1;
 }
 
 global $simplefields;
@@ -175,6 +176,7 @@ if (($act == "edit") || ($act == "dup")) {
 
 		$pconfig['route_no_pull'] = $a_client[$id]['route_no_pull'];
 		$pconfig['route_no_exec'] = $a_client[$id]['route_no_exec'];
+		$pconfig['dns_add'] = $a_client[$id]['dns_add'];
 		if (isset($a_client[$id]['create_gw'])) {
 			$pconfig['create_gw'] = $a_client[$id]['create_gw'];
 		} else {
@@ -214,6 +216,8 @@ if ($_POST['save']) {
 		$vpnid = 0;
 	}
 
+	$pconfig['ncp_enable'] = ($pconfig['ncp_enable'] == 'yes') ? 'enabled' : 'disabled';
+
 	if (isset($pconfig['custom_options']) &&
 	    ($pconfig['custom_options'] != $a_client[$id]['custom_options']) &&
 	    !$user_can_edit_advanced) {
@@ -226,6 +230,11 @@ if ($_POST['save']) {
 	$cipher_validation_list = array_keys(openvpn_get_cipherlist());
 	if (!in_array($pconfig['data_ciphers_fallback'], $cipher_validation_list)) {
 		$input_errors[] = gettext("The selected Fallback Data Encryption Algorithm is not valid.");
+	}
+
+	/* Maximum option line length = 256, see https://redmine.pfsense.org/issues/11559 */
+	if (!empty($pconfig['data_ciphers']) && (strlen("data-ciphers " . implode(",", $pconfig['data_ciphers'])) > 254)) {
+		$input_errors[] = gettext("Too many Data Encryption Algorithms have been selected.");
 	}
 
 	list($iv_iface, $iv_ip) = explode ("|", $pconfig['interface']);
@@ -514,6 +523,7 @@ if ($_POST['save']) {
 
 		$client['route_no_pull'] = $pconfig['route_no_pull'];
 		$client['route_no_exec'] = $pconfig['route_no_exec'];
+		$client['dns_add'] = $pconfig['dns_add'];
 		$client['verbosity_level'] = $pconfig['verbosity_level'];
 		$client['create_gw'] = $pconfig['create_gw'];
 
@@ -521,7 +531,7 @@ if ($_POST['save']) {
 			$client['data_ciphers'] = implode(",", $pconfig['data_ciphers']);
 		}
 
-		$client['ncp_enable'] = $pconfig['ncp_enable'] ? "enabled":"disabled";
+		$client['ncp_enable'] = $pconfig['ncp_enable'];
 
 		$client['ping_method'] = $pconfig['ping_method'];
 		$client['keepalive_interval'] = $pconfig['keepalive_interval'];
@@ -986,6 +996,13 @@ if ($act=="new" || $act=="edit"):
 		'Don\'t add or remove routes automatically',
 		$pconfig['route_no_exec']
 	))->setHelp('Do not execute operating system commands to install routes. Instead, pass routes to --route-up script using environmental variables.');
+
+	$section->addInput(new Form_Checkbox(
+		'dns_add',
+		'Pull DNS',
+		'Add server provided DNS',
+		$pconfig['dns_add']
+	))->setHelp('If this option is set, pfSense will use DNS servers assigned by remote OpenVPN server for its own purposes (including the DNS Forwarder/DNS Resolver).');
 
 	$form->add($section);
 

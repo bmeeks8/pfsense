@@ -294,6 +294,8 @@ if ($_POST['save']) {
 		$vpnid = 0;
 	}
 
+	$pconfig['ncp_enable'] = ($pconfig['ncp_enable'] == 'yes') ? 'enabled' : 'disabled';
+
 	if (isset($pconfig['custom_options']) &&
 	    ($pconfig['custom_options'] != $a_server[$id]['custom_options']) &&
 	    !$user_can_edit_advanced) {
@@ -306,6 +308,11 @@ if ($_POST['save']) {
 	$cipher_validation_list = array_keys(openvpn_get_cipherlist());
 	if (!in_array($pconfig['data_ciphers_fallback'], $cipher_validation_list)) {
 		$input_errors[] = gettext("The selected Fallback Data Encryption Algorithm is not valid.");
+	}
+
+	/* Maximum option line length = 256, see https://redmine.pfsense.org/issues/11559 */
+	if (!empty($pconfig['data_ciphers']) && (strlen("data-ciphers " . implode(",", $pconfig['data_ciphers'])) > 254)) {
+		$input_errors[] = gettext("Too many Data Encryption Algorithms have been selected.");
 	}
 
 	list($iv_iface, $iv_ip) = explode ("|", $pconfig['interface']);
@@ -340,6 +347,19 @@ if ($_POST['save']) {
 	/* input validation */
 	if ($result = openvpn_validate_port($pconfig['local_port'], 'Local port', 1)) {
 		$input_errors[] = $result;
+	}
+
+	/* Maximum option line length = 256, see https://redmine.pfsense.org/issues/11104 */
+	if (!empty($pconfig['authmode']) && is_port($pconfig['local_port'])) {
+		$strictusercn = "false";
+		if ($pconfig['strictusercn']) {
+			$strictusercn = "true";
+		}
+		$authstring = openvpn_authscript_string(implode(',', $pconfig['authmode']),
+			    $strictusercn, $vpnid, $pconfig['local_port']);
+		if (strlen($authstring) > 254) {
+			$input_errors[] = gettext("Too many Authentication Backends have been selected or their names are too long.");
+		}
 	}
 
 	if ($result = openvpn_validate_cidr($pconfig['tunnel_network'], 'IPv4 Tunnel Network', false, "ipv4")) {
@@ -712,7 +732,7 @@ if ($_POST['save']) {
 			$server['data_ciphers'] = implode(",", $pconfig['data_ciphers']);
 		}
 
-		$server['ncp_enable'] = $pconfig['ncp_enable'] ? "enabled":"disabled";
+		$server['ncp_enable'] = $pconfig['ncp_enable'];
 
 		$server['ping_method'] = $pconfig['ping_method'];
 		$server['keepalive_interval'] = $pconfig['keepalive_interval'];

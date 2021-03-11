@@ -1769,9 +1769,6 @@ function interfaces_configure() {
 
 	interfaces_qinq_configure();
 
-	/* set up IPsec VTI interfaces */
-	interfaces_ipsec_vti_configure();
-
 	$iflist = get_configured_interface_with_descr(true);
 	$delayed_list = array();
 	$bridge_list = array();
@@ -1803,17 +1800,14 @@ function interfaces_configure() {
 			$track6_list[$if] = $ifname;
 		} else {
 			/* do not run dhcp6c if track interface does not exists
-			 * see https://redmine.pfsense.org/issues/3965 */
+			 * see https://redmine.pfsense.org/issues/3965
+			 * and https://redmine.pfsense.org/issues/11633 */ 
 			if (!empty($config['interfaces'][$if]['ipaddrv6']) &&
 			    $config['interfaces'][$if]['ipaddrv6'] == "dhcp6") {
 				$tr6list = link_interface_to_track6($if);
 				if (is_array($tr6list) && !empty($tr6list)) {
-					foreach ($tr6list as $tr6if) {
-						if (!does_interface_exist($tr6if)) {
-							$dhcp6c_list[$if] = $ifname;
-							continue;
-						}
-					}
+					$dhcp6c_list[$if] = $ifname;
+					continue;
 				}
 			}
 			if (platform_booting()) {
@@ -1921,6 +1915,9 @@ function interfaces_configure() {
 			echo gettext("done.") . "\n";
 		}
 	}
+
+	/* set up IPsec VTI interfaces */
+	interfaces_ipsec_vti_configure();
 
 	/* configure interface groups */
 	interfaces_group_setup();
@@ -2170,6 +2167,8 @@ function interface_bring_down($interface = "wan", $destroy = false, $ifacecfg = 
 	if (is_array($ifcfg['wireless'])) {
 		kill_hostapd($realif);
 		mwexec(kill_wpasupplicant($realif));
+		unlink_if_exists("{$g['varetc_path']}/wpa_supplicant_{$realif}.*");
+		unlink_if_exists("{$g['varetc_path']}/hostapd_{$realif}.conf");
 	}
 
 	if ($destroy == true) {
@@ -3613,6 +3612,12 @@ function interface_wireless_configure($if, &$wl, &$wlcfg) {
 	kill_hostapd($if);
 	mwexec(kill_wpasupplicant("{$if}"));
 
+	$wpa_supplicant_file = "{$g['varetc_path']}/wpa_supplicant_{$if}.";
+	$hostapd_conf = "{$g['varetc_path']}/hostapd_{$if}.conf";
+
+	unlink_if_exists("{$wpa_supplicant_file}*");
+	unlink_if_exists($hostapd_conf);
+
 	/* generate wpa_supplicant/hostap config if wpa is enabled */
 
 	switch ($wlcfg['mode']) {
@@ -3628,13 +3633,42 @@ ssid="{$wlcfg['ssid']}"
 scan_ssid=1
 priority=5
 key_mgmt={$wlcfg['wpa']['wpa_key_mgmt']}
-psk="{$wlcfg['wpa']['passphrase']}"
 pairwise={$wlcfg['wpa']['wpa_pairwise']}
 group={$wlcfg['wpa']['wpa_pairwise']}
-}
-EOD;
 
-				@file_put_contents("{$g['varetc_path']}/wpa_supplicant_{$if}.conf", $wpa);
+EOD;
+				if ($wlcfg['wpa']['wpa_key_mgmt'] == 'WPA-EAP') {
+					if (($wlcfg['wpa']['wpa_eap_client_mode'] == 'PEAP') ||
+					    ($wlcfg['wpa']['wpa_eap_client_mode'] == 'TTLS')) {
+						if ($wlcfg['wpa']['wpa_eap_inner_auth'] == 'MSCHAPV2') {
+							$wpa .= "phase1=\"peaplabel=0\"\n";
+						}
+						$wpa .= "phase2=\"auth={$wlcfg['wpa']['wpa_eap_inner_auth']}\"\n";
+						$wpa .= "identity=\"{$wlcfg['wpa']['wpa_eap_inner_id']}\"\n";
+						$eappass = base64_decode($wlcfg['wpa']['wpa_eap_inner_password']);
+						$wpa .= "password=\"{$eappass}\"\n";
+					}
+					if (strstr($wlcfg['wpa']['wpa_eap_client_mode'], 'TLS')) { 
+						$cert = lookup_cert($wlcfg['wpa']['wpa_eap_cert']);
+						@file_put_contents($wpa_supplicant_file . "crt", base64_decode($cert['crt']) . "\n" .
+						    ca_chain($cert)); 
+						@file_put_contents($wpa_supplicant_file . "key", base64_decode($cert['prv'])); 
+						@chmod($wpa_supplicant_crt, 0600);
+						@chmod($wpa_supplicant_key, 0600);
+						$wpa .= "client_cert=\"{$wpa_supplicant_crt}\"\n";
+						$wpa .= "private_key=\"{$wpa_supplicant_key}\"\n";
+					}
+					$ca = lookup_ca($wlcfg['wpa']['wpa_eap_ca']);
+					@file_put_contents($wpa_supplicant_file . "ca", base64_decode($ca['crt']) . "\n" .
+					    ca_chain($ca)); 
+					$wpa .= "ca_cert=\"{$wpa_supplicant_ca}\"\n";
+					$wpa .= "eap={$wlcfg['wpa']['wpa_eap_client_mode']}\n";
+				} else {
+					$wpa .= "psk=\"{$wlcfg['wpa']['passphrase']}\"\n";
+				}
+				$wpa .= "}\n";
+
+				@file_put_contents($wpa_supplicant_file . "conf", $wpa);
 				unset($wpa);
 			}
 			break;
@@ -3709,7 +3743,7 @@ EOD;
 					}
 				}
 
-				@file_put_contents("{$g['varetc_path']}/hostapd_{$if}.conf", $wpa);
+				@file_put_contents($hostapd_conf, $wpa);
 				unset($wpa);
 			}
 			break;
@@ -5785,6 +5819,9 @@ function convert_friendly_interface_to_friendly_descr($interface) {
 		case "openvpn":
 			$ifdesc = "OpenVPN";
 			break;
+		case "wireguard":
+			$ifdesc = "WireGuard";
+			break;
 		case "lo0":
 			$ifdesc = "Loopback";
 			break;
@@ -6119,7 +6156,7 @@ function guess_interface_from_ip($ipaddress) {
 		return false;
 	}
 
-	$route = route_get($ipaddress);
+	$route = route_get($ipaddress, '', true);
 	if (empty($route)) {
 		return false;
 	}

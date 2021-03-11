@@ -24,6 +24,9 @@ require_once('config.inc');
 
 $wgbinpath = '/usr/local/bin/wg';
 
+global $wgpeerdefaultroute;
+$wgpeerdefaultroute = array();
+
 // Gnerate a preshared key
 function gerneratePSK() {
 	global $wgbinpath;
@@ -144,6 +147,8 @@ function wg_validate_post($pconfig) {
 
 // Valildate a peer
 function wg_validate_peer($idx, $peer) {
+	global $wgpeerdefaultroute;
+
 	$input_errors = array();
 
 	// Check remote port
@@ -173,9 +178,23 @@ function wg_validate_peer($idx, $peer) {
 			if (!is_subnet(trim($ip))) {
 				$input_errors[] = sprintf(gettext(
 				    'Peer %1$s: Address %2$s is not a valid ' .
-				    'IPv4 or IPv6 CIDR subnet aadress.'),
+				    'IPv4 or IPv6 CIDR subnet address.'),
 					$idx, $ip);
 			}
+		}
+	}
+
+	// Default route, see https://redmine.pfsense.org/issues/11465
+	$defroute = wg_defaultroute_check($peer);
+	if ($defroute) { 
+		if ((($defroute == 'all') && !empty($wgpeerdefaultroute)) ||
+		    (($defroute == 'ipv4') && in_array('ipv4', $wgpeerdefaultroute)) ||
+		    (($defroute == 'ipv6') && in_array('ipv6', $wgpeerdefaultroute))) {
+			$input_errors[] = sprintf(gettext(
+			    'Peer %1$s: Only one endpoint per address family can be the default route ' .
+			    '(0.0.0.0/0, ::/0, or blank in the Allowed IPs field).'), $idx);
+		} else {
+			$wgpeerdefaultroute[] = $defroute;
 		}
 	}
 
@@ -257,8 +276,8 @@ function wg_configure_if($wg_ifname) {
 		} elseif (is_ipaddrv6($ip)) {
 			mwexec("/sbin/ifconfig " .
 			    escapeshellarg($tunnel['name']) . " inet6 " .
-			    escapeshellarg($ip) . " netmask " .
-			    escapeshellarg(gen_subnet_mask($mask)) .
+			    escapeshellarg($ip) . " prefixlen " .
+			    escapeshellarg($mask) .
 			    ($ip6_first ? "" : " alias"));
 			if ($ip6_first) {
 				file_put_contents("/tmp/{$tunnel['name']}_routerv6", wg_find_tunnel_gw($tunnel, $addr));
@@ -579,4 +598,21 @@ function wg_find_tunnel_gw($tunnel, $addr) {
 	}
 	/* If no viable candidate is found, return the tunnel address */
 	return $ip;
+}
+
+function wg_defaultroute_check($peer) {
+
+	if (empty($peer['allowedips'])) {
+		return 'all';
+	} else {
+		foreach (explode(",", $peer['allowedips']) as $ip) {
+			$ip = trim($ip);
+			if ($ip == '0.0.0.0/0') {
+				return 'ipv4';
+			} elseif ($ip == '::/0') {
+				return 'ipv6';
+			}
+		}
+	}
+	return false;
 }
